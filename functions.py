@@ -49,3 +49,4 @@ def set_x(text):
         for word in substring:
             text = re.sub(word, ('x' + word[1:]), text)
     return text
+
