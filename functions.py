@@ -126,6 +126,7 @@ def fill_lastrow (wb):
 
     # For formatting
 def format(sheet):
+    sheet.range('A:A').column_width = 3
     sheet.range('B:B').autofit()
     sheet.range('C:C').autofit()
     sheet.range('C:C').column_width = 55
@@ -164,6 +165,16 @@ def format(sheet):
     sheet.range('AL:AL').autofit()
     sheet.range('AM:AM').autofit()
     sheet.range('AN:AN').autofit()
+
+def hide_columns(sheet):
+    sheet.range('AC:AN').column_width = 0
+    sheet.range('AB:AB').column_width = 10
+    sheet.range('Q:AA').column_width = 0
+    sheet.range('P:P').column_width = 20
+    sheet.range('N:O').column_width = 0
+    sheet.range('L:L').column_width = 0
+    sheet.range('F:G').column_width = 0
+    sheet.range('B:B').column_width = 0
 
 def summary(wb, discount=False):
     summary_formula = []
