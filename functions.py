@@ -81,9 +81,11 @@ def fill_formula(wb, sheet):
     sheet.range('AE3:AE' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),IF(AB3<>"",AB3,AC3),"")'
     # sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED"),D3*AE3,"")'
     sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AE3,"")'
+    # sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),D3*AE3,"")'
     sheet.range('AG3:AG' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")'
     sheet.range('AH3:AH' + str(last_row)).formula = '=IF(AND(AG3<>"",AG3<>0),AG3/AF3,"")'
-    sheet.range('AL3:AL' + str(last_row)).formula = '=IF(A3<>"","Title",IF(B3<>"","Lineitem",IF(LEFT(C3,3)="***","Comment",IF(AND(A3="",B3="",C2="", C4<>"",D4<>""), "Subtitle",""))))'
+    sheet.range('AI3:AI' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"),D3*AE3,"")'
+    # sheet.range('AL3:AL' + str(last_row)).formula = '=IF(A3<>"","Title",IF(B3<>"","Lineitem",IF(LEFT(C3,3)="***","Comment",IF(AND(A3="",B3="",C2="", C4<>"",D4<>""), "Subtitle",""))))'
     # Unit Price
     sheet.range('F3:F' + str(last_row)).formula = '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))'
     # sheet.range('F3:F' + str(last_row)).formula = '=IF(AE3<>"", AE3,"")'
@@ -95,7 +97,8 @@ def fill_formula(wb, sheet):
     sheet.range('AL' + str(last_row+1)).value = "Title"
 
     # For Lumpsum
-    sheet.range('AJ3:AJ' + str(last_row)).formula = '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AF", ROW()+1, ":AF",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
+    # sheet.range('AJ3:AJ' + str(last_row)).formula = '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AF", ROW()+1, ":AF",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
+    sheet.range('AJ3:AJ' + str(last_row)).formula = '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AI", ROW()+1, ":AI",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
     sheet.range('AK3:AK' + str(last_row)).formula = '=IF(AL3="Lineitem", IF(ISNUMBER(INDIRECT(CONCAT("AJ",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))), "Lumpsum", "Unit Price"), "")'
     (wb.sheets['Config'].range('100:100')).copy(sheet.range(str(last_row+2) + ':' + str(last_row+2)))
     sheet.range('F'+ str(last_row+2)).formula = '="Subtotal(" & Config!B12 & ")"'
@@ -106,6 +109,7 @@ def fill_formula(wb, sheet):
     sheet.range('U' + str(last_row+2)).formula = '=SUM(U3:U' + str(last_row+1) + ')'
     sheet.range('U' + str(last_row+2)).font.bold = True
     sheet.range('AF' + str(last_row+2)).formula = '=SUM(AF3:AF' + str(last_row+1) + ')'
+    # sheet.range('AF' + str(last_row+2)).formula = '=SUMIF(H3:H' + str(last_row+1) + ',"<>OPTION",AF3:AF' + str(last_row+1) + ')'
     sheet.range('AF' + str(last_row+2)).font.bold = True
     sheet.range('AG' + str(last_row+2)).formula = '=SUM(AG3:AG' + str(last_row+1) + ')'
     sheet.range('AG' + str(last_row+2)).font.bold = True
