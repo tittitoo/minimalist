@@ -1,4 +1,5 @@
 import re
+import pandas as pd
 # import xlwings as xw
 
 def set_nitty_gritty(text):
@@ -233,3 +234,40 @@ def summary(wb, discount=False):
 
     last_row = sheet.range('C100000').end('up').row
     sheet.page_setup.print_area = 'A1:F' + str(last_row+3)
+
+# For the main numbering. It will fix as long as it is a number.
+# I need to look for only the systems and engineering services.
+# Later it will be implemented as a function taking a workbook
+def number_title(wb):
+    count = 10
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    # Collect system_names and data
+    systems = pd.DataFrame()
+    system_names = []
+    for sheet in wb.sheet_names:
+        if sheet not in skip_sheets:
+            system_names.append(sheet.upper())
+            ws = wb.sheets[sheet]
+            last_row = ws.range('C100000').end('up').row
+            data = ws.range('A2:C' + str(last_row)).options(pd.DataFrame, index=False).value
+            data['System'] = str(sheet.upper())
+            systems = pd.concat([systems, data], join='outer')
+    # Now that I have collect the data, let us do the numbering
+    systems = systems.reset_index(drop=True)
+    systems = systems.reindex(columns=['NO', 'Description', 'System'])
+
+    # Need to do try-except as the float type can return nan
+    for idx, item in systems['NO'].items():
+        try:
+            if int(item):
+                systems.at[idx, 'NO'] = count
+                count += 10
+        except Exception as e:
+            pass
+    
+    # Now is the matter of writing to the required sheets
+    for system in system_names:
+        # print(system)
+        sheet = wb.sheets[system]
+        system = systems[systems['System'] == system]
+        sheet.range('A2').options(index=False).value = system['NO']
