@@ -127,10 +127,11 @@ def fill_lastrow (wb):
 
     # For formatting
 def format(sheet):
-    sheet.range('A:A').column_width = 3
+    sheet.range('A:A').column_width = 5
     sheet.range('B:B').autofit()
     sheet.range('C:C').autofit()
     sheet.range('C:C').column_width = 55
+    sheet.range('C:C').wrap_text = True
     sheet.range('D:D').autofit()
     sheet.range('E:E').autofit()
     sheet.range('F:F').autofit()
@@ -168,7 +169,7 @@ def format(sheet):
     sheet.range('AN:AN').autofit()
 
 def hide_columns(sheet):
-    sheet.range('AC:AN').column_width = 0
+    sheet.range('AC:AM').column_width = 0
     sheet.range('AB:AB').column_width = 10
     sheet.range('Q:AA').column_width = 0
     sheet.range('P:P').column_width = 20
@@ -230,7 +231,8 @@ def summary(wb, discount=False):
         sheet.range('C' + str(offset+6)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."
     else:
         sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
-        sheet.range('C' + str(offset+4)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."
+        sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
+        sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
 
     last_row = sheet.range('C100000').end('up').row
     sheet.page_setup.print_area = 'A1:F' + str(last_row+3)
