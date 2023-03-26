@@ -1,7 +1,8 @@
 import re
 import pandas as pd
-# import xlwings as xw
+import xlwings as xw
 
+# Fix annoying text
 def set_nitty_gritty(text):
     # Strip 2 or more spaces
     text = re.sub(' {2,}', ' ',  text)
@@ -9,7 +10,7 @@ def set_nitty_gritty(text):
     text = re.sub('^(-|~)', '•', text)
     # Put bullet point for Sub-subitem preceded by a single * followed by space.
     text = re.sub('^[*?]\s', ' • ', text)
-    # Instead of ';' at the end of line, use hyphen instead.
+    # Instead of ';' at the end of line, use ':' instead.
     text = re.sub(';$', ':', text)
     text = set_comma_space(text)
     text = set_x(text)
@@ -169,14 +170,16 @@ def format(sheet):
     sheet.range('AN:AN').autofit()
 
 def hide_columns(sheet):
-    sheet.range('AC:AM').column_width = 0
+    sheet.range('AI:AM').column_width = 0
+    sheet.range('AC:AF').column_width = 0
     sheet.range('AB:AB').column_width = 10
-    sheet.range('Q:AA').column_width = 0
+    sheet.range('S:AA').column_width = 0
+    sheet.range('Q:Q').column_width = 0
     sheet.range('P:P').column_width = 20
-    sheet.range('N:O').column_width = 0
+    sheet.range('O:O').column_width = 0
     sheet.range('L:L').column_width = 0
-    sheet.range('F:G').column_width = 0
-    sheet.range('B:B').column_width = 0
+    # sheet.range('F:G').column_width = 0
+    # sheet.range('B:B').column_width = 0
 
 def summary(wb, discount=False):
     summary_formula = []
@@ -238,10 +241,9 @@ def summary(wb, discount=False):
     sheet.page_setup.print_area = 'A1:F' + str(last_row+3)
 
 # For the main numbering. It will fix as long as it is a number.
-# I need to look for only the systems and engineering services.
-# Later it will be implemented as a function taking a workbook
-def number_title(wb):
-    count = 10
+# Need to look for only the systems and engineering services.
+def number_title(wb, count=10, step=10):
+    """Takes a work book, then start number and step."""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     # Collect system_names and data
     systems = pd.DataFrame()
@@ -263,7 +265,7 @@ def number_title(wb):
         try:
             if int(item):
                 systems.at[idx, 'NO'] = count
-                count += 10
+                count += step
         except Exception as e:
             pass
     
@@ -273,3 +275,46 @@ def number_title(wb):
         sheet = wb.sheets[system]
         system = systems[systems['System'] == system]
         sheet.range('A2').options(index=False).value = system['NO']
+
+# For formatting text for consistency
+# Need to look for only the systems and engineering services.
+def format(ws):
+    """Takes a work book or sheet, and format text."""
+    systems = pd.DataFrame()
+    system_names = []
+    if isinstance(ws, xw.main.Sheet):
+        last_row = ws.range('C100000').end('up').row
+        data = ws.range('A2:C' + str(last_row)).options(pd.DataFrame, index=False).value
+
+
+
+
+    # skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    # # Collect system_names and data
+    # for sheet in wb.sheet_names:
+    #     if sheet not in skip_sheets:
+    #         system_names.append(sheet.upper())
+    #         ws = wb.sheets[sheet]
+    #         last_row = ws.range('C100000').end('up').row
+    #         data = ws.range('A2:C' + str(last_row)).options(pd.DataFrame, index=False).value
+    #         data['System'] = str(sheet.upper())
+    #         systems = pd.concat([systems, data], join='outer')
+    # # Now that I have collect the data, let us do the numbering
+    # systems = systems.reset_index(drop=True)
+    # systems = systems.reindex(columns=['NO', 'Description', 'System'])
+
+    # # Need to do try-except as the float type can return nan
+    # for idx, item in systems['NO'].items():
+    #     try:
+    #         if int(item):
+    #             systems.at[idx, 'NO'] = count
+    #             count += step
+    #     except Exception as e:
+    #         pass
+    
+    # # Now is the matter of writing to the required sheets
+    # for system in system_names:
+    #     # print(system)
+    #     sheet = wb.sheets[system]
+    #     system = systems[systems['System'] == system]
+    #     sheet.range('A2').options(index=False).value = system['NO']
