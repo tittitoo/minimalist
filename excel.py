@@ -1,3 +1,8 @@
+""" Created so that python fucntions are available in Excel.
+    © Thiha Aung
+"""
+
+
 # import os
 # import re
 

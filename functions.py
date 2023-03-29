@@ -1,3 +1,7 @@
+""" Multiple functions to support Excel automation.
+    © Thiha Aung
+"""
+
 import re
 import os
 from pathlib import Path
