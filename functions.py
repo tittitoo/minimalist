@@ -1,6 +1,9 @@
 import re
+import os
+from pathlib import Path
 import pandas as pd
 import xlwings as xw
+import hide
 
 # Fix annoying text
 def set_nitty_gritty(text):
@@ -126,9 +129,31 @@ def fill_lastrow (wb):
             # Set-up print area
             sheet.page_setup.print_area = 'A1:H' + str(last_row+2)
 
+def fill_lastrow_sheet(wb, sheet):
+    last_row = sheet.range('C100000').end('up').row
+    (wb.sheets['Config'].range('100:100')).copy(sheet.range(str(last_row+2) + ':' + str(last_row+2)))
+    sheet.range('F'+ str(last_row+2)).formula = '="Subtotal(" & Config!B12 & ")"'
+    sheet.range('F'+ str(last_row+2)).font.bold = True
+    sheet.range('F'+ str(last_row+2)).font.size = 9
+    sheet.range('G' + str(last_row+2)).formula = '=SUM(G3:G' + str(last_row+1) + ')'
+    sheet.range('G' + str(last_row+2)).font.bold = True
+    sheet.range('U' + str(last_row+2)).formula = '=SUM(U3:U' + str(last_row+1) + ')'
+    sheet.range('U' + str(last_row+2)).font.bold = True
+    sheet.range('AF' + str(last_row+2)).formula = '=SUM(AF3:AF' + str(last_row+1) + ')'
+    # sheet.range('AF' + str(last_row+2)).formula = '=SUMIF(H3:H' + str(last_row+1) + ',"<>OPTION",AF3:AF' + str(last_row+1) + ')'
+    sheet.range('AF' + str(last_row+2)).font.bold = True
+    sheet.range('AG' + str(last_row+2)).formula = '=SUM(AG3:AG' + str(last_row+1) + ')'
+    sheet.range('AG' + str(last_row+2)).font.bold = True
+    sheet.range('AH' + str(last_row+2)).formula = '=AG' + str(last_row+2) + '/AF' + str(last_row+2)
+    sheet.range('AH' + str(last_row+2)).font.bold = True
+
+    # Set-up print area
+    sheet.page_setup.print_area = 'A1:H' + str(last_row+2)
+
+
     # For formatting
 def format(sheet):
-    sheet.range('A:A').column_width = 5
+    sheet.range('A:A').column_width = 3
     sheet.range('B:B').autofit()
     sheet.range('C:C').autofit()
     sheet.range('C:C').column_width = 55
@@ -170,7 +195,7 @@ def format(sheet):
     sheet.range('AN:AN').autofit()
 
 def hide_columns(sheet):
-    sheet.range('AI:AM').column_width = 0
+    sheet.range('AI:AN').column_width = 0
     sheet.range('AC:AF').column_width = 0
     sheet.range('AB:AB').column_width = 10
     sheet.range('S:AA').column_width = 0
@@ -181,7 +206,7 @@ def hide_columns(sheet):
     # sheet.range('F:G').column_width = 0
     # sheet.range('B:B').column_width = 0
 
-def summary(wb, discount=False):
+def summary(wb, discount=True):
     summary_formula = []
     collect = [] # Collect formula to be put in summary page.
     formula_fragment = '=IF(OR(Config!B13="COMMERCIAL PROPOSAL", Config!B13="BUDGETARY PROPOSAL"),'
@@ -232,6 +257,7 @@ def summary(wb, discount=False):
         sheet.range('J' + str(offset+3)).formula = '=IF(I' + str(offset+3) + '<>0,I' + str(offset+3) + '/D' + str(offset+3) + ',"")'
         sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
         sheet.range('C' + str(offset+6)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."
+        sheet.range('C' + str(offset+7)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
     else:
         sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
         sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
@@ -278,16 +304,13 @@ def number_title(wb, count=10, step=10):
 
 # For formatting text for consistency
 # Need to look for only the systems and engineering services.
-def format(ws):
+def format_description(ws):
     """Takes a work book or sheet, and format text."""
     systems = pd.DataFrame()
     system_names = []
     if isinstance(ws, xw.main.Sheet):
         last_row = ws.range('C100000').end('up').row
         data = ws.range('A2:C' + str(last_row)).options(pd.DataFrame, index=False).value
-
-
-
 
     # skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     # # Collect system_names and data
@@ -318,3 +341,33 @@ def format(ws):
     #     sheet = wb.sheets[system]
     #     system = systems[systems['System'] == system]
     #     sheet.range('A2').options(index=False).value = system['NO']
+
+def technical(wb):
+    file = wb.name
+    downloads_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
+    file_path = Path(downloads_folder, file)
+    try:
+        nb = xw.Book(file_path, password=hide.legacy)
+    except:
+        nb = xw.Book(file_path, password=hide.new)
+
+    nb.sheets['Cover'].range('D39').value = 'TECHNICAL PROPOSAL'
+    nb.sheets['Cover'].range('C42:C47').value = nb.sheets['Cover'].range('C42:C47').raw_value
+    nb.sheets['Cover'].range('D6:D8').value = nb.sheets['Cover'].range('D6:D8').raw_value
+    nb.sheets['Summary'].range('D20:D100').value = ''
+    nb.sheets['Summary'].range('C20:C100').value = nb.sheets['Summary'].range('C20:C100').raw_value
+    nb.sheets['Summary'].range('G:K').delete()
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    for sheet in nb.sheet_names:
+        ws = nb.sheets[sheet]
+        ws.range('A1').value = ws.range('A1').raw_value
+        if sheet not in skip_sheets:
+            last_row = ws.range('B100000').end('up').row
+            ws.range('B3:B' + str(last_row)).value = ws.range('B3:B' + str(last_row)).raw_value
+            ws.range('AM:AN').delete()
+            ws.range('I:AK').delete()
+            ws.range('F:G').delete()
+    nb.sheets['Config'].delete()
+    nb.sheets['T&C'].delete()
+    nb.sheets['Summary'].activate()
+    nb.save( downloads_folder + '/' + 'Technical ' + file[:-4] + 'xlsx', password='') 
