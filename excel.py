@@ -55,3 +55,7 @@ def hide_columns():
 def technical():
     wb = xw.Book.caller()
     functions.technical(wb)
+
+def prepare_for_print_commercial():
+    wb = xw.Book.caller()
+    functions.prepare_for_print_commercial(wb)

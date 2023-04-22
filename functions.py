@@ -157,6 +157,7 @@ def fill_lastrow_sheet(wb, sheet):
 
     # For formatting
 def format(sheet):
+    # Set column widths
     sheet.range('A:A').column_width = 3
     sheet.range('B:B').autofit()
     sheet.range('C:C').autofit()
@@ -371,7 +372,36 @@ def technical(wb):
             ws.range('AM:AN').delete()
             ws.range('I:AK').delete()
             ws.range('F:G').delete()
+            # To reduce visual clutter
+            ws.range('G:H').column_width = 0
     nb.sheets['Config'].delete()
     nb.sheets['T&C'].delete()
+    prepare_for_print_technical(wb)
     nb.sheets['Summary'].activate()
     nb.save( downloads_folder + '/' + 'Technical ' + file[:-4] + 'xlsx', password='') 
+
+def prepare_for_print_commercial(wb):
+    """Takes a work book, set horizantal borders at pagebreaks."""
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    macro_nb = xw.Book('PERSONAL.XLSB')
+    current_sheet = wb.sheets.active
+    for sheet in wb.sheet_names:
+        if sheet not in skip_sheets:
+            wb.sheets[sheet].activate()
+            macro_nb.macro('conditional_format')()
+            macro_nb.macro('remove_h_borders')()
+            macro_nb.macro('pagebreak_borders')()
+    wb.sheets[current_sheet].activate()
+
+def prepare_for_print_technical(wb):
+    """Takes a work book, set horizantal borders at pagebreaks."""
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    macro_nb = xw.Book('PERSONAL.XLSB')
+    current_sheet = wb.sheets.active
+    for sheet in wb.sheet_names:
+        if sheet not in skip_sheets:
+            wb.sheets[sheet].activate()
+            macro_nb.macro('conditional_format_technical')()
+            macro_nb.macro('remove_h_borders')()
+            macro_nb.macro('pagebreak_borders')()
+    wb.sheets[current_sheet].activate()
