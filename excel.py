@@ -14,12 +14,6 @@ import xlwings as xw
 import functions
 import hide
 
-# wb = xw.Book.caller()
-# ws = wb.sheets.active
-
-# def main():
-#     pass
-
 def fill_formula():
     wb = xw.Book.caller()
     ws = wb.sheets.active
@@ -56,6 +50,10 @@ def technical():
     wb = xw.Book.caller()
     functions.technical(wb)
 
-def prepare_for_print_commercial():
+def prepare_to_print_commercial():
     wb = xw.Book.caller()
     functions.prepare_for_print_commercial(wb)
+
+def print_commercial():
+    wb = xw.Book.caller()
+    functions.print_commercial(wb)

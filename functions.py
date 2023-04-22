@@ -376,11 +376,14 @@ def technical(wb):
             ws.range('G:H').column_width = 0
     nb.sheets['Config'].delete()
     nb.sheets['T&C'].delete()
-    prepare_for_print_technical(wb)
+    prepare_to_print_technical(wb)
     nb.sheets['Summary'].activate()
-    nb.save( downloads_folder + '/' + 'Technical ' + file[:-4] + 'xlsx', password='') 
+    file_name = downloads_folder + '/' + 'Technical' + file[:-4] + 'xlsx'
+    nb.save(file_name, password='')
+    technical_wb = xw.Book(file_name)
+    print_technical(technical_wb)
 
-def prepare_for_print_commercial(wb):
+def prepare_to_print_commercial(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     macro_nb = xw.Book('PERSONAL.XLSB')
@@ -393,7 +396,7 @@ def prepare_for_print_commercial(wb):
             macro_nb.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
 
-def prepare_for_print_technical(wb):
+def prepare_to_print_technical(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     macro_nb = xw.Book('PERSONAL.XLSB')
@@ -405,3 +408,20 @@ def prepare_for_print_technical(wb):
             macro_nb.macro('remove_h_borders')()
             macro_nb.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
+
+def print_commercial(wb):
+    """The commercial proposal will be written to the cwd."""
+    prepare_to_print_commercial(wb)
+    try:
+        wb.to_pdf(exclude='Config', show=True)
+    except Exception as e:
+            # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
+            xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
+
+def print_technical(wb):
+    """The technical proposal will be written to the cwd."""
+    try:
+        wb.to_pdf(show=True)
+    except Exception as e:
+            # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
+            xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
