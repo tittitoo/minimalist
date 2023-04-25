@@ -24,10 +24,10 @@ def subtotal():
     ws = wb.sheets.active
     functions.fill_lastrow_sheet(wb, ws)
 
-def format():
+def unhide_columns():
     wb = xw.Book.caller()
     ws = wb.sheets.active
-    functions.format(ws)
+    functions.unhide_columns(ws)
 
 def summary_discount():
     wb = xw.Book.caller()
