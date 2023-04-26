@@ -49,3 +49,7 @@ def prepare_to_print_commercial():
 def print_commercial():
     wb = xw.Book.caller()
     functions.print_commercial(wb)
+
+def conditional_format_wb():
+    wb = xw.Book.caller()
+    functions.conditional_format_wb(wb)

@@ -269,7 +269,7 @@ def summary(wb, discount=True):
     else:
         sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'  # noqa: E501
         sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."  # noqa: E501
-        sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+        sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."  # noqa: E501
 
     last_row = sheet.range('C100000').end('up').row
     sheet.page_setup.print_area = 'A1:F' + str(last_row+3)
@@ -430,3 +430,17 @@ def print_technical(wb):
     except Exception:
             # The program does not override the existing file. The file needs to be removed if it exists.  # noqa: E501
             xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')  # noqa: E501
+
+def conditional_format_wb(wb):
+    """
+    Takes a workbook, and do conditional formatting.
+    Rely on excel macro for conditional format.
+    """
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    macro_nb = xw.Book('PERSONAL.XLSB')
+    current_sheet = wb.sheets.active
+    for sheet in wb.sheet_names:
+        if sheet not in skip_sheets:
+            wb.sheets[sheet].activate()
+            macro_nb.macro('conditional_format')()
+    wb.sheets[current_sheet].activate()
