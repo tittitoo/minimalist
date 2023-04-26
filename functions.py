@@ -62,7 +62,7 @@ def set_x(text):
 # Take in sheet and workbook
 def fill_formula(sheet):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    if sheet not in skip_sheets:
+    if sheet.name not in skip_sheets:
         # Formula to cells
         last_row = sheet.range('C100000').end('up').row
         sheet.range('A1').formula = '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'  # noqa: E501
