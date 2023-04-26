@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 import pandas as pd
 import xlwings as xw
-import hide
 
 # Fix annoying text
 def set_nitty_gritty(text):
@@ -352,23 +351,17 @@ def format_description(ws):
     #     sheet.range('A2').options(index=False).value = system['NO']
 
 def technical(wb):
-    file = wb.name
-    downloads_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
-    file_path = Path(downloads_folder, file)
-    try:
-        nb = xw.Book(file_path, password=hide.legacy)
-    except Exception:
-        nb = xw.Book(file_path, password=hide.new)
+    directory = os.path.dirname(wb.fullname)
 
-    nb.sheets['Cover'].range('D39').value = 'TECHNICAL PROPOSAL'
-    nb.sheets['Cover'].range('C42:C47').value = nb.sheets['Cover'].range('C42:C47').raw_value  # noqa: E501
-    nb.sheets['Cover'].range('D6:D8').value = nb.sheets['Cover'].range('D6:D8').raw_value  # noqa: E501
-    nb.sheets['Summary'].range('D20:D100').value = ''
-    nb.sheets['Summary'].range('C20:C100').value = nb.sheets['Summary'].range('C20:C100').raw_value  # noqa: E501
-    nb.sheets['Summary'].range('G:K').delete()
+    wb.sheets['Cover'].range('D39').value = 'TECHNICAL PROPOSAL'
+    wb.sheets['Cover'].range('C42:C47').value = wb.sheets['Cover'].range('C42:C47').raw_value  # noqa: E501
+    wb.sheets['Cover'].range('D6:D8').value = wb.sheets['Cover'].range('D6:D8').raw_value  # noqa: E501
+    wb.sheets['Summary'].range('D20:D100').value = ''
+    wb.sheets['Summary'].range('C20:C100').value = wb.sheets['Summary'].range('C20:C100').raw_value  # noqa: E501
+    wb.sheets['Summary'].range('G:K').delete()
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    for sheet in nb.sheet_names:
-        ws = nb.sheets[sheet]
+    for sheet in wb.sheet_names:
+        ws = wb.sheets[sheet]
         ws.range('A1').value = ws.range('A1').raw_value #Remove formula
         if sheet not in skip_sheets:
             last_row = ws.range('B100000').end('up').row
@@ -378,12 +371,12 @@ def technical(wb):
             ws.range('F:G').delete()
             # To reduce visual clutter
             ws.range('G:H').column_width = 0
-    nb.sheets['Config'].delete()
-    nb.sheets['T&C'].delete()
+    wb.sheets['Config'].delete()
+    wb.sheets['T&C'].delete()
     prepare_to_print_technical(wb)
-    nb.sheets['Summary'].activate()
-    file_name = downloads_folder + '/' + 'Technical' + file[:-4] + 'xlsx'
-    nb.save(file_name, password='')
+    wb.sheets['Summary'].activate()
+    file_name = 'Technical ' + wb.name[:-4] + 'xlsx'
+    wb.save(Path(directory, file_name), password='')
     technical_wb = xw.Book(file_name)
     print_technical(technical_wb)
 
