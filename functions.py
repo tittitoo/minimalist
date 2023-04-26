@@ -160,9 +160,9 @@ def fill_lastrow_sheet(wb, sheet):
 def unhide_columns(sheet):
     sheet.range('A:A').column_width = 4
     sheet.range('B:B').autofit()
-    sheet.range('C:C').autofit()
     sheet.range('C:C').column_width = 55
-    sheet.range('C:C').wrap_text = True
+    sheet.range('C:C').rows.autofit()
+    # sheet.range('C:C').wrap_text = True
     sheet.range('D:H').autofit()
     sheet.range('J:O').autofit()
     sheet.range('Q:AN').autofit()
