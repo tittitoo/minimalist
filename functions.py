@@ -211,6 +211,7 @@ def hide_columns(sheet):
         sheet.range('P:P').column_width = 20
         sheet.range('O:O').column_width = 0
         sheet.range('L:L').column_width = 0
+        sheet.range('T:T').autofit()
         # sheet.range('F:G').column_width = 0
         # sheet.range('B:B').column_width = 0
 
