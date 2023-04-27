@@ -394,7 +394,7 @@ def prepare_to_print_commercial(wb):
             wb.sheets[sheet].range('B:B').autofit()
             wb.sheets[sheet].range('C:C').autofit()
             wb.sheets[sheet].range('C:C').column_width = 55
-            wb.sheets[sheet].range('C:C').wrap_text = True
+            # wb.sheets[sheet].range('C:C').wrap_text = True
             wb.sheets[sheet].range('D:H').autofit()
             # Call macros
             macro_nb.macro('conditional_format')()
