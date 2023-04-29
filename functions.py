@@ -73,14 +73,20 @@ def fill_formula(sheet):
         # Exchange rates
         sheet.range('Q3:Q' + str(last_row)).formula = '=IF(Config!B12="SGD",IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE),""),IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE)/VLOOKUP(Config!$B$12,Config!$A$2:$B$10,2,FALSE),""))'  # noqa: E501
         sheet.range('R3:R' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"") ,N3*Q3,"")'  # noqa: E501
-        sheet.range('S3:S' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION") ,D3*R3,"")'  # noqa: E501
+        # sheet.range('S3:S' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION") ,D3*R3,"")'  # noqa: E501
+        sheet.range('S3:S' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*R3,"")'  # noqa: E501
         sheet.range('T3:T' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")'  # noqa: E501
         sheet.range('U3:U' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*T3,"")'  # noqa: E501
-        sheet.range('V3:V' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),R3*$L$1,"")'  # noqa: E501
-        sheet.range('W3:W' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),R3*$N$1,"")'  # noqa: E501
-        sheet.range('X3:X' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),R3*$P$1,"")'  # noqa: E501
-        sheet.range('Y3:Y' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),R3*$R$1,"")'  # noqa: E501
-        sheet.range('Z3:Z' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),T3-(R3+V3+W3+X3+Y3),"")'  # noqa: E501
+        # Default
+        sheet.range('V3:V' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$L$1,"")'  # noqa: E501
+        # Warranty
+        sheet.range('W3:W' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$N$1,"")'  # noqa: E501
+        # Freight (Inbound)
+        sheet.range('X3:X' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$P$1,"")'  # noqa: E501
+        # Special (Condition)
+        sheet.range('Y3:Y' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),R3*$R$1,"")'  # noqa: E501
+        # Risk
+        sheet.range('Z3:Z' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),U3-(S3+V3+W3+X3+Y3),"")'  # noqa: E501
         sheet.range('AA3:AA' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),$J$1,"")'  # noqa: E501
         sheet.range('AC3:AC' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")'  # noqa: E501
         # sheet.range('AD3:AD' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED"),D3*AC3,"")'  # noqa: E501
@@ -143,8 +149,33 @@ def fill_lastrow_sheet(wb, sheet):
         sheet.range('F'+ str(last_row+2)).font.size = 9
         sheet.range('G' + str(last_row+2)).formula = '=SUM(G3:G' + str(last_row+1) + ')'
         sheet.range('G' + str(last_row+2)).font.bold = True
+        # SCDQ: Subtotal cost after discount in quoted currency
+        sheet.range('S' + str(last_row+2)).formula = '=SUM(S3:S' + str(last_row+1) + ')'
+        sheet.range('S' + str(last_row+2)).font.bold = True
+        sheet.range('S' + str(last_row+2)).font.color = -11431936
+        # BSCQ: Base subtotal cost in quoted currency
         sheet.range('U' + str(last_row+2)).formula = '=SUM(U3:U' + str(last_row+1) + ')'
         sheet.range('U' + str(last_row+2)).font.bold = True
+        # Default
+        sheet.range('V' + str(last_row+2)).formula = '=SUM(V3:V' + str(last_row+1) + ')'
+        sheet.range('V' + str(last_row+2)).font.bold = True
+        sheet.range('V' + str(last_row+2)).font.color = -11431936
+        # Warranty
+        sheet.range('W' + str(last_row+2)).formula = '=SUM(W3:W' + str(last_row+1) + ')'
+        sheet.range('W' + str(last_row+2)).font.bold = True
+        sheet.range('W' + str(last_row+2)).font.color = -11431936
+        # Freight (Inbound)
+        sheet.range('X' + str(last_row+2)).formula = '=SUM(X3:X' + str(last_row+1) + ')'
+        sheet.range('X' + str(last_row+2)).font.bold = True
+        sheet.range('X' + str(last_row+2)).font.color = -11431936
+        # Special (Conditions)
+        sheet.range('Y' + str(last_row+2)).formula = '=SUM(Y3:Y' + str(last_row+1) + ')'
+        sheet.range('Y' + str(last_row+2)).font.bold = True
+        sheet.range('Y' + str(last_row+2)).font.color = -11431936
+        # Risk
+        sheet.range('Z' + str(last_row+2)).formula = '=SUM(Z3:Z' + str(last_row+1) + ')'
+        sheet.range('Z' + str(last_row+2)).font.bold = True
+        sheet.range('Z' + str(last_row+2)).font.color = -11431936
         sheet.range('AF' + str(last_row+2)).formula = '=SUM(AF3:AF' + str(last_row+1) + ')'  # noqa: E501
         sheet.range('AF' + str(last_row+2)).font.bold = True
         sheet.range('AG' + str(last_row+2)).formula = '=SUM(AG3:AG' + str(last_row+1) + ')'  # noqa: E501
