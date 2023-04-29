@@ -278,6 +278,7 @@ def summary(wb, discount=True):
             offset += 1
     
     # Drawing lines
+    (wb.sheets['Config'].range('108:108')).copy(sheet.range(str(19) + ':' + str(19)))  # noqa: E501
     (wb.sheets['Config'].range('106:106')).copy(sheet.range(str(offset) + ':' + str(offset)))  # noqa: E501
     (wb.sheets['Config'].range('102:102')).copy(sheet.range(str(offset+1) + ':' + str(offset+1)))  # noqa: E501
     # sheet = wb.sheets['Summary']
