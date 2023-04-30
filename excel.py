@@ -21,13 +21,21 @@ def unhide_columns():
     ws = wb.sheets.active
     functions.unhide_columns(ws)
 
+def summary():
+    wb = xw.Book.caller()
+    functions.summary(wb, False)
+
 def summary_discount():
     wb = xw.Book.caller()
     functions.summary(wb, True)
 
-def summary():
+def summary_detail():
     wb = xw.Book.caller()
-    functions.summary(wb, False)
+    functions.summary(wb, False, True)
+
+def summary_detail_discount():
+    wb = xw.Book.caller()
+    functions.summary(wb, True, True)
 
 def number_title():
     wb = xw.Book.caller()

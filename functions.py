@@ -143,7 +143,7 @@ def fill_lastrow (wb):
 def fill_lastrow_sheet(wb, sheet):
     pwb = xw.books('PERSONAL.XLSB')
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    if sheet not in skip_sheets:
+    if sheet.name not in skip_sheets:
         last_row = sheet.range('C100000').end('up').row
         (pwb.sheets['Design'].range('5:5')).copy(sheet.range(str(last_row+2) + ':' + str(last_row+2)))  # noqa: E501
         sheet.range('F'+ str(last_row+2)).formula = '="Subtotal(" & Config!B12 & ")"'
@@ -248,7 +248,7 @@ def hide_columns(sheet):
         # sheet.range('F:G').column_width = 0
         # sheet.range('B:B').column_width = 0
 
-def summary(wb, discount=False, detail=True):
+def summary(wb, discount=False, detail=False):
     summary_formula = []
     collect = [] # Collect formula to be put in summary page.
     formula_fragment = '=IF(OR(Config!B13="COMMERCIAL PROPOSAL", Config!B13="BUDGETARY PROPOSAL"),'  # noqa: E501
