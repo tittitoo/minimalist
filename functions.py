@@ -114,31 +114,16 @@ def fill_formula(sheet):
         sheet.range('AJ3:AJ' + str(last_row)).formula = '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AI", ROW()+1, ":AI",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'  # noqa: E501
         sheet.range('AK3:AK' + str(last_row)).formula = '=IF(AL3="Lineitem", IF(ISNUMBER(INDIRECT(CONCAT("AJ",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))), "Lumpsum", "Unit Price"), "")'  # noqa: E501
 
+def fill_formula_wb(wb):
+    for sheet in wb.sheets:
+        fill_formula(sheet)
+
 def fill_lastrow (wb):
-    pwb = xw.books('PERSONAL.XLSB')
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
 
-    for sheet in wb.sheet_names:
-       if sheet not in skip_sheets:
-            sheet = wb.sheets[sheet]
-            last_row = sheet.range('G100000').end('up').row
-            (pwb.sheets['Design'].range('5:5')).copy(sheet.range(str(last_row+2) + ':' + str(last_row+2)))  # noqa: E501
-            sheet.range('F'+ str(last_row+2)).formula = '="Subtotal(" & Config!B12 & ")"'  # noqa: E501
-            sheet.range('F'+ str(last_row+2)).font.bold = True
-            sheet.range('F'+ str(last_row+2)).font.size = 9
-            sheet.range('G' + str(last_row+2)).formula = '=SUM(G3:G' + str(last_row+1) + ')'  # noqa: E501
-            sheet.range('G' + str(last_row+2)).font.bold = True
-            sheet.range('U' + str(last_row+2)).formula = '=SUM(U3:U' + str(last_row+1) + ')'  # noqa: E501
-            sheet.range('U' + str(last_row+2)).font.bold = True
-            sheet.range('AF' + str(last_row+2)).formula = '=SUM(AF3:AF' + str(last_row+1) + ')'  # noqa: E501
-            sheet.range('AF' + str(last_row+2)).font.bold = True
-            sheet.range('AG' + str(last_row+2)).formula = '=SUM(AG3:AG' + str(last_row+1) + ')'  # noqa: E501
-            sheet.range('AG' + str(last_row+2)).font.bold = True
-            sheet.range('AH' + str(last_row+2)).formula = '=AG' + str(last_row+2) + '/AF' + str(last_row+2)  # noqa: E501
-            sheet.range('AH' + str(last_row+2)).font.bold = True
-
-            # Set-up print area
-            sheet.page_setup.print_area = 'A1:H' + str(last_row+2)
+    for sheet in wb.sheets:
+       if sheet.name not in skip_sheets:
+            fill_lastrow_sheet(wb, sheet)
 
 def fill_lastrow_sheet(wb, sheet):
     pwb = xw.books('PERSONAL.XLSB')

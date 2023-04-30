@@ -11,10 +11,18 @@ def fill_formula():
     ws = wb.sheets.active
     functions.fill_formula(ws)
 
+def fill_formula_wb():
+    wb = xw.Book.caller()
+    functions.fill_formula_wb(wb)
+
 def subtotal():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.fill_lastrow_sheet(wb, ws)
+
+def subtotal_wb():
+    wb = xw.Book.caller()
+    functions.fill_lastrow(wb)
 
 def unhide_columns():
     wb = xw.Book.caller()
