@@ -246,64 +246,167 @@ def hide_columns(sheet):
         # sheet.range('F:G').column_width = 0
         # sheet.range('B:B').column_width = 0
 
-def summary(wb, discount=True):
+def summary(wb, discount=False, detail=True):
     summary_formula = []
     collect = [] # Collect formula to be put in summary page.
     formula_fragment = '=IF(OR(Config!B13="COMMERCIAL PROPOSAL", Config!B13="BUDGETARY PROPOSAL"),'  # noqa: E501
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-
-    for sheet in wb.sheet_names:
-       if sheet not in skip_sheets:
-            sheet = wb.sheets[sheet]
-            last_row = sheet.range('G100000').end('up').row
-            collect = [ formula_fragment + "'" + sheet.name + "'!$G$" + str(last_row) + ', "")',  # noqa: E501
-                        formula_fragment + "'" + sheet.name + "'!$U$" + str(last_row) + ', "")']  # noqa: E501
-                #    "='" + sheet.name + "'!$AF$" + str(last_row)]
-            summary_formula.extend(collect)
-            collect = []
-
-    count = 1
-    offset = 20
-    odered_summary_formula = summary_formula[::-1]
-    sheet = wb.sheets['Summary']
-    for system in wb.sheet_names:
-        if system not in skip_sheets:
-            sheet.range('B' + str(offset)).value = count
-            sheet.range('C' + str(offset)).value = system
-            sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
-            sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
-            sheet.range('I' + str(offset)).formula = '=IF(H'+ str(offset) + '<>"",D' + str(offset) + '- H' + str(offset) + ',"")'  # noqa: E501
-            sheet.range('J' + str(offset)).formula = '=IF(I' + str(offset) + '<>"",I' + str(offset) + '/D' + str(offset) + ',"")'  # noqa: E501
-            count += 1
-            offset += 1
     
-    # Drawing lines
-    (wb.sheets['Config'].range('108:108')).copy(sheet.range(str(19) + ':' + str(19)))  # noqa: E501
-    (wb.sheets['Config'].range('106:106')).copy(sheet.range(str(offset) + ':' + str(offset)))  # noqa: E501
-    (wb.sheets['Config'].range('102:102')).copy(sheet.range(str(offset+1) + ':' + str(offset+1)))  # noqa: E501
-    # sheet = wb.sheets['Summary']
-    sheet.range('C' + str(offset+1)).value = '="TOTAL PROJECT (" & Config!B12 & ")"'
-    sheet.range('D' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ')'  # noqa: E501
-    sheet.range('E' + str(offset+1)).formula = '=IF(COUNTIF(E20:E' + str(offset) + ',"OPTION"), "Excluding Option", "")'  # noqa: E501
-    sheet.range('H' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ')'  # noqa: E501
-    sheet.range('I' + str(offset+1)).formula = '=IF(H'+ str(offset+1) + '<>"", D' + str(offset+1) + '- H' + str(offset+1) + ',"")'  # noqa: E501
-    sheet.range('J' + str(offset+1)).formula = '=IF(I' + str(offset+1) + '<>0,I' + str(offset+1) + '/D' + str(offset+1) + ',"")'  # noqa: E501
-    if discount:
-        (wb.sheets['Config'].range('103:103')).copy(sheet.range(str(offset+2) + ':' + str(offset+2)))  # noqa: E501
-        (wb.sheets['Config'].range('104:104')).copy(sheet.range(str(offset+3) + ':' + str(offset+3)))  # noqa: E501
-        sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'  # noqa: E501
-        sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'  # noqa: E501
-        sheet.range('H' + str(offset+3)).formula = '=$H$' +str(offset+1)
-        sheet.range('I' + str(offset+3)).formula = '=IF(H'+ str(offset+3) + '<>"", D' + str(offset+3) + '- H' + str(offset+3) + ',"")'  # noqa: E501
-        sheet.range('J' + str(offset+3)).formula = '=IF(I' + str(offset+3) + '<>0,I' + str(offset+3) + '/D' + str(offset+3) + ',"")'  # noqa: E501
-        sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'  # noqa: E501
-        sheet.range('C' + str(offset+6)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."  # noqa: E501
-        sheet.range('C' + str(offset+7)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."  # noqa: E501
-    else:
-        sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'  # noqa: E501
-        sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."  # noqa: E501
-        sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."  # noqa: E501
+    if not detail:
+        for sheet in wb.sheet_names:
+            if sheet not in skip_sheets:
+                sheet = wb.sheets[sheet]
+                last_row = sheet.range('G100000').end('up').row
+                collect = [ formula_fragment + "'" + sheet.name + "'!$G$" + str(last_row) + ', "")',  # noqa: E501
+                            formula_fragment + "'" + sheet.name + "'!$U$" + str(last_row) + ', "")']  # noqa: E501
+                    #    "='" + sheet.name + "'!$AF$" + str(last_row)]
+                summary_formula.extend(collect)
+                collect = []
 
+        start_row = 19
+        count = 1
+        offset = 20
+        odered_summary_formula = summary_formula[::-1]
+        sheet = wb.sheets['Summary']
+        # Clear summary page first
+        sheet.range('A18:Z1000').clear()
+        # Set format
+        sheet.range('C:C').column_width = 55
+        # sheet.range('E20:E1000').horizontal_alignment = 'center'
+ 
+        for system in wb.sheet_names:
+            if system not in skip_sheets:
+                (wb.sheets['Config'].range('116:116')).copy(sheet.range(str(offset) + ':' + str(offset)))  # noqa: E501
+                sheet.range('B' + str(offset)).value = count
+                sheet.range('C' + str(offset)).value = system
+                sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('D' + str(offset)).number_format = '#,##0.00'
+                sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('H' + str(offset)).number_format = '#,##0.00'
+                sheet.range('I' + str(offset)).formula = '=IF(H'+ str(offset) + '<>"",D' + str(offset) + '- H' + str(offset) + ',"")'  # noqa: E501
+                sheet.range('I' + str(offset)).number_format = '#,##0.00'
+                sheet.range('J' + str(offset)).formula = '=IF(I' + str(offset) + '<>"",I' + str(offset) + '/D' + str(offset) + ',"")'  # noqa: E501
+                sheet.range('J' + str(offset)).number_format = '0.00%'
+                count += 1
+                offset += 1
+        
+        # Drawing lines
+        (wb.sheets['Config'].range('108:108')).copy(sheet.range(str(start_row) + ':' + str(start_row)))  # noqa: E501
+        (wb.sheets['Config'].range('106:106')).copy(sheet.range(str(offset) + ':' + str(offset)))  # noqa: E501
+        (wb.sheets['Config'].range('102:102')).copy(sheet.range(str(offset+1) + ':' + str(offset+1)))  # noqa: E501
+        # sheet = wb.sheets['Summary']
+        sheet.range('C' + str(offset+1)).value = '="TOTAL PROJECT (" & Config!B12 & ")"'
+        sheet.range('D' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ')'  # noqa: E501
+        sheet.range('E' + str(offset+1)).formula = '=IF(COUNTIF(E20:E' + str(offset) + ',"OPTION"), "Excluding Option", "")'  # noqa: E501
+        sheet.range('H' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ')'  # noqa: E501
+        sheet.range('I' + str(offset+1)).formula = '=IF(H'+ str(offset+1) + '<>"", D' + str(offset+1) + '- H' + str(offset+1) + ',"")'  # noqa: E501
+        sheet.range('J' + str(offset+1)).formula = '=IF(I' + str(offset+1) + '<>0,I' + str(offset+1) + '/D' + str(offset+1) + ',"")'  # noqa: E501
+        if discount:
+            (wb.sheets['Config'].range('103:103')).copy(sheet.range(str(offset+2) + ':' + str(offset+2)))  # noqa: E501
+            (wb.sheets['Config'].range('104:104')).copy(sheet.range(str(offset+3) + ':' + str(offset+3)))  # noqa: E501
+            sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'  # noqa: E501
+            sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'  # noqa: E501
+            sheet.range('H' + str(offset+3)).formula = '=$H$' +str(offset+1)
+            sheet.range('I' + str(offset+3)).formula = '=IF(H'+ str(offset+3) + '<>"", D' + str(offset+3) + '- H' + str(offset+3) + ',"")'  # noqa: E501
+            sheet.range('J' + str(offset+3)).formula = '=IF(I' + str(offset+3) + '<>0,I' + str(offset+3) + '/D' + str(offset+3) + ',"")'  # noqa: E501
+            sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'  # noqa: E501
+            sheet.range('C' + str(offset+6)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."  # noqa: E501
+            sheet.range('C' + str(offset+7)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."  # noqa: E501
+        else:
+            sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'  # noqa: E501
+            sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."  # noqa: E501
+            sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."  # noqa: E501
+    else: #detail
+        for sheet in wb.sheet_names:
+            if sheet not in skip_sheets:
+                sheet = wb.sheets[sheet]
+                last_row = sheet.range('G100000').end('up').row
+                collect = [ formula_fragment + "'" + sheet.name + "'!$G$" + str(last_row) + ', "")',  # noqa: E501
+                            formula_fragment + "'" + sheet.name + "'!$S$" + str(last_row) + ', "")',  # noqa: E501
+                            formula_fragment + "'" + sheet.name + "'!$V$" + str(last_row) + ', "")',  # noqa: E501
+                            formula_fragment + "'" + sheet.name + "'!$W$" + str(last_row) + ', "")',  # noqa: E501
+                            formula_fragment + "'" + sheet.name + "'!$X$" + str(last_row) + ', "")',  # noqa: E501
+                            formula_fragment + "'" + sheet.name + "'!$Y$" + str(last_row) + ', "")',  # noqa: E501
+                            formula_fragment + "'" + sheet.name + "'!$Z$" + str(last_row) + ', "")',  # noqa: E501
+                            formula_fragment + "'" + sheet.name + "'!$U$" + str(last_row) + ', "")']  # noqa: E501
+                    #    "='" + sheet.name + "'!$AF$" + str(last_row)]
+                summary_formula.extend(collect)
+                collect = []
+
+        start_row = 19
+        count = 1
+        offset = 20
+        odered_summary_formula = summary_formula[::-1]
+        sheet = wb.sheets['Summary']
+        # Clear summary page first
+        sheet.range('A18:Z1000').clear()
+        # Set format
+        sheet.range('C:C').column_width = 55
+        # sheet.range('E20:E1000').horizontal_alignment = 'center'
+ 
+        for system in wb.sheet_names:
+            if system not in skip_sheets:
+                (wb.sheets['Config'].range('116:116')).copy(sheet.range(str(offset) + ':' + str(offset)))  # noqa: E501
+                sheet.range('B' + str(offset)).value = count
+                sheet.range('B' + str(offset)).value = count
+                sheet.range('C' + str(offset)).value = system
+                sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('D' + str(offset)).number_format = '#,##0.00'
+                sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('H' + str(offset)).number_format = '#,##0.00'
+                sheet.range('I' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('I' + str(offset)).number_format = '#,##0.00'
+                sheet.range('J' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('J' + str(offset)).number_format = '#,##0.00'
+                sheet.range('K' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('K' + str(offset)).number_format = '#,##0.00'
+                sheet.range('L' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('L' + str(offset)).number_format = '#,##0.00'
+                sheet.range('M' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('M' + str(offset)).number_format = '#,##0.00'
+                sheet.range('N' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('N' + str(offset)).number_format = '#,##0.00'
+                sheet.range('O' + str(offset)).formula = '=IF(N'+ str(offset) + '<>"",D' + str(offset) + '- N' + str(offset) + ',"")'  # noqa: E501
+                sheet.range('O' + str(offset)).number_format = '#,##0.00'
+                sheet.range('P' + str(offset)).formula = '=IF(O' + str(offset) + '<>"",O' + str(offset) + '/D' + str(offset) + ',"")'  # noqa: E501
+                sheet.range('P' + str(offset)).number_format = '0.00%'
+                count += 1
+                offset += 1
+        
+        # Drawing lines
+        (wb.sheets['Config'].range('110:110')).copy(sheet.range(str(start_row) + ':' + str(start_row)))  # noqa: E501
+        (wb.sheets['Config'].range('106:106')).copy(sheet.range(str(offset) + ':' + str(offset)))  # noqa: E501
+        (wb.sheets['Config'].range('112:112')).copy(sheet.range(str(offset+1) + ':' + str(offset+1)))  # noqa: E501
+        # sheet = wb.sheets['Summary']
+        sheet.range('C' + str(offset+1)).value = '="TOTAL PROJECT (" & Config!B12 & ")"'
+        sheet.range('D' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ')'  # noqa: E501
+        sheet.range('E' + str(offset+1)).formula = '=IF(COUNTIF(E20:E' + str(offset) + ',"OPTION"), "Excluding Option", "")'  # noqa: E501
+        sheet.range('H' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ')'  # noqa: E501
+        sheet.range('I' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",I20:I' + str(offset) + ')'  # noqa: E501
+        sheet.range('J' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",J20:J' + str(offset) + ')'  # noqa: E501
+        sheet.range('K' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",K20:K' + str(offset) + ')'  # noqa: E501
+        sheet.range('L' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",L20:L' + str(offset) + ')'  # noqa: E501
+        sheet.range('M' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",M20:M' + str(offset) + ')'  # noqa: E501
+        sheet.range('N' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",N20:N' + str(offset) + ')'  # noqa: E501
+        sheet.range('O' + str(offset+1)).formula = '=IF(H'+ str(offset+1) + '<>"", D' + str(offset+1) + '- N' + str(offset+1) + ',"")'  # noqa: E501
+        sheet.range('P' + str(offset+1)).formula = '=IF(O' + str(offset+1) + '<>0,O' + str(offset+1) + '/D' + str(offset+1) + ',"")'  # noqa: E501
+        if discount:
+            (wb.sheets['Config'].range('113:113')).copy(sheet.range(str(offset+2) + ':' + str(offset+2)))  # noqa: E501
+            (wb.sheets['Config'].range('114:114')).copy(sheet.range(str(offset+3) + ':' + str(offset+3)))  # noqa: E501
+            sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'  # noqa: E501
+            sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'  # noqa: E501
+            sheet.range('N' + str(offset+3)).formula = '=$N$' +str(offset+1)
+            sheet.range('O' + str(offset+3)).formula = '=IF(N'+ str(offset+3) + '<>"", D' + str(offset+3) + '- N' + str(offset+3) + ',"")'  # noqa: E501
+            sheet.range('P' + str(offset+3)).formula = '=IF(O' + str(offset+3) + '<>0,O' + str(offset+3) + '/D' + str(offset+3) + ',"")'  # noqa: E501
+            sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'  # noqa: E501
+            sheet.range('C' + str(offset+6)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."  # noqa: E501
+            sheet.range('C' + str(offset+7)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."  # noqa: E501
+        else:
+            sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'  # noqa: E501
+            sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."  # noqa: E501
+            sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."  # noqa: E501
+
+    sheet.range('G:P').autofit()
     last_row = sheet.range('C100000').end('up').row
     sheet.page_setup.print_area = 'A1:F' + str(last_row+3)
 
