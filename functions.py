@@ -8,8 +8,8 @@ from pathlib import Path
 import pandas as pd
 import xlwings as xw
 
-# Fix annoying text
 def set_nitty_gritty(text):
+    """Fix annoying text"""
     # Strip 2 or more spaces
     text = re.sub(' {2,}', ' ',  text)
     # Put bullet point for Sub-subitem preceded by '-' or '~'.
@@ -22,8 +22,8 @@ def set_nitty_gritty(text):
     text = set_x(text)
     return text
 
-# Set space after comma
 def set_comma_space(text):
+    """Set space after comma"""
     x = re.compile(',\w+')
     if x.search(text):
         substring = re.findall(',\w+', text)
@@ -31,8 +31,9 @@ def set_comma_space(text):
             text = re.sub(word, ', ' + word[1:], text)
     return text
 
-# Function to replace description such as 1x, 20x, 10X , x1, x20, X20 into 1 x, 20 x, 10 x, x 1, x 20, X 10 etc.  # noqa: E501
 def set_x(text):
+    """Function to replace description such as 1x, 20x, 10X , 
+    x1, x20, X20 into 1 x, 20 x, 10 x, x 1, x 20, X 10 etc."""
     # For cases such as 20x, 30X
     x = re.compile('(\d+x|\d+X)')
     if x.search(text):
@@ -59,7 +60,6 @@ def set_x(text):
             text = re.sub(word, ('x' + word[1:]), text)
     return text
 
-# Take in sheet and workbook
 def fill_formula(sheet):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     if sheet.name not in skip_sheets:
@@ -173,53 +173,22 @@ def fill_lastrow_sheet(wb, sheet):
         # Set-up print area
         sheet.page_setup.print_area = 'A1:H' + str(last_row+2)
 
-
-    # For formatting
 def unhide_columns(sheet):
-    sheet.range('A:A').column_width = 4
-    sheet.range('B:B').autofit()
-    sheet.range('C:C').column_width = 55
-    sheet.range('C:C').rows.autofit()
-    # sheet.range('C:C').wrap_text = True
-    sheet.range('D:H').autofit()
-    sheet.range('J:O').autofit()
-    sheet.range('Q:AN').autofit()
-    # sheet.range('E:E').autofit()
-    # sheet.range('F:F').autofit()
-    # sheet.range('G:G').autofit()
-    # sheet.range('H:H').autofit()
-    # sheet.range('K:K').autofit()
-    # sheet.range('L:L').autofit()
-    # sheet.range('M:M').autofit()
-    # sheet.range('N:N').autofit()
-    # sheet.range('O:O').autofit()
-    # sheet.range('R:R').autofit()
-    # sheet.range('S:S').autofit()
-    # sheet.range('T:T').autofit()
-    # sheet.range('U:U').autofit()
-    # sheet.range('V:V').autofit()
-    # sheet.range('W:W').autofit()
-    # sheet.range('X:X').autofit()
-    # sheet.range('Y:Y').autofit()
-    # sheet.range('Z:Z').autofit()
-    # sheet.range('AA:AA').autofit()
-    # sheet.range('AB:AB').autofit()
-    # sheet.range('AC:AC').autofit()
-    # sheet.range('AD:AD').autofit()
-    # sheet.range('AE:AE').autofit()
-    # sheet.range('AF:AF').autofit()
-    # sheet.range('AG:AG').autofit()
-    # sheet.range('AH:AH').autofit()
-    # sheet.range('AI:AI').autofit()
-    # sheet.range('AJ:AJ').autofit()
-    # sheet.range('AK:AK').autofit()
-    # sheet.range('AL:AL').autofit()
-    # sheet.range('AM:AM').autofit()
-    # sheet.range('AN:AN').autofit()
+    """Unhide all columns while setting the width for selected columns"""
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    if sheet.name not in skip_sheets:
+        sheet.range('A:A').column_width = 4
+        sheet.range('B:B').autofit()
+        sheet.range('C:C').column_width = 55
+        sheet.range('C:C').rows.autofit()
+        # sheet.range('C:C').wrap_text = True
+        sheet.range('D:H').autofit()
+        sheet.range('J:O').autofit()
+        sheet.range('Q:AN').autofit()
 
 def hide_columns(sheet):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    if sheet not in skip_sheets:
+    if sheet.name not in skip_sheets:
         sheet.range('AI:AN').column_width = 0
         sheet.range('AC:AD').column_width = 0
         sheet.range('AF:AF').column_width = 0
@@ -230,8 +199,6 @@ def hide_columns(sheet):
         sheet.range('O:O').column_width = 0
         sheet.range('L:L').column_width = 0
         sheet.range('T:T').autofit()
-        # sheet.range('F:G').column_width = 0
-        # sheet.range('B:B').column_width = 0
 
 def summary(wb, discount=False, detail=False):
     summary_formula = []
@@ -432,24 +399,27 @@ def summary(wb, discount=False, detail=False):
     last_row = sheet.range('C100000').end('up').row
     sheet.page_setup.print_area = 'A1:F' + str(last_row+3)
 
-# For the main numbering. It will fix as long as it is a number.
-# Need to look for only the systems and engineering services.
 def number_title(wb, count=10, step=10):
-    """Takes a work book, then start number and step."""
+    """
+    For the main numbering. It will fix as long as it is a number.
+    Need to look for only the systems and engineering services.
+    Takes a work book, then start number and step."""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     # Collect system_names and data
     systems = pd.DataFrame()
     system_names = []
-    for sheet in wb.sheet_names:
-        if sheet not in skip_sheets:
-            system_names.append(sheet.upper())
+    for sheet in wb.sheets:
+        if sheet.name not in skip_sheets:
+            system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
             last_row = ws.range('C100000').end('up').row
             data = ws.range('A2:C' + str(last_row)).options(pd.DataFrame, index=False).value  # noqa: E501
-            data['System'] = str(sheet.upper())
+            data['System'] = str.upper(sheet.name)
             systems = pd.concat([systems, data], join='outer')
     # Now that I have collect the data, let us do the numbering
+    # Index is reset so that index number is continuous
     systems = systems.reset_index(drop=True)
+    # Reindexing will remove columns that are not named.
     systems = systems.reindex(columns=['NO', 'Description', 'System'])
 
     # Need to do try-except as the float type can return nan
@@ -468,10 +438,11 @@ def number_title(wb, count=10, step=10):
         system = systems[systems['System'] == system]
         sheet.range('A2').options(index=False).value = system['NO']
 
-# For formatting text for consistency
-# Need to look for only the systems and engineering services.
 def format_description(ws):
-    """Takes a work book or sheet, and format text."""
+    """
+    For formatting text for consistency
+Need to look for only the systems and engineering services. 
+    Takes a work book or sheet, and format text."""
     systems = pd.DataFrame()
     system_names = []
     if isinstance(ws, xw.main.Sheet):
@@ -589,7 +560,7 @@ def print_technical(wb):
             # The program does not override the existing file. The file needs to be removed if it exists.  # noqa: E501
             xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')  # noqa: E501
 
-def conditional_format_wb(wb):
+def conditional_format_wb(wb):  
     """
     Takes a workbook, and do conditional formatting.
     Rely on excel macro for conditional format.
@@ -602,3 +573,29 @@ def conditional_format_wb(wb):
             wb.sheets[sheet].activate()
             macro_nb.macro('conditional_format')()
     wb.sheets[current_sheet].activate()
+
+def fix_unit_price(wb, override=False):
+    """ 
+    Fix unit prices, normally done for subsequent revisions.
+    """
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    # Collect system_names and data
+    systems = pd.DataFrame()
+    system_names = []
+    for sheet in wb.sheets:
+        if sheet.name not in skip_sheets:
+            system_names.append(str.upper(sheet.name))
+            ws = wb.sheets[sheet]
+            last_row = ws.range('C100000').end('up').row
+            data = ws.range('AE2:AE' + str(last_row)).options(pd.DataFrame, index=False).value  # noqa: E501
+            data['System'] = str.upper(sheet.name)
+            systems = pd.concat([systems, data], join='outer')
+    
+    systems = systems.reset_index(drop=True) # Otherwise separate sheet will have own index.
+    systems.columns = ['FUP', 'System']
+
+    # Write fixed unit price in FUP field
+    for system in system_names:
+        sheet = wb.sheets[system]
+        system = systems[systems['System'] == system]
+        sheet.range('AB2').options(index=False).value = system['FUP']
