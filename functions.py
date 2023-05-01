@@ -552,7 +552,7 @@ def fix_unit_price(wb):
             data['System'] = str.upper(sheet.name)
             systems = pd.concat([systems, data], join='outer')
     
-    systems = systems.reset_index(drop=True) # Otherwise separate sheet will have own index.
+    systems = systems.reset_index(drop=True) # Otherwise separate sheet will have own index.  # noqa: E501
     systems.columns = ['FUP', 'System']
 
     # Write fixed unit price in FUP field
@@ -593,3 +593,21 @@ def format_text(wb):
         system = systems[systems['System'] == system]
         # sheet.range('C2').value = sheet.range('C2').options(empty='')
         sheet.range('C2').options(index=False).value = system['Description']
+
+def indent_description(wb):
+    """ 
+    Indent description
+    """
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    for sheet in wb.sheets:
+        if sheet.name not in skip_sheets:
+            ws = wb.sheets[sheet]
+            last_row = ws.range('C100000').end('up').row
+            for format in ws.range('AL3:AL' + str(last_row)):
+                if format.value == 'Subtitle':
+                    ws.range('C'+ str(format.row)).value = str(ws.range('C'+ str(format.row)).value).strip()  # noqa: E501
+                    ws.range('C'+ str(format.row)).value = str(ws.range('C'+ str(format.row)).value).lstrip('• ')  # noqa: E501
+                elif format.value == 'Description':
+                    ws.range('C'+ str(format.row)).value = str(ws.range('C'+ str(format.row)).value).strip()  # noqa: E501
+                    ws.range('C'+ str(format.row)).value = str(ws.range('C'+ str(format.row)).value).lstrip('• ')  # noqa: E501
+                    ws.range('C'+ str(format.row)).value = '   • ' + ws.range('C'+ str(format.row)).value  # noqa: E501
