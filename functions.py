@@ -10,6 +10,8 @@ import xlwings as xw
 
 def set_nitty_gritty(text):
     """Fix annoying text"""
+    # Strip EOL
+    text = text.strip()
     # Strip 2 or more spaces
     text = re.sub(' {2,}', ' ',  text)
     # Put bullet point for Sub-subitem preceded by '-' or '~'.
@@ -438,47 +440,6 @@ def number_title(wb, count=10, step=10):
         system = systems[systems['System'] == system]
         sheet.range('A2').options(index=False).value = system['NO']
 
-def format_description(ws):
-    """
-    For formatting text for consistency
-Need to look for only the systems and engineering services. 
-    Takes a work book or sheet, and format text."""
-    systems = pd.DataFrame()
-    system_names = []
-    if isinstance(ws, xw.main.Sheet):
-        last_row = ws.range('C100000').end('up').row
-        data = ws.range('A2:C' + str(last_row)).options(pd.DataFrame, index=False).value
-
-    # skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    # # Collect system_names and data
-    # for sheet in wb.sheet_names:
-    #     if sheet not in skip_sheets:
-    #         system_names.append(sheet.upper())
-    #         ws = wb.sheets[sheet]
-    #         last_row = ws.range('C100000').end('up').row
-    #         data = ws.range('A2:C' + str(last_row)).options(pd.DataFrame, in  dex=False).value
-    #         data['System'] = str(sheet.upper())
-    #         systems = pd.concat([systems, data], join='outer')
-    # # Now that I have collect the data, let us do the numbering
-    # systems = systems.reset_index(drop=True)
-    # systems = systems.reindex(columns=['NO', 'Description', 'System'])
-
-    # # Need to do try-except as the float type can return nan
-    # for idx, item in systems['NO'].items():
-    #     try:
-    #         if int(item):
-    #             systems.at[idx, 'NO'] = count
-    #             count += step
-    #     except Exception as e:
-    #         pass
-    
-    # # Now is the matter of writing to the required sheets
-    # for system in system_names:
-    #     # print(system)
-    #     sheet = wb.sheets[system]
-    #     system = systems[systems['System'] == system]
-    #     sheet.range('A2').options(index=False).value = system['NO']
-
 def technical(wb):
     directory = os.path.dirname(wb.fullname)
 
@@ -574,7 +535,7 @@ def conditional_format_wb(wb):
             macro_nb.macro('conditional_format')()
     wb.sheets[current_sheet].activate()
 
-def fix_unit_price(wb, override=False):
+def fix_unit_price(wb):
     """ 
     Fix unit prices, normally done for subsequent revisions.
     """
@@ -599,3 +560,36 @@ def fix_unit_price(wb, override=False):
         sheet = wb.sheets[system]
         system = systems[systems['System'] == system]
         sheet.range('AB2').options(index=False).value = system['FUP']
+
+def format_text(wb):
+    """ 
+    Format text in the workbook to remove inconsistencies.
+    """
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    # Collect system_names and data
+    systems = pd.DataFrame()
+    system_names = []
+    for sheet in wb.sheets:
+        if sheet.name not in skip_sheets:
+            system_names.append(str.upper(sheet.name))
+            ws = wb.sheets[sheet]
+            last_row = ws.range('C100000').end('up').row
+            data = ws.range('C2:C' + str(last_row)).options(pd.DataFrame, empty='', index=False).value  # noqa: E501
+            data['System'] = str.upper(sheet.name)
+            systems = pd.concat([systems, data], join='outer')
+    
+    systems = systems.reset_index(drop=True) # Otherwise separate sheet will have own index.  # noqa: E501
+    systems.columns = ['Description', 'System']
+
+    for idx, item in systems['Description'].items():
+        systems.at[idx, 'Description'] = set_nitty_gritty(str(systems.loc[idx, 'Description']))  # noqa: E501
+    
+    # Leave empty row empty without filling it with None
+    # systems = systems.dropna(how='all')
+
+    # Write fomatted description to Description field
+    for system in system_names:
+        sheet = wb.sheets[system]
+        system = systems[systems['System'] == system]
+        # sheet.range('C2').value = sheet.range('C2').options(empty='')
+        sheet.range('C2').options(index=False).value = system['Description']

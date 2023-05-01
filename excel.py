@@ -69,3 +69,11 @@ def print_commercial():
 def conditional_format_wb():
     wb = xw.Book.caller()
     functions.conditional_format_wb(wb)
+
+def fix_unit_price():
+    wb = xw.Book.caller()
+    functions.fix_unit_price(wb)
+
+def format_text():
+    wb = xw.Book.caller()
+    functions.format_text(wb)
