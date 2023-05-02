@@ -183,7 +183,7 @@ def unhide_columns(sheet):
         sheet.range('B:B').autofit()
         sheet.range('C:C').column_width = 55
         sheet.range('C:C').rows.autofit()
-        # sheet.range('C:C').wrap_text = True
+        sheet.range('C:C').wrap_text = True
         sheet.range('D:H').autofit()
         sheet.range('J:O').autofit()
         sheet.range('Q:AN').autofit()
@@ -448,7 +448,7 @@ def technical(wb):
     wb.sheets['Cover'].range('D6:D8').value = wb.sheets['Cover'].range('D6:D8').raw_value  # noqa: E501
     wb.sheets['Summary'].range('D20:D100').value = ''
     wb.sheets['Summary'].range('C20:C100').value = wb.sheets['Summary'].range('C20:C100').raw_value  # noqa: E501
-    wb.sheets['Summary'].range('G:K').delete()
+    wb.sheets['Summary'].range('G:P').delete()
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     for sheet in wb.sheet_names:
         ws = wb.sheets[sheet]
