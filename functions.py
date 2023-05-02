@@ -561,7 +561,7 @@ def fix_unit_price(wb):
         system = systems[systems['System'] == system]
         sheet.range('AB2').options(index=False).value = system['FUP']
 
-def format_text(wb):
+def format_text(wb, indent_description=False, bullet=False):
     """ 
     Format text in the workbook to remove inconsistencies.
     """
@@ -574,18 +574,22 @@ def format_text(wb):
             system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
             last_row = ws.range('C100000').end('up').row
-            data = ws.range('C2:C' + str(last_row)).options(pd.DataFrame, empty='', index=False).value  # noqa: E501
+            data = ws.range('C2:AL' + str(last_row)).options(pd.DataFrame, empty='', index=False).value  # noqa: E501
             data['System'] = str.upper(sheet.name)
+            # format_type = ws.range('AL2:AL' + str(last_row)).options(pd.DataFrame, empty='', index=False).value  # noqa: E501
             systems = pd.concat([systems, data], join='outer')
+            # systems = pd.concat([systems, format_type], join='outer')
     
     systems = systems.reset_index(drop=True) # Otherwise separate sheet will have own index.  # noqa: E501
-    systems.columns = ['Description', 'System']
+    systems = systems.reindex(columns=['Description', 'Format', 'System'])
 
     for idx, item in systems['Description'].items():
         systems.at[idx, 'Description'] = set_nitty_gritty(str(systems.loc[idx, 'Description']))  # noqa: E501
-    
-    # Leave empty row empty without filling it with None
-    # systems = systems.dropna(how='all')
+        if indent_description:
+            if systems.at[idx, 'Format'] == 'Description':
+                systems.at[idx, 'Description'] = '   ' + (str(systems.loc[idx, 'Description']).strip()).lstrip('• ')  # noqa: E501
+                if bullet:
+                    systems.at[idx, 'Description'] = '   • ' + str(systems.loc[idx, 'Description']).strip()  # noqa: E501
 
     # Write fomatted description to Description field
     for system in system_names:
@@ -597,6 +601,7 @@ def format_text(wb):
 def indent_description(wb):
     """ 
     Indent description
+    This function works but slow. Replaced with 'format_text' function
     """
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     for sheet in wb.sheets:

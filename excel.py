@@ -80,4 +80,4 @@ def format_text():
 
 def indent_description():
     wb = xw.Book.caller()
-    functions.indent_description(wb)
+    functions.format_text(wb, True, True)
