@@ -54,8 +54,8 @@ def title_case_ignore_single_char(text):
 def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
     """ Maintaion acronyms case when using title or sentence"""
     # The regex below essentially ignore the letters in lower case letter.
-    # Now cases such as iPhone, mPower are recognized.
-    acronym_regex = re.compile(r'\b([a-z0-9\.]?[A-Z0-9][A-Z0-9a-z-]*)(?=\b|[^a-z])')
+    # Now cases such as iPhone, mPower, c/w are recognized.
+    acronym_regex = re.compile(r'\b([a-z0-9\.]?[A-Z0-9\/][A-Z0-9a-z-]*)(?=\b|[^a-z])')
     # acronym_regex = re.compile(r'\b([a-z]?[A-Z0-9][A-Z0-9-]*)(?=\b|[^a-z])')
     acronyms = acronym_regex.findall(text)
 
