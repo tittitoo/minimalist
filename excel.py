@@ -31,19 +31,19 @@ def unhide_columns():
 
 def summary():
     wb = xw.Book.caller()
-    functions.summary(wb, False)
+    functions.summary(wb, discount=False)
 
 def summary_discount():
     wb = xw.Book.caller()
-    functions.summary(wb, True)
+    functions.summary(wb, discount=True)
 
 def summary_detail():
     wb = xw.Book.caller()
-    functions.summary(wb, False, True)
+    functions.summary(wb, discount=False, detail=True)
 
 def summary_detail_discount():
     wb = xw.Book.caller()
-    functions.summary(wb, True, True)
+    functions.summary(wb, discount=True, detail=True)
 
 def number_title():
     wb = xw.Book.caller()
@@ -76,8 +76,8 @@ def fix_unit_price():
 
 def format_text():
     wb = xw.Book.caller()
-    functions.format_text(wb)
+    functions.format_text(wb, title_lineitem=True)
 
 def indent_description():
     wb = xw.Book.caller()
-    functions.format_text(wb, True, True)
+    functions.format_text(wb, indent_description=True, bullet_description=True)

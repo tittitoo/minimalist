@@ -608,7 +608,7 @@ def fix_unit_price(wb):
         system = systems[systems['System'] == system]
         sheet.range('AB2').options(index=False).value = system['FUP']
 
-def format_text(wb, indent_description=False, bullet_description=False, title_lineitem=True):  # noqa: E501
+def format_text(wb, indent_description=False, bullet_description=False, title_lineitem=False):  # noqa: E501
     """ 
     Format text in the workbook to remove inconsistencies.
     """
@@ -631,7 +631,7 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
     systems = systems.reindex(columns=['Description', 'Format', 'System'])
 
     for idx, item in systems['Description'].items():
-        systems.at[idx, 'Description'] = set_nitty_gritty(str(systems.loc[idx, 'Description']))  # noqa: E501
+        systems.at[idx, 'Description'] = set_nitty_gritty(str(systems.loc[idx, 'Description']).strip().lstrip('• '))  # noqa: E501
         if indent_description:
             if systems.at[idx, 'Format'] == 'Description':
                 systems.at[idx, 'Description'] = '   ' + (str(systems.loc[idx, 'Description']).strip()).lstrip('• ')  # noqa: E501
