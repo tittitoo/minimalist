@@ -25,7 +25,15 @@ def set_nitty_gritty(text):
     return text
 
 def set_comma_space(text):
-    """Set space after comma"""
+    """Fix having space before comma and not having space after comma"""
+    # fix word+space+, to word+,
+    x = re.compile('\w+\s,')
+    if x.search(text):
+        substring = re.findall('\w+\s,', text)
+        for word in substring:
+            text = re.sub(word, word[:-2] + ',', text)
+    
+    # Fix word+,+no-space to word+,+space
     x = re.compile(',\w+')
     if x.search(text):
         substring = re.findall(',\w+', text)
@@ -33,13 +41,26 @@ def set_comma_space(text):
             text = re.sub(word, ', ' + word[1:], text)
     return text
 
+def title_case_ignore_single_char(text):
+    words = text.split()
+    titled_words = []
+    for word in words:
+        if len(word) > 2: # So that two letter words are ignored.
+            titled_words.append(word.title())
+        else:
+            titled_words.append(word)
+    return " ".join(titled_words)
+
 def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
     """ Maintaion acronyms case when using title or sentence"""
-    acronym_regex = re.compile(r'\b([a-z]?[A-Z0-9][A-Z0-9-]*)(?=\b|[^a-z])')
+    # The regex below essentially ignore the letters in lower case letter.
+    # Now cases such as iPhone, mPower are recognized.
+    acronym_regex = re.compile(r'\b([a-z0-9\.]?[A-Z0-9][A-Z0-9a-z-]*)(?=\b|[^a-z])')
+    # acronym_regex = re.compile(r'\b([a-z]?[A-Z0-9][A-Z0-9-]*)(?=\b|[^a-z])')
     acronyms = acronym_regex.findall(text)
 
     if title:
-        text = text.title()
+        text = title_case_ignore_single_char(text)
         # Restore acronyms
         for acronym in acronyms:
             text = text.replace(acronym.title(), acronym)
