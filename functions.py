@@ -34,9 +34,10 @@ def set_comma_space(text):
             text = re.sub(word, word[:-2] + ',', text)
     
     # Fix word+,+no-space to word+,+space
-    x = re.compile(',\w+')
+    x = re.compile(',\d?\w+')
     if x.search(text):
-        substring = re.findall(',\w+', text)
+        # Ignores format like 1,200 but matches 1,w 
+        substring = re.findall('(?<![0-9]),\w+', text)
         for word in substring:
             text = re.sub(word, ', ' + word[1:], text)
     return text
