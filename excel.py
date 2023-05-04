@@ -76,7 +76,7 @@ def fix_unit_price():
 
 def format_text():
     wb = xw.Book.caller()
-    functions.format_text(wb, title_lineitem=True)
+    functions.format_text(wb, title_lineitem_or_description=True)
 
 def indent_description():
     wb = xw.Book.caller()

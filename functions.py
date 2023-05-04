@@ -84,8 +84,8 @@ def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
 def set_x(text):
     """Function to replace description such as 1x, 20x, 10X , 
     x1, x20, X20 into 1 x, 20 x, 10 x, x 1, x 20, X 10 etc."""
-    # For cases such as 20x, 30X
-    x = re.compile('(\d+x|\d+X)')
+    # For cases such as 20x, 30X. Allows if followed by -
+    x = re.compile('\d+x(?!-)|\d+X(?!-)')
     if x.search(text):
         substring = re.findall('(\d+x|\d+X)', text)
         for word in substring:
@@ -609,7 +609,7 @@ def fix_unit_price(wb):
         system = systems[systems['System'] == system]
         sheet.range('AB2').options(index=False).value = system['FUP']
 
-def format_text(wb, indent_description=False, bullet_description=False, title_lineitem=False):  # noqa: E501
+def format_text(wb, indent_description=False, bullet_description=False, title_lineitem_or_description=False):  # noqa: E501
     """ 
     Format text in the workbook to remove inconsistencies.
     """
@@ -639,10 +639,15 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
                 if bullet_description:
                     systems.at[idx, 'Description'] = '   • ' + str(systems.loc[idx, 'Description']).strip()  # noqa: E501
             
-        if title_lineitem:
-            if systems.at[idx, 'Format'] == 'Lineitem':
+        if title_lineitem_or_description:
+            if systems.at[idx, 'Format'] == 'Lineitem': 
                 systems.at[idx, 'Description'] = set_case_preserve_acronym(
-                    (str(systems.loc[idx, 'Description']).strip()).lstrip('• '), title=True)  # noqa: E501
+                        (str(systems.loc[idx, 'Description']).strip()).lstrip('• '), title=True)  # noqa: E501
+                
+            if systems.at[idx, 'Format'] == 'Description': 
+                if len(str(systems.loc[idx, 'Description'])) <= 60:
+                    systems.at[idx, 'Description'] = set_case_preserve_acronym(
+                        (str(systems.loc[idx, 'Description']).strip()).lstrip('• '), title=True)  # noqa: E501
 
     # Write fomatted description to Description field
     for system in system_names:
