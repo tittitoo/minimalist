@@ -114,7 +114,7 @@ def fill_formula(sheet):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     if sheet.name not in skip_sheets:
         # Formula to cells
-        last_row = sheet.range('C100000').end('up').row
+        last_row = sheet.range('C1048576').end('up').row
         sheet.range('A1').formula = '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
         # Serail Numbering (SN)
         sheet.range('B3:B' + str(last_row)).formula = '=IF(AND(ISNUMBER(D3), ISNUMBER(K3), XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)), COUNT(INDIRECT(CONCAT("B",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1),":B",ROW()-1))) + 1, "")'
@@ -179,7 +179,7 @@ def fill_lastrow_sheet(wb, sheet):
     pwb = xw.books('PERSONAL.XLSB')
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     if sheet.name not in skip_sheets:
-        last_row = sheet.range('C100000').end('up').row
+        last_row = sheet.range('C1048576').end('up').row
         (pwb.sheets['Design'].range('5:5')).copy(sheet.range(str(last_row+2) + ':' + str(last_row+2)))
         sheet.range('F'+ str(last_row+2)).formula = '="Subtotal(" & Config!B12 & ")"'
         sheet.range('F'+ str(last_row+2)).font.bold = True
@@ -263,7 +263,7 @@ def summary(wb, discount=False, detail=False):
         for sheet in wb.sheet_names:
             if sheet not in skip_sheets:
                 sheet = wb.sheets[sheet]
-                last_row = sheet.range('G100000').end('up').row
+                last_row = sheet.range('G1048576').end('up').row
                 collect = [ formula_fragment + "'" + sheet.name + "'!$G$" + str(last_row) + ', "")',
                             formula_fragment + "'" + sheet.name + "'!$U$" + str(last_row) + ', "")']
                     #    "='" + sheet.name + "'!$AF$" + str(last_row)]
@@ -331,7 +331,7 @@ def summary(wb, discount=False, detail=False):
         for sheet in wb.sheet_names:
             if sheet not in skip_sheets:
                 sheet = wb.sheets[sheet]
-                last_row = sheet.range('G100000').end('up').row
+                last_row = sheet.range('G1048576').end('up').row
                 collect = [ formula_fragment + "'" + sheet.name + "'!$G$" + str(last_row) + ', "")',
                             formula_fragment + "'" + sheet.name + "'!$S$" + str(last_row) + ', "")',
                             formula_fragment + "'" + sheet.name + "'!$V$" + str(last_row) + ', "")',
@@ -446,7 +446,7 @@ def summary(wb, discount=False, detail=False):
     sheet.range('D:D').autofit()
     sheet.range('E:E').column_width = 15
     sheet.range('F:P').autofit()
-    last_row = sheet.range('C100000').end('up').row
+    last_row = sheet.range('C1048576').end('up').row
     sheet.page_setup.print_area = 'A1:F' + str(last_row+3)
 
 def number_title(wb, count=10, step=10):
@@ -462,7 +462,7 @@ def number_title(wb, count=10, step=10):
         if sheet.name not in skip_sheets:
             system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
-            last_row = ws.range('C100000').end('up').row
+            last_row = ws.range('C1048576').end('up').row
             data = ws.range('A2:C' + str(last_row)).options(pd.DataFrame, index=False).value
             data['System'] = str.upper(sheet.name)
             systems = pd.concat([systems, data], join='outer')
@@ -502,7 +502,7 @@ def technical(wb):
         ws = wb.sheets[sheet]
         ws.range('A1').value = ws.range('A1').raw_value #Remove formula
         if sheet not in skip_sheets:
-            last_row = ws.range('B100000').end('up').row
+            last_row = ws.range('B1048576').end('up').row
             ws.range('B3:B' + str(last_row)).value = ws.range('B3:B' + str(last_row)).raw_value
             ws.range('AM:AN').delete()
             ws.range('I:AK').delete()
@@ -595,7 +595,7 @@ def fix_unit_price(wb):
         if sheet.name not in skip_sheets:
             system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
-            last_row = ws.range('C100000').end('up').row
+            last_row = ws.range('C1048576').end('up').row
             data = ws.range('AE2:AE' + str(last_row)).options(pd.DataFrame, index=False).value
             data['System'] = str.upper(sheet.name)
             systems = pd.concat([systems, data], join='outer')
@@ -621,7 +621,7 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
         if sheet.name not in skip_sheets:
             system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
-            last_row = ws.range('C100000').end('up').row
+            last_row = ws.range('C1048576').end('up').row
             data = ws.range('C2:AL' + str(last_row)).options(pd.DataFrame, empty='', index=False).value
             data['System'] = str.upper(sheet.name)
             # format_type = ws.range('AL2:AL' + str(last_row)).options(pd.DataFrame, empty='', index=False).value
@@ -665,7 +665,7 @@ def indent_description(wb):
     for sheet in wb.sheets:
         if sheet.name not in skip_sheets:
             ws = wb.sheets[sheet]
-            last_row = ws.range('C100000').end('up').row
+            last_row = ws.range('C1048576').end('up').row
             for format in ws.range('AL3:AL' + str(last_row)):
                 if format.value == 'Subtitle':
                     ws.range('C'+ str(format.row)).value = str(ws.range('C'+ str(format.row)).value).strip()
