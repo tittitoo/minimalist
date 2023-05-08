@@ -629,10 +629,19 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
             # systems = pd.concat([systems, format_type], join='outer')
     
     systems = systems.reset_index(drop=True) # Otherwise separate sheet will have own index.
-    systems = systems.reindex(columns=['Description', 'Format', 'System'])
+    systems = systems.reindex(columns=['Description', 'Unit', 'Format', 'System'])
 
     for idx, item in systems['Description'].items():
         systems.at[idx, 'Description'] = set_nitty_gritty(str(systems.loc[idx, 'Description']).strip().lstrip('• '))
+        # Set unit description
+        # Set to lower case
+        systems.at[idx, 'Unit'] = str(systems.loc[idx, 'Unit']).strip().lower()
+        # Change to ea
+        if str(systems.loc[idx, 'Unit']) in ['nos', 'no']:
+            systems.at[idx, 'Unit'] = 'ea'
+        if str(systems.loc[idx, 'Unit'])[-1:] == 's':
+            systems.at[idx, 'Unit'] = str(systems.loc[idx, 'Unit'])[:-1]
+
         if indent_description:
             if systems.at[idx, 'Format'] == 'Description':
                 systems.at[idx, 'Description'] = '   ' + (str(systems.loc[idx, 'Description']).strip()).lstrip('• ')
@@ -655,6 +664,7 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
         system = systems[systems['System'] == system]
         # sheet.range('C2').value = sheet.range('C2').options(empty='')
         sheet.range('C2').options(index=False).value = system['Description']
+        sheet.range('E2').options(index=False).value = system['Unit']
 
 def indent_description(wb):
     """ 
@@ -674,3 +684,17 @@ def indent_description(wb):
                     ws.range('C'+ str(format.row)).value = str(ws.range('C'+ str(format.row)).value).strip()
                     ws.range('C'+ str(format.row)).value = str(ws.range('C'+ str(format.row)).value).lstrip('• ')
                     ws.range('C'+ str(format.row)).value = '   • ' + ws.range('C'+ str(format.row)).value
+
+def shaded(wb, shaded=True):
+    """Added Shaded region"""
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    macro_nb = xw.Book('PERSONAL.XLSB')
+    current_sheet = wb.sheets.active
+    for sheet in wb.sheet_names:
+        if sheet not in skip_sheets:
+            wb.sheets[sheet].activate()
+            if shaded:
+                macro_nb.macro('shaded')()
+            else:
+                macro_nb.macro('unshaded')()
+    wb.sheets[current_sheet].activate()

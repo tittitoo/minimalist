@@ -81,3 +81,11 @@ def format_text():
 def indent_description():
     wb = xw.Book.caller()
     functions.format_text(wb, indent_description=True, bullet_description=True)
+
+def shaded():
+    wb = xw.Book.caller()
+    functions.shaded(wb, shaded=True)
+
+def unshaded():
+    wb = xw.Book.caller()
+    functions.shaded(wb, shaded=False)
