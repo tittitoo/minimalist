@@ -609,7 +609,8 @@ def fix_unit_price(wb):
         system = systems[systems['System'] == system]
         sheet.range('AB2').options(index=False).value = system['FUP']
 
-def format_text(wb, indent_description=False, bullet_description=False, title_lineitem_or_description=False):
+def format_text(wb, indent_description=False, bullet_description=False, title_lineitem_or_description=False,
+                upper_title=False):
     """ 
     Format text in the workbook to remove inconsistencies.
     """
@@ -629,7 +630,7 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
             # systems = pd.concat([systems, format_type], join='outer')
     
     systems = systems.reset_index(drop=True) # Otherwise separate sheet will have own index.
-    systems = systems.reindex(columns=['Description', 'Unit', 'Format', 'System'])
+    systems = systems.reindex(columns=['Description', 'Unit', 'Scope', 'Format', 'System'])
 
     for idx, item in systems['Description'].items():
         systems.at[idx, 'Description'] = set_nitty_gritty(str(systems.loc[idx, 'Description']).strip().lstrip('• '))
@@ -641,6 +642,13 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
             systems.at[idx, 'Unit'] = 'ea'
         if str(systems.loc[idx, 'Unit'])[-1:] == 's':
             systems.at[idx, 'Unit'] = str(systems.loc[idx, 'Unit'])[:-1]
+
+        systems.at[idx, 'Scope'] = str(systems.loc[idx, 'Scope']).strip().lower()
+        # Change to ea
+        if str(systems.loc[idx, 'Scope']) in ['inclusive', 'include', 'included']:
+            systems.at[idx, 'Scope'] = 'INCLUDED'
+        if str(systems.loc[idx, 'Scope']) in ['option', 'optional']:
+            systems.at[idx, 'Scope'] = 'OPTION'
 
         if indent_description:
             if systems.at[idx, 'Format'] == 'Description':
@@ -657,6 +665,10 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
                 if len(str(systems.loc[idx, 'Description'])) <= 60:
                     systems.at[idx, 'Description'] = set_case_preserve_acronym(
                         (str(systems.loc[idx, 'Description']).strip()).lstrip('• '), title=True)
+                    
+        if upper_title:
+            if systems.at[idx, 'Format'] == 'Title': 
+                systems.at[idx, 'Description'] = str(systems.loc[idx, 'Description']).strip().upper()
 
     # Write fomatted description to Description field
     for system in system_names:
@@ -665,9 +677,11 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
         # sheet.range('C2').value = sheet.range('C2').options(empty='')
         sheet.range('C2').options(index=False).value = system['Description']
         sheet.range('E2').options(index=False).value = system['Unit']
+        sheet.range('H2').options(index=False).value = system['Scope']
 
 def indent_description(wb):
     """ 
+    Depricated.
     Indent description
     This function works but slow. Replaced with 'format_text' function
     """
