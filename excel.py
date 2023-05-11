@@ -89,3 +89,7 @@ def shaded():
 def unshaded():
     wb = xw.Book.caller()
     functions.shaded(wb, shaded=False)
+
+def internal_costing():
+    wb = xw.Book.caller()
+    functions.internal_costing(wb)

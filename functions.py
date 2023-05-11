@@ -8,6 +8,13 @@ from pathlib import Path
 import pandas as pd
 import xlwings as xw
 
+legend = {'UC': 'Unit cost in original (buying) currency',
+        'SC': 'Subtotal cost in original (buying) currency',
+        'Discount': 'Discount in percentage from the supplier',
+        'UCD': 'Unit cost after discount in original (buying) currency',
+        'SCD': 'Subtotal cost after discount in original (buying) currency'
+        }
+
 def set_nitty_gritty(text):
     """Fix annoying text"""
     # Strip EOL
@@ -552,6 +559,19 @@ def prepare_to_print_technical(wb):
             macro_nb.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
 
+def prepare_to_print_internal(wb):
+    """Takes a work book, set horizantal borders at pagebreaks."""
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    macro_nb = xw.Book('PERSONAL.XLSB')
+    current_sheet = wb.sheets.active
+    for sheet in wb.sheet_names:
+        if sheet not in skip_sheets:
+            wb.sheets[sheet].activate()
+            macro_nb.macro('conditional_format_internal_costing')()
+            macro_nb.macro('remove_h_borders')()
+            macro_nb.macro('pagebreak_borders')()
+    wb.sheets[current_sheet].activate()
+
 def print_commercial(wb):
     """The commercial proposal will be written to the cwd."""
     prepare_to_print_commercial(wb)
@@ -712,3 +732,63 @@ def shaded(wb, shaded=True):
             else:
                 macro_nb.macro('unshaded')()
     wb.sheets[current_sheet].activate()
+
+def internal_costing(wb):
+    directory = os.path.dirname(wb.fullname)
+
+    wb.sheets['Cover'].range('D39').value = 'INTERNAL COSTING'
+    wb.sheets['Cover'].range('C42:C47').value = wb.sheets['Cover'].range('C42:C47').raw_value
+    wb.sheets['Cover'].range('D6:D8').value = wb.sheets['Cover'].range('D6:D8').raw_value
+
+    wb.sheets['Summary'].range('D20:D100').value = ''
+    wb.sheets['Summary'].range('C20:C100').value = wb.sheets['Summary'].range('C20:C100').raw_value
+    wb.sheets['Summary'].range('H20:H100').value = wb.sheets['Summary'].range('H20:H100').raw_value
+    wb.sheets['Summary'].range('I:P').value = ''
+
+    # Write out exchange rates
+    wb.sheets['Summary'].range('H7:I16').value = wb.sheets['Config'].range('A1:B10').raw_value
+    wb.sheets['Summary'].range('I8:I16').number_format = '0.0000'
+    wb.sheets['Summary'].range('K7').value = 'Legend'
+    wb.sheets['Summary'].range('K9').value = legend
+
+
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    for sheet in wb.sheet_names:
+        ws = wb.sheets[sheet]
+        ws.range('A1').value = ws.range('A1').raw_value #Remove formula
+        if sheet not in skip_sheets:
+            # Collect escalation
+            escalation = ws.range('K1:R1').value
+            ws.range('I1:R1').value = ''
+            # Construct as dictionary
+            escalation = dict(zip(escalation[::2], escalation[1::2]))
+            
+            # Work on columns
+            last_row = ws.range('G1048576').end('up').row
+            ws.range('B3:B' + str(last_row)).value = ws.range('B3:B' + str(last_row)).raw_value
+            ws.range('F3:G'+ str(last_row)).value = ''
+            ws.range('K3:Q'+ str(last_row)).value = ws.range('K3:Q'+ str(last_row)).raw_value
+            ws.range('AM:AM').delete()
+            ws.range('R:AK').delete()
+            ws.range('W3').value = escalation
+            ws.range('W7').value = 'Total'
+            ws.range('X7').formula = '=SUM(X3:X6)'
+            ws.range('X3:X7').number_format = '0.00%'
+            ws.range('S2').value = 'Escalation'
+            ws.range('S3:S' +str(last_row)).formula = '=IF(AND(J3<>"",K3<>""), $X$7, "")'
+            ws.range('S3:S' +str(last_row)).number_format = '0.00%'
+
+            # To reduce visual clutter
+            ws.range('D:X').autofit()
+            ws.range('I:I').column_width = 20
+            ws.range('P:P').column_width = 20
+            ws.range('F:G').column_width = 0
+            ws.range('R:R').column_width = 0
+    wb.sheets['Config'].delete()
+    # wb.sheets['T&C'].delete()
+    prepare_to_print_internal(wb)
+    wb.sheets['Summary'].activate()
+    file_name = 'Internal ' + wb.name[:-4] + 'xlsx'
+    wb.save(Path(directory, file_name), password='')
+    # technical_wb = xw.Book(file_name)
+    # print_technical(technical_wb)
