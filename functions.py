@@ -775,7 +775,7 @@ def internal_costing(wb):
             ws.range('X7').formula = '=SUM(X3:X6)'
             ws.range('X3:X7').number_format = '0.00%'
             ws.range('S2').value = 'Escalation'
-            ws.range('S3:S' +str(last_row)).formula = '=IF(AND(J3<>"",K3<>""), $X$7, "")'
+            ws.range('S3:S' +str(last_row)).formula = '=IF(AND(D3<>"", J3<>"",K3<>""), $X$7, "")'
             ws.range('S3:S' +str(last_row)).number_format = '0.00%'
 
             # To reduce visual clutter
