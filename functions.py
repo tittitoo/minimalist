@@ -147,10 +147,10 @@ def fill_formula(sheet):
         sheet.range('AA3:AA' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),$J$1,"")'
         sheet.range('AC3:AC' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")'
         # sheet.range('AD3:AD' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED"),D3*AC3,"")'
-        sheet.range('AD3:AD' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AC3,"")'
+        sheet.range('AD3:AD' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AC3,"")'
         sheet.range('AE3:AE' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),IF(AB3<>"",AB3,AC3),"")'
         # sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED"),D3*AE3,"")'
-        sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AE3,"")'
+        sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AE3,"")'
         # sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),D3*AE3,"")'
         sheet.range('AG3:AG' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")'
         sheet.range('AH3:AH' + str(last_row)).formula = '=IF(AND(AG3<>"",AG3<>0),AG3/AF3,"")'
@@ -159,7 +159,7 @@ def fill_formula(sheet):
         # Unit Price
         sheet.range('F3:F' + str(last_row)).formula = '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))'
         # sheet.range('F3:F' + str(last_row)).formula = '=IF(AE3<>"", AE3,"")'
-        sheet.range('G3:G' + str(last_row)).formula = '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED"), D3*F3,"")'
+        sheet.range('G3:G' + str(last_row)).formula = '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
         sheet.range('L3:L' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION"),D3*K3,"")'
         # For Format field
         sheet.range('AL1').value = "Title"
