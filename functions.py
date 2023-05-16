@@ -121,7 +121,8 @@ def fill_formula(sheet):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     if sheet.name not in skip_sheets:
         # Formula to cells
-        last_row = sheet.range('C1048576').end('up').row
+        # Increase the last row by 1 so that the cells are not left empty
+        last_row = sheet.range('C1048576').end('up').row + 1
         sheet.range('A1').formula = '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
         # Serail Numbering (SN)
         sheet.range('B3:B' + str(last_row)).formula = '=IF(AND(ISNUMBER(D3), ISNUMBER(K3), XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)), COUNT(INDIRECT(CONCAT("B",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1),":B",ROW()-1))) + 1, "")'
