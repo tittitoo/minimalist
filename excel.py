@@ -93,3 +93,7 @@ def unshaded():
 def internal_costing():
     wb = xw.Book.caller()
     functions.internal_costing(wb)
+
+def convert_legacy():
+    wb = xw.Book.caller()
+    functions.convert_legacy(wb)

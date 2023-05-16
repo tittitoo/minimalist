@@ -7,6 +7,10 @@ import os
 from pathlib import Path
 import pandas as pd
 import xlwings as xw
+import numpy as np
+from datetime import datetime
+import requests
+import hide
 
 legend = {'UC': 'Unit cost in original (buying) currency',
         'SC': 'Subtotal cost in original (buying) currency',
@@ -227,6 +231,7 @@ def fill_lastrow_sheet(wb, sheet):
         sheet.range('AG' + str(last_row+2)).font.bold = True
         sheet.range('AH' + str(last_row+2)).formula = '=AG' + str(last_row+2) + '/AF' + str(last_row+2)
         sheet.range('AH' + str(last_row+2)).font.bold = True
+        sheet.range('AL' + str(last_row+2)).value = 'Title'
 
         # Set-up print area
         sheet.page_setup.print_area = 'A1:H' + str(last_row+2)
@@ -796,3 +801,237 @@ def internal_costing(wb):
     wb.sheets['Summary'].activate()
     file_name = 'Internal ' + wb.name[:-4] + 'xlsx'
     wb.save(Path(directory, file_name), password='')
+
+def convert_legacy(wb):
+    directory = os.path.dirname(wb.fullname)
+
+    if wb.name[-4:] == 'xlsm':
+        # Read and initialize values
+        # Differentiate between new and legacy template
+        visible_sheets = [sht.name for sht in wb.sheets if sht.visible]
+        full_column_list = ['NO', 'SN', 'Description', 'Qty', 'Unit', 'Unit Price', 'Subtotal Price', 'Scope', 'Model',
+                            'Cur', 'UC', 'SC', 'Discount', 'UCD', 'SCD', 'Remark', 'Rate', 'UCDQ', 'SCDQ', 'BUCQ', 'BSCQ',
+                            'Default', 'Warranty', 'Freight', 'Special', 'Risk', 'MU', 'FUP', 'RUPQ', 'RSPQ', 'UPLS', 'SPLS', 'Profit', 
+                            'Margin', 'Auxiliary', 'Lumpsum', 'Flag', 'Format', 'Category', 'System']
+        df = pd.DataFrame(columns=full_column_list)
+        risk = 0.05
+        # Read and set currency from FX sheet
+        fx = wb.sheets['FX']
+        exchange_rates = dict(fx.range('A2:B9').value)
+        quoted_currency = fx.range('B12').value
+        project_info = dict(fx.range('A36:B46').value)
+        try:
+            project_info = {key: value.upper() for key, value in project_info.items()}
+        except:
+            xw.apps.active.alert('Project Info items cannot be empty value.')
+            return
+        # Read system sheets
+        cols = ['NO', 'Qty', 'Unit', 'Description', 'Unit Price', 'Subtotal Price', 'Model', 'Cur', 'UC', 'SC', 'Discount']
+        systems = pd.DataFrame()
+        defaults = {}
+        system_names = []
+        skip_sheets = ['FX', 'Cover', 'Intro', 'ES', 'T&C']
+        for sheet in visible_sheets:
+            if sheet not in skip_sheets:
+                system_names.append(sheet.upper())
+                ws = wb.sheets[sheet]
+                escalation = dict(ws.range('K2:L5').value)
+                default_mu = ws.range('H5').value
+                escalation['default_mu'] = default_mu
+                defaults[sheet.upper()] = escalation
+                last_row = ws.range('D100000').end('up').row  #Returns a number
+                data = ws.range('A8:K' + str(last_row)).options(pd.DataFrame, index=False).value
+                data.columns = cols
+                data['System'] = str(sheet.upper())
+                data['Category'] = 'Product'
+                systems = pd.concat([systems, data], join='outer')
+        systems = pd.concat([systems, df], join='outer')
+            
+        # Read Engineering Services
+        es_cols = ['NO', 'Qty', 'Unit', 'Description', 'Unit Price', 'Subtotal Price', 'Model', 'Cur', 'UC', 'SC', 'Discount']
+        es = wb.sheets['ES']
+        es_last_row = es.range('D100000').end('up').row
+        eng_service = es.range('A8:K' + str(es_last_row)).options(pd.DataFrame, index=False).value
+        eng_service.columns = es_cols
+        eng_service = pd.concat([eng_service, df], join='outer')
+        eng_service = eng_service.reindex(columns=full_column_list)
+        eng_service['Discount'] = np.nan
+        eng_service['System'] = 'ENGINEERING SERVICES'
+        # eng_service['Category'] = 'Service'
+        systems = pd.concat([systems, eng_service], join='outer')
+        systems = systems.reindex(columns=full_column_list)
+        system_names.append('ENGINEERING SERVICES')
+
+        # Set font case for some columns
+        systems['Unit'] = systems['Unit'].str.lower()
+
+        # Remove lineitem numbers
+        systems = systems.reset_index(drop=True)
+        for idx in systems.index:
+            if str(systems.loc[idx, 'NO']).count('.') == 2:
+                systems.loc[idx, 'NO'] = np.nan
+
+        for idx in systems.index:
+            if pd.notna(systems.loc[idx, 'NO']) and not pd.notna(systems.loc[idx, 'Qty']):
+                systems.loc[idx, 'NO'] = np.nan
+
+        # Let's take care of the main numbering
+        systems['Format'] = np.nan
+        item_count = 10
+        for idx in systems.index:
+            if pd.notna(systems.loc[idx, 'NO']):
+                try:
+                    systems.at[idx, 'NO'] = item_count
+                    systems.at[idx, 'Format'] = 'Title'
+                    item_count += 10
+                except Exception as e:
+                    print(str(e))
+                    pass
+
+        # Move Option and Included to scope
+        for idx in systems.index:
+            if str(systems.loc[idx, 'Subtotal Price']).lower() in ['option', 'optional']:
+                systems.at[idx, 'Scope'] = 'OPTION'
+            if str(systems.loc[idx, 'Subtotal Price']).lower() in ['included','inclusive']:
+                systems.at[idx, 'Scope'] = 'INCLUDED'
+
+        # Cleaning data
+        for idx in systems.index:
+            if set_nitty_gritty(str(systems.loc[idx, 'Description'])) != 'None':
+                systems.at[idx, 'Description'] = set_nitty_gritty(str(systems.loc[idx, 'Description']))
+            if (str(systems.loc[idx, 'Model']).lower().strip() == 'start line:  delete forbidden'):
+                systems.at[idx, 'Model'] = np.nan
+            if (str(systems.loc[idx, 'UC']).lower().strip() == 'true' or str(systems.loc[idx, 'UC']).lower().strip() == 'false'):
+                systems.at[idx, 'UC'] = np.nan   
+            if (str(systems.loc[idx, 'SC']).lower().strip() == 'true' or str(systems.loc[idx, 'SC']).lower().strip() == 'false'):
+                systems.at[idx, 'SC'] = np.nan
+            if (str(systems.loc[idx, 'Model']).lower().strip() == 'true' or str(systems.loc[idx, 'Model']).lower().strip() == 'false'):
+                systems.at[idx, 'Model'] = np.nan
+            
+        url = "https://filedn.com/liTeg81ShEXugARC7cg981h/Proposal_Template.xlsx"
+        resp = requests.get(url)
+
+        with open(Path(directory, "Template.xlsx"), 'wb') as fd:
+            for chunk in resp.iter_content(chunk_size=8192):
+                fd.write(chunk)
+        
+        # Copy sheet from template to new workbook
+        nb = xw.Book()
+        # xl_app = xw.App(visible=False)
+        # template = xl_app.books.open(Path(directory, "Template.xlsx"), password=hide.legacy)
+        template = xw.Book(Path(directory, "Template.xlsx"), password=hide.legacy)
+        template.sheets['config'].copy(after=nb.sheets[0])
+        nb.sheets['Sheet1'].delete()
+        template.sheets['Cover'].copy(after=nb.sheets['config'])
+
+        # Set date in Config
+        nb.sheets['Config'].range('B32').value = datetime.today().strftime('%Y-%m-%d')
+
+        # Set up formula in Cover sheet
+        nb.sheets['Cover'].range('D7').formula = '=Config!B26'
+        nb.sheets['Cover'].range('C42').formula = '=Config!B21'
+        nb.sheets['Cover'].range('C43').formula = '=Config!B23'
+        nb.sheets['Cover'].range('C44').formula = '=Config!B24'
+        nb.sheets['Cover'].range('C45').formula = '=Config!B29'
+        nb.sheets['Cover'].range('C46').formula = '=Config!B30'
+        nb.sheets['Cover'].range('C47').formula = '=Config!B32'
+        nb.sheets['Cover'].range('D39').formula = '=Config!B13'
+
+        for system in system_names[::-1]:
+            sheet_name = 'Cover'
+            template.sheets['System'].copy(after=nb.sheets[sheet_name])
+            sheet_name = system
+            nb.sheets['System'].name = sheet_name
+            # Set formula to reference Config.
+            # nb.sheets[sheet_name].range('C1').formula = '=Config!B29'
+            # nb.sheets[sheet_name].range('C2').formula = '=Config!B30'
+            # nb.sheets[sheet_name].range('C3').formula = '=Config!B32'
+            # nb.sheets[sheet_name].range('C4').formula = '=Config!B26'
+            nb.sheets[sheet].range('A1').formula = '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
+        template.sheets['Summary'].copy(after=nb.sheets['Cover'])
+        template.sheets['Technical_Notes'].copy(after=nb.sheets[-1])
+        template.sheets['T&C'].copy(after=nb.sheets[-1])
+        for sheet in nb.sheet_names:
+            if sheet in ['Summary','Technical_Notes', 'T&C']:
+                # nb.sheets[sheet].range('C1').formula = '=Config!B29'
+                # nb.sheets[sheet].range('C2').formula = '=Config!B30'
+                # nb.sheets[sheet].range('C3').formula = '=Config!B32'
+                # nb.sheets[sheet].range('C4').formula = '=Config!B26'
+                nb.sheets[sheet].range('A1').formula = '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
+        template.close()
+        os.remove(Path(directory, 'Template.xlsx'))
+
+        # Write data to sheet
+        for system in system_names:
+            sheet = nb.sheets[system]
+            system = systems[systems['System'] == system]
+            sheet.range('A2').options(index=False).value = system
+                
+        # Set exchange rates
+        sheet = nb.sheets['Config']
+        exchange = pd.DataFrame([exchange_rates])
+        exchange = exchange.T
+        sheet.range('A2').value = exchange
+
+        # Quoted currency
+        sheet.range('B12').value = quoted_currency
+
+        # Project info
+        sheet.range('B21').value = project_info['Attend to: ']
+        sheet.range('B22').value = project_info['Designation: ']
+        sheet.range('B23').value = project_info['Client Name: ']
+        sheet.range('B24').value = project_info['Client RFQ No: ']
+        sheet.range('B25').value = project_info['Ref Doc No: ']
+        sheet.range('B26').value = project_info['Project Name: ']
+        sheet.range('B27').value = project_info['Prepared By: ']
+        sheet.range('B28').value = project_info['Sales Manager: ']
+        sheet.range('B29').value = project_info['Jason Ref: ']
+        sheet.range('B30').value = project_info['Revision Num: ']
+        # sheet.range('B31').value = project_info['']
+        sheet.range('B32').value = datetime.today().strftime('%Y-%m-%d')
+
+        # Write necessary formula to excel
+        for system in system_names:
+            sheet = nb.sheets[system]
+            # Set default values
+            if system != 'ENGINEERING SERVICES':
+                sheet.range('J1').value = defaults[system]['default_mu']
+                sheet.range('L1').value = defaults[system]['Default']
+                sheet.range('N1').value = defaults[system]['Warranty']
+                sheet.range('P1').value = defaults[system]['Inbound Freight']
+                sheet.range('R1').value = defaults[system]['Special Terms']
+                sheet.range('AL3').value = 'System'
+            else:
+                sheet.range('J1').value = 0.3
+                sheet.range('L1').value = 0
+                sheet.range('N1').value = 0
+                sheet.range('P1').value = 0
+                sheet.range('R1').value = 0
+                sheet.range('AL3').value = 'System'
+            
+            fill_formula(sheet)
+
+        # Setup print area
+        for system in system_names:
+            sheet = nb.sheets[system]
+            unhide_columns(sheet)
+            last_row = sheet.range('G100000').end('up').row
+            sheet.range('AL' + str(last_row)).value = 'Title'
+            sheet.page_setup.print_area = 'A1:H' + str(last_row)
+
+        # fill_formula_wb(nb)
+        fill_lastrow(nb)
+        summary(nb)
+        nb.sheets['Summary'].activate()
+        format_text(nb, indent_description=True, bullet_description=True, title_lineitem_or_description=True)
+        
+        file_name = wb.name[:-4] + 'xlsx'
+        try:
+            nb.save(Path(directory, file_name), password=hide.legacy)
+        except:
+            xw.apps.active.alert('The file already exists. Please save manually.')
+    
+    else:
+        xw.apps.active.alert('The excel file does not seem to be legacy template.')
+
+
