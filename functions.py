@@ -292,7 +292,9 @@ def summary(wb, discount=False, detail=False):
             if system not in skip_sheets:
                 (pwb.sheets['Design'].range('21:21')).copy(sheet.range(str(offset) + ':' + str(offset)))
                 sheet.range('B' + str(offset)).value = count
-                sheet.range('C' + str(offset)).value = system
+                # sheet.range('C' + str(offset)).value = system
+                # Change to C3 value
+                sheet.range('C' + str(offset)).value = wb.sheets[system].range('C3').value
                 sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('D' + str(offset)).number_format = n_format
                 sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
@@ -367,7 +369,9 @@ def summary(wb, discount=False, detail=False):
                 (pwb.sheets['Design'].range('21:21')).copy(sheet.range(str(offset) + ':' + str(offset)))
                 sheet.range('B' + str(offset)).value = count
                 sheet.range('B' + str(offset)).value = count
-                sheet.range('C' + str(offset)).value = system
+                # sheet.range('C' + str(offset)).value = system
+                # Change the value to cell C3
+                sheet.range('C' + str(offset)).value = wb.sheets[system].range('C3').value
                 sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('D' + str(offset)).number_format = n_format
                 sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
@@ -664,11 +668,12 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
             systems.at[idx, 'Unit'] = str(systems.loc[idx, 'Unit'])[:-1]
 
         systems.at[idx, 'Scope'] = str(systems.loc[idx, 'Scope']).strip().lower()
-        # Change to ea
         if str(systems.loc[idx, 'Scope']) in ['inclusive', 'include', 'included']:
             systems.at[idx, 'Scope'] = 'INCLUDED'
         if str(systems.loc[idx, 'Scope']) in ['option', 'optional']:
             systems.at[idx, 'Scope'] = 'OPTION'
+        if str(systems.loc[idx, 'Scope']) in ['waived']:
+            systems.at[idx, 'Scope'] = 'WAIVED'
 
         if indent_description:
             if systems.at[idx, 'Format'] == 'Description':
@@ -790,5 +795,3 @@ def internal_costing(wb):
     wb.sheets['Summary'].activate()
     file_name = 'Internal ' + wb.name[:-4] + 'xlsx'
     wb.save(Path(directory, file_name), password='')
-    # technical_wb = xw.Book(file_name)
-    # print_technical(technical_wb)
