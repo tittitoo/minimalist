@@ -168,7 +168,10 @@ def fill_formula(sheet):
         sheet.range('L3:L' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION"),D3*K3,"")'
         # For Format field
         sheet.range('AL1').value = "Title"
-        sheet.range('AL4:AL' + str(last_row)).formula = '=IF(C4<>"",IF(AND(A4<>"",C4<>""),"Title", IF(B4<>"","Lineitem", IF(LEFT(C4,3)="***","Comment", IF(AND(A4="",B4="",C3="", C5<>"",D5<>""), "Subtitle","Description")))),"")'
+        sheet.range('AL3').value = "System"
+        # sheet.range('AL4:AL' + str(last_row)).formula = '=IF(C4<>"",IF(AND(A4<>"",C4<>""),"Title", IF(B4<>"","Lineitem", IF(LEFT(C4,3)="***","Comment", IF(AND(A4="",B4="",C3="", C5<>"",D5<>""), "Subtitle","Description")))),"")'
+        # Implement "Subsystem"
+        sheet.range('AL4:AL' + str(last_row)).formula = '=IF(C4<>"",IF(AND(A4<>"",C4<>""),"Title", IF(B4<>"","Lineitem", IF(LEFT(C4,3)="***","Comment", IF(AND(A4="",B4="",C3="", C5<>"",D5<>""), "Subtitle", IF(AND(A4="",B4="",C3="", C5=""), "Subsystem", "Description"))))),"")'
         sheet.range('AL' + str(last_row+1)).value = "Title"
 
         # For Lumpsum
