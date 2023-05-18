@@ -27,7 +27,7 @@ def subtotal_wb():
 def unhide_columns():
     wb = xw.Book.caller()
     ws = wb.sheets.active
-    functions.unhide_columns(wb, ws)
+    functions.unhide_columns(ws)
 
 def summary():
     wb = xw.Book.caller()
