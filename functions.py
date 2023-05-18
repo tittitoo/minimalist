@@ -643,7 +643,7 @@ def fix_unit_price(wb):
         sheet.range('AB2').options(index=False).value = system['FUP']
 
 def format_text(wb, indent_description=False, bullet_description=False, title_lineitem_or_description=False,
-                upper_title=False):
+                upper_title=False, upper_system=True):
     """ 
     Format text in the workbook to remove inconsistencies.
     """
@@ -702,6 +702,10 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
                     
         if upper_title:
             if systems.at[idx, 'Format'] == 'Title': 
+                systems.at[idx, 'Description'] = str(systems.loc[idx, 'Description']).strip().upper()
+        
+        if upper_system:
+            if systems.at[idx, 'Format'] == 'System': 
                 systems.at[idx, 'Description'] = str(systems.loc[idx, 'Description']).strip().upper()
 
     # Write fomatted description to Description field
