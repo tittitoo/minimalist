@@ -2,14 +2,16 @@
     © Thiha Aung
 """
 
-import re
 import os
-from pathlib import Path
-import pandas as pd
-import xlwings as xw
-import numpy as np
+import re
 from datetime import datetime
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 import requests
+import xlwings as xw
+
 import hide
 
 legend = {'UC': 'Unit cost in original (buying) currency',
@@ -18,6 +20,8 @@ legend = {'UC': 'Unit cost in original (buying) currency',
         'UCD': 'Unit cost after discount in original (buying) currency',
         'SCD': 'Subtotal cost after discount in original (buying) currency'
         }
+
+macro_nb = xw.Book('PERSONAL.XLSB')
 
 def set_nitty_gritty(text):
     """Fix annoying text"""
@@ -53,7 +57,7 @@ def set_comma_space(text):
             text = re.sub(word, ', ' + word[1:], text)
     return text
 
-def title_case_ignore_single_char(text):
+def title_case_ignore_double_char(text):
     words = text.split()
     titled_words = []
     for word in words:
@@ -72,7 +76,7 @@ def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
     acronyms = acronym_regex.findall(text)
 
     if title:
-        text = title_case_ignore_single_char(text)
+        text = title_case_ignore_double_char(text)
         # Restore acronyms
         for acronym in acronyms:
             text = text.replace(acronym.title(), acronym)
@@ -248,9 +252,16 @@ def unhide_columns(sheet):
         sheet.range('C:C').column_width = 55
         sheet.range('C:C').rows.autofit()
         sheet.range('C:C').wrap_text = True
+        sheet.range('I:AQ').wrap_text = False
         sheet.range('D:H').autofit()
+        sheet.range('I:I').column_width = 10
         sheet.range('J:O').autofit()
+        sheet.range('P:P').column_width = 20
         sheet.range('Q:AN').autofit()
+
+def unhide_columns_wb(wb):
+    for sheet in wb.sheets:
+        unhide_columns(sheet)
 
 def hide_columns(sheet):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
@@ -541,7 +552,7 @@ def technical(wb):
 def prepare_to_print_commercial(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    macro_nb = xw.Book('PERSONAL.XLSB')
+    # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
@@ -562,7 +573,7 @@ def prepare_to_print_commercial(wb):
 def prepare_to_print_technical(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    macro_nb = xw.Book('PERSONAL.XLSB')
+    # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
@@ -575,7 +586,7 @@ def prepare_to_print_technical(wb):
 def prepare_to_print_internal(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    macro_nb = xw.Book('PERSONAL.XLSB')
+    # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
@@ -608,7 +619,7 @@ def conditional_format_wb(wb):
     Rely on excel macro for conditional format.
     """
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    macro_nb = xw.Book('PERSONAL.XLSB')
+    # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
@@ -692,7 +703,8 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
             
         if title_lineitem_or_description:
             if systems.at[idx, 'Format'] == 'Lineitem': 
-                systems.at[idx, 'Description'] = set_case_preserve_acronym(
+                if len(str(systems.loc[idx, 'Description'])) <= 60:
+                    systems.at[idx, 'Description'] = set_case_preserve_acronym(
                         (str(systems.loc[idx, 'Description']).strip()).lstrip('• '), title=True)
                 
             if systems.at[idx, 'Format'] == 'Description': 
@@ -740,7 +752,7 @@ def indent_description(wb):
 def shaded(wb, shaded=True):
     """Added Shaded region"""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    macro_nb = xw.Book('PERSONAL.XLSB')
+    # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
@@ -904,8 +916,8 @@ def convert_legacy(wb):
 
         # Cleaning data
         for idx in systems.index:
-            if set_nitty_gritty(str(systems.loc[idx, 'Description'])) != 'None':
-                systems.at[idx, 'Description'] = set_nitty_gritty(str(systems.loc[idx, 'Description']))
+            # if set_nitty_gritty(str(systems.loc[idx, 'Description'])) != 'None':
+            #     systems.at[idx, 'Description'] = set_nitty_gritty(str(systems.loc[idx, 'Description']))
             if (str(systems.loc[idx, 'Model']).lower().strip() == 'start line:  delete forbidden'):
                 systems.at[idx, 'Model'] = np.nan
             if (str(systems.loc[idx, 'UC']).lower().strip() == 'true' or str(systems.loc[idx, 'UC']).lower().strip() == 'false'):
@@ -927,7 +939,7 @@ def convert_legacy(wb):
         # xl_app = xw.App(visible=False)
         # template = xl_app.books.open(Path(directory, "Template.xlsx"), password=hide.legacy)
         template = xw.Book(Path(directory, "Template.xlsx"), password=hide.legacy)
-        template.sheets['config'].copy(after=nb.sheets[0])
+        template.sheets['Config'].copy(after=nb.sheets[0])
         nb.sheets['Sheet1'].delete()
         template.sheets['Cover'].copy(after=nb.sheets['config'])
 
@@ -954,7 +966,7 @@ def convert_legacy(wb):
             # nb.sheets[sheet_name].range('C2').formula = '=Config!B30'
             # nb.sheets[sheet_name].range('C3').formula = '=Config!B32'
             # nb.sheets[sheet_name].range('C4').formula = '=Config!B26'
-            nb.sheets[sheet].range('A1').formula = '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
+            nb.sheets[sheet_name].range('A1').formula = '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
         template.sheets['Summary'].copy(after=nb.sheets['Cover'])
         template.sheets['Technical_Notes'].copy(after=nb.sheets[-1])
         template.sheets['T&C'].copy(after=nb.sheets[-1])
@@ -1016,7 +1028,7 @@ def convert_legacy(wb):
                 sheet.range('R1').value = 0
                 sheet.range('AL3').value = 'System'
             
-            fill_formula(sheet)
+            # fill_formula(sheet)
 
         # Setup print area
         for system in system_names:
@@ -1026,11 +1038,14 @@ def convert_legacy(wb):
             sheet.range('AL' + str(last_row)).value = 'Title'
             sheet.page_setup.print_area = 'A1:H' + str(last_row)
 
-        # fill_formula_wb(nb)
+        fill_formula_wb(nb)
         fill_lastrow(nb)
         summary(nb)
         nb.sheets['Summary'].activate()
-        format_text(nb, indent_description=True, bullet_description=True, title_lineitem_or_description=True)
+        format_text(nb, title_lineitem_or_description=True, upper_system=True)
+        format_text(nb, indent_description=True, bullet_description=True)
+        unhide_columns_wb(nb)
+        conditional_format_wb(nb)
         
         file_name = wb.name[:-4] + 'xlsx'
         try:
