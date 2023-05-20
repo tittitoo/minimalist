@@ -1040,12 +1040,12 @@ def convert_legacy(wb):
 
         fill_formula_wb(nb)
         fill_lastrow(nb)
-        summary(nb)
         nb.sheets['Summary'].activate()
         format_text(nb, title_lineitem_or_description=True, upper_system=True)
         format_text(nb, indent_description=True, bullet_description=True)
         unhide_columns_wb(nb)
         conditional_format_wb(nb)
+        summary(nb)
         
         file_name = wb.name[:-4] + 'xlsx'
         try:
