@@ -247,7 +247,7 @@ def unhide_columns(sheet):
     """Unhide all columns while setting the width for selected columns"""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     if sheet.name not in skip_sheets:
-        sheet.range('A:A').column_width = 4
+        sheet.range('A:A').column_width = 5
         sheet.range('B:B').autofit()
         sheet.range('C:C').column_width = 55
         sheet.range('C:C').rows.autofit()
@@ -321,7 +321,8 @@ def summary(wb, discount=False, detail=False):
                 sheet.range('H' + str(offset)).number_format = n_format
                 sheet.range('I' + str(offset)).formula = '=IF(H'+ str(offset) + '<>"",D' + str(offset) + '- H' + str(offset) + ',"")'
                 sheet.range('I' + str(offset)).number_format = n_format
-                sheet.range('J' + str(offset)).formula = '=IF(I' + str(offset) + '<>"",I' + str(offset) + '/D' + str(offset) + ',"")'
+                # sheet.range('J' + str(offset)).formula = '=IF(I' + str(offset) + '<>"",I' + str(offset) + '/D' + str(offset) + ',"")'
+                sheet.range('J' + str(offset)).formula = '=IF(OR(D' + str(offset) + '>0.00001, D' + str(offset) + '<-0.00001), I' + str(offset) + '/D' + str(offset) + ', 0)'
                 sheet.range('J' + str(offset)).number_format = '0.00%'
                 count += 1
                 offset += 1
@@ -336,7 +337,9 @@ def summary(wb, discount=False, detail=False):
         sheet.range('E' + str(offset+1)).formula = '=IF(COUNTIF(E20:E' + str(offset) + ',"OPTION"), "Excluding Option", "")'
         sheet.range('H' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ')'
         sheet.range('I' + str(offset+1)).formula = '=IF(H'+ str(offset+1) + '<>"", D' + str(offset+1) + '- H' + str(offset+1) + ',"")'
-        sheet.range('J' + str(offset+1)).formula = '=IF(I' + str(offset+1) + '<>0,I' + str(offset+1) + '/D' + str(offset+1) + ',"")'
+        # sheet.range('J' + str(offset+1)).formula = '=IF(I' + str(offset+1) + '<>0,I' + str(offset+1) + '/D' + str(offset+1) + ',"")'
+        sheet.range('J' + str(offset+1)).formula = '=IF(OR(D' + str(offset+1) + '>0.00001, D' + str(offset+1) + '<-0.00001), I' + str(offset+1) + '/D' + str(offset+1) + ', 0)'
+        sheet.range('J' + str(offset+1)).number_format = '0.00%'
         if discount:
             (pwb.sheets['Design'].range('8:8')).copy(sheet.range(str(offset+2) + ':' + str(offset+2)))
             (pwb.sheets['Design'].range('9:9')).copy(sheet.range(str(offset+3) + ':' + str(offset+3)))
@@ -347,7 +350,8 @@ def summary(wb, discount=False, detail=False):
             sheet.range('H' + str(offset+3)).number_format = n_format
             sheet.range('I' + str(offset+3)).formula = '=IF(H'+ str(offset+3) + '<>"", D' + str(offset+3) + '- H' + str(offset+3) + ',"")'
             sheet.range('I' + str(offset+3)).number_format = n_format
-            sheet.range('J' + str(offset+3)).formula = '=IF(I' + str(offset+3) + '<>0,I' + str(offset+3) + '/D' + str(offset+3) + ',"")'
+            # sheet.range('J' + str(offset+3)).formula = '=IF(I' + str(offset+3) + '<>0,I' + str(offset+3) + '/D' + str(offset+3) + ',"")'
+            sheet.range('J' + str(offset+3)).formula = '=IF(OR(D' + str(offset+3) + '>0.00001, D' + str(offset+3) + '<-0.00001), I' + str(offset+3) + '/D' + str(offset+3) + ', 0)'
             sheet.range('J' + str(offset+3)).number_format = '0.00%'
             sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
             sheet.range('C' + str(offset+6)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."
@@ -416,7 +420,8 @@ def summary(wb, discount=False, detail=False):
                 sheet.range('N' + str(offset)).number_format = n_format
                 sheet.range('O' + str(offset)).formula = '=IF(N'+ str(offset) + '<>"",D' + str(offset) + '- N' + str(offset) + ',"")'
                 sheet.range('O' + str(offset)).number_format = n_format
-                sheet.range('P' + str(offset)).formula = '=IF(O' + str(offset) + '<>"",O' + str(offset) + '/D' + str(offset) + ',"")'
+                # sheet.range('P' + str(offset)).formula = '=IF(O' + str(offset) + '<>"",O' + str(offset) + '/D' + str(offset) + ',"")'
+                sheet.range('P' + str(offset)).formula = '=IF(OR(D' + str(offset) + '>0.00001, D' + str(offset) + '<-0.00001), O' + str(offset) + '/D' + str(offset) + ', 0)'
                 sheet.range('P' + str(offset)).number_format = '0.00%'
                 count += 1
                 offset += 1
@@ -452,7 +457,8 @@ def summary(wb, discount=False, detail=False):
         sheet.range('N' + str(offset+1)).number_format = n_format
         sheet.range('O' + str(offset+1)).formula = '=IF(N'+ str(offset+1) + '<>"", D' + str(offset+1) + '- N' + str(offset+1) + ',"")'
         sheet.range('O' + str(offset+1)).number_format = n_format
-        sheet.range('P' + str(offset+1)).formula = '=IF(O' + str(offset+1) + '<>0,O' + str(offset+1) + '/D' + str(offset+1) + ',"")'
+        # sheet.range('P' + str(offset+1)).formula = '=IF(O' + str(offset+1) + '<>0,O' + str(offset+1) + '/D' + str(offset+1) + ',"")'
+        sheet.range('P' + str(offset+1)).formula = '=IF(OR(D' + str(offset+1) + '>0.00001, D' + str(offset+1) + '<-0.00001), O' + str(offset+1) + '/D' + str(offset+1) + ', 0)'
         sheet.range('P' + str(offset+1)).number_format = '0.00%'
         if discount:
             (pwb.sheets['Design'].range('18:18')).copy(sheet.range(str(offset+2) + ':' + str(offset+2)))
@@ -464,7 +470,8 @@ def summary(wb, discount=False, detail=False):
             sheet.range('N' + str(offset+3)).number_format = n_format
             sheet.range('O' + str(offset+3)).formula = '=IF(N'+ str(offset+3) + '<>"", D' + str(offset+3) + '- N' + str(offset+3) + ',"")'
             sheet.range('O' + str(offset+3)).number_format = n_format
-            sheet.range('P' + str(offset+3)).formula = '=IF(O' + str(offset+3) + '<>0,O' + str(offset+3) + '/D' + str(offset+3) + ',"")'
+            # sheet.range('P' + str(offset+3)).formula = '=IF(O' + str(offset+3) + '<>0,O' + str(offset+3) + '/D' + str(offset+3) + ',"")'
+            sheet.range('P' + str(offset+3)).formula = '=IF(OR(D' + str(offset+3) + '>0.00001, D' + str(offset+3) + '<-0.00001), O' + str(offset+3) + '/D' + str(offset+3) + ', 0)'
             sheet.range('P' + str(offset+3)).number_format = '0.00%'
             sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
             sheet.range('C' + str(offset+6)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."
@@ -827,11 +834,15 @@ def convert_legacy(wb):
     if wb.name[-4:] == 'xlsm':
         # Read and initialize values
         # Differentiate between new and legacy template
-        visible_sheets = [sht.name for sht in wb.sheets if sht.visible]
+        # visible_sheets = [sht.name for sht in wb.sheets if sht.visible]
         full_column_list = ['NO', 'SN', 'Description', 'Qty', 'Unit', 'Unit Price', 'Subtotal Price', 'Scope', 'Model',
                             'Cur', 'UC', 'SC', 'Discount', 'UCD', 'SCD', 'Remark', 'Rate', 'UCDQ', 'SCDQ', 'BUCQ', 'BSCQ',
                             'Default', 'Warranty', 'Freight', 'Special', 'Risk', 'MU', 'FUP', 'RUPQ', 'RSPQ', 'UPLS', 'SPLS', 'Profit', 
                             'Margin', 'Auxiliary', 'Lumpsum', 'Flag', 'Format', 'Category', 'System']
+        # skip_sheets = ['FX', 'Cover', 'Intro', 'ES', 'T&C']
+        skip_sheets = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 
+                    'A12', 'A13', 'A14', 'A15', 'A16', 'A17', 'A18', 'A19', 'SUM',
+                    'FX', 'Cover', 'Intro', 'ES', 'T&C']
         df = pd.DataFrame(columns=full_column_list)
         risk = 0.05
         # Read and set currency from FX sheet
@@ -849,8 +860,7 @@ def convert_legacy(wb):
         systems = pd.DataFrame()
         defaults = {}
         system_names = []
-        skip_sheets = ['FX', 'Cover', 'Intro', 'ES', 'T&C']
-        for sheet in visible_sheets:
+        for sheet in wb.sheet_names:
             if sheet not in skip_sheets:
                 system_names.append(sheet.upper())
                 ws = wb.sheets[sheet]
