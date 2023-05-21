@@ -23,6 +23,9 @@ legend = {'UC': 'Unit cost in original (buying) currency',
 
 macro_nb = xw.Book('PERSONAL.XLSB')
 
+# Accounting number format
+n_format = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
+
 def set_nitty_gritty(text):
     """Fix annoying text"""
     # Strip EOL
@@ -284,7 +287,7 @@ def summary(wb, discount=False, detail=False):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     # The design will now be taken from PERSONAL.XLSB
     pwb = xw.books('PERSONAL.XLSB')
-    n_format = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
+    # n_format = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
 
     if not detail:
         for sheet in wb.sheet_names:
@@ -345,6 +348,8 @@ def summary(wb, discount=False, detail=False):
             (pwb.sheets['Design'].range('9:9')).copy(sheet.range(str(offset+3) + ':' + str(offset+3)))
             sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
             sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'
+            # Number format for discout field
+            sheet.range('D' + str(offset+2)).number_format = n_format
             sheet.range('D' + str(offset+3)).number_format = n_format
             sheet.range('H' + str(offset+3)).formula = '=$H$' +str(offset+1)
             sheet.range('H' + str(offset+3)).number_format = n_format
@@ -465,6 +470,8 @@ def summary(wb, discount=False, detail=False):
             (pwb.sheets['Design'].range('19:19')).copy(sheet.range(str(offset+3) + ':' + str(offset+3)))
             sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
             sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'
+            # Number format for discout field
+            sheet.range('D' + str(offset+2)).number_format = n_format
             sheet.range('D' + str(offset+3)).number_format = n_format
             sheet.range('N' + str(offset+3)).formula = '=$N$' +str(offset+1)
             sheet.range('N' + str(offset+3)).number_format = n_format
