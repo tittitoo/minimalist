@@ -592,6 +592,8 @@ def prepare_to_print_technical(wb):
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
             wb.sheets[sheet].activate()
+            wb.sheets[sheet].range('C:C').autofit()
+            wb.sheets[sheet].range('C:C').column_width = 60
             macro_nb.macro('conditional_format_technical')()
             macro_nb.macro('remove_h_borders')()
             macro_nb.macro('pagebreak_borders')()
