@@ -583,6 +583,7 @@ def prepare_to_print_commercial(wb):
             macro_nb.macro('remove_h_borders')()
             macro_nb.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
+    page_setup(wb)
 
 def prepare_to_print_technical(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
@@ -598,6 +599,7 @@ def prepare_to_print_technical(wb):
             macro_nb.macro('remove_h_borders')()
             macro_nb.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
+    page_setup(wb)
 
 def prepare_to_print_internal(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
@@ -611,6 +613,7 @@ def prepare_to_print_internal(wb):
             macro_nb.macro('remove_h_borders')()
             macro_nb.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
+    page_setup(wb)
 
 def print_commercial(wb):
     """The commercial proposal will be written to the cwd."""
@@ -1065,6 +1068,7 @@ def convert_legacy(wb):
         unhide_columns_wb(nb)
         conditional_format_wb(nb)
         summary(nb)
+        page_setup(nb)
         
         file_name = wb.name[:-4] + 'xlsx'
         try:
@@ -1075,4 +1079,15 @@ def convert_legacy(wb):
     else:
         xw.apps.active.alert('The excel file does not seem to be legacy template.')
 
-
+def page_setup(wb):
+    for sheet in wb.sheets:
+        sheet.page_setup.center_horizontally = True
+        sheet.page_setup.center_vertically = True
+        sheet.page_setup.left_margin = 0.7 # in inches
+        sheet.page_setup.right_margin = 0.7  # in inches
+        sheet.page_setup.top_margin = 0.75  # in inches
+        sheet.page_setup.bottom_margin = 0.75  # in inches
+        sheet.page_setup.header_margin = 0.3  # in inches
+        sheet.page_setup.footer_margin = 0.3  # in inches
+        sheet.page_setup.fit_to_width = True
+        
