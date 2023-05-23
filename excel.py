@@ -98,7 +98,7 @@ def convert_legacy():
     wb = xw.Book.caller()
     functions.convert_legacy(wb)
 
-def fill_fourmal_active_row():
+def fill_formula_active_row():
     wb = xw.Book.caller()
     ws = wb.sheets.active
-    functions.convert_legacy(wb, ws)
+    functions.fill_formula_active_row(wb, ws)
