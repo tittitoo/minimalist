@@ -1091,3 +1091,13 @@ def page_setup(wb):
         sheet.page_setup.footer_margin = 0.3  # in inches
         sheet.page_setup.fit_to_width = True
         
+def fill_formula_active_row(wb, ws):
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    if ws.name not in skip_sheets:
+        active_row = wb.app.selection.row
+        ws.range('B4').copy(ws.range('B' + str(active_row)))
+        ws.range('F4:G4').copy(ws.range('F' + str(active_row) + ':G' + str(active_row)))
+        ws.range('L4').copy(ws.range('L' + str(active_row)))
+        ws.range('N4:O4').copy(ws.range('N' + str(active_row) + ':O' + str(active_row)))
+        ws.range('Q4:AA4').copy(ws.range('Q' + str(active_row) + ':AA' + str(active_row)))
+        ws.range('AC4:AL4').copy(ws.range('AC' + str(active_row) + ':AL' + str(active_row)))

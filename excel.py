@@ -97,3 +97,8 @@ def internal_costing():
 def convert_legacy():
     wb = xw.Book.caller()
     functions.convert_legacy(wb)
+
+def fill_fourmal_active_row():
+    wb = xw.Book.caller()
+    ws = wb.sheets.active
+    functions.convert_legacy(wb, ws)
