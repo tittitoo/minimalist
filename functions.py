@@ -568,6 +568,7 @@ def prepare_to_print_commercial(wb):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
+    page_setup(wb)
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
             wb.sheets[sheet].activate()
@@ -583,13 +584,13 @@ def prepare_to_print_commercial(wb):
             macro_nb.macro('remove_h_borders')()
             macro_nb.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
-    page_setup(wb)
 
 def prepare_to_print_technical(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
+    page_setup(wb)
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
             wb.sheets[sheet].activate()
@@ -599,13 +600,13 @@ def prepare_to_print_technical(wb):
             macro_nb.macro('remove_h_borders')()
             macro_nb.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
-    page_setup(wb)
 
 def prepare_to_print_internal(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
+    page_setup(wb)
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
             wb.sheets[sheet].activate()
@@ -613,7 +614,6 @@ def prepare_to_print_internal(wb):
             macro_nb.macro('remove_h_borders')()
             macro_nb.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
-    page_setup(wb)
 
 def print_commercial(wb):
     """The commercial proposal will be written to the cwd."""
@@ -1101,3 +1101,4 @@ def fill_formula_active_row(wb, ws):
         ws.range('N4:O4').copy(ws.range('N' + str(active_row) + ':O' + str(active_row)))
         ws.range('Q4:AA4').copy(ws.range('Q' + str(active_row) + ':AA' + str(active_row)))
         ws.range('AC4:AL4').copy(ws.range('AC' + str(active_row) + ':AL' + str(active_row)))
+
