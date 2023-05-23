@@ -1102,3 +1102,38 @@ def fill_formula_active_row(wb, ws):
         ws.range('Q4:AA4').copy(ws.range('Q' + str(active_row) + ':AA' + str(active_row)))
         ws.range('AC4:AL4').copy(ws.range('AC' + str(active_row) + ':AL' + str(active_row)))
 
+def delete_extra_empty_row(ws):
+    c_column = ws.range('C1048576').end('up').row
+    g_column = ws.range('G1048576').end('up').row
+    if c_column > g_column:
+        last_row = c_column
+    else:
+        last_row = g_column
+
+    empty_row = 0
+    start_row = 0
+
+    for i in range(1, last_row+1):
+        # Check if the below columns are empty
+        if all(cell.value is None for cell in ws.range(f"A{i}:H{i}")):
+            empty_row += 1
+            if empty_row == 1:
+                # Set start_row to empty_row
+                start_row = i+1
+        else:
+            # Check if there is more empty rows
+            if empty_row >= 2:
+                # Delete the empty rows
+                ws.range(f"A{start_row}:XFD{i-1}").delete(shift='up')
+                # Make adjustment
+                last_row -= empty_row
+                i -= empty_row
+            # Reset empty_row and start_row
+            empty_row = 0
+            start_row = 0
+        
+
+
+
+
+
