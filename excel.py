@@ -102,3 +102,8 @@ def fill_formula_active_row():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.fill_formula_active_row(wb, ws)
+
+def delete_extra_empty_row():
+    wb = xw.Book.caller()
+    ws = wb.sheets.active
+    functions.delete_extra_empty_row(ws)
