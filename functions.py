@@ -153,7 +153,7 @@ def fill_formula(sheet):
         # Freight (Inbound)
         sheet.range('X3:X' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$P$1,"")'
         # Special (Condition)
-        sheet.range('Y3:Y' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),R3*$R$1,"")'
+        sheet.range('Y3:Y' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$R$1,"")'
         # Risk
         sheet.range('Z3:Z' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),U3-(S3+V3+W3+X3+Y3),"")'
         sheet.range('AA3:AA' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),$J$1,"")'
