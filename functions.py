@@ -263,8 +263,11 @@ def unhide_columns(sheet):
         sheet.range('Q:AN').autofit()
 
 def unhide_columns_wb(wb):
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+
     for sheet in wb.sheets:
-        unhide_columns(sheet)
+       if sheet.name not in skip_sheets:
+            unhide_columns(sheet)
 
 def hide_columns(sheet):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
