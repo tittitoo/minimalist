@@ -1132,8 +1132,9 @@ def delete_extra_empty_row(ws):
             empty_row = 0
             start_row = 0
         
+def delete_extra_empty_row_wb(wb):
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
 
-
-
-
-
+    for sheet in wb.sheets:
+       if sheet.name not in skip_sheets:
+            delete_extra_empty_row(sheet)

@@ -11,9 +11,18 @@ def fill_formula():
     ws = wb.sheets.active
     functions.fill_formula(ws)
 
+# Fix the whole workbook. The function name will later change to fix_workbook
+# Now is tied ot Fix Wrokbook in Excel
 def fill_formula_wb():
     wb = xw.Book.caller()
+    functions.delete_extra_empty_row_wb(wb)
+    # Calling twice as sometimes some rows are missed.
+    functions.delete_extra_empty_row_wb(wb)
+    functions.number_title(wb)
     functions.fill_formula_wb(wb)
+    functions.format_text(wb, title_lineitem_or_description=True)
+    functions.format_text(wb, indent_description=True, bullet_description=True)
+    functions.conditional_format_wb(wb)
 
 def subtotal():
     wb = xw.Book.caller()
