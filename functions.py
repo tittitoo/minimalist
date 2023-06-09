@@ -552,7 +552,7 @@ def technical(wb):
         if sheet not in skip_sheets:
             last_row = ws.range('B1048576').end('up').row
             ws.range('B3:B' + str(last_row)).value = ws.range('B3:B' + str(last_row)).raw_value
-            ws.range('AM:AR').delete()
+            ws.range('AM:BD').delete()
             ws.range('I:AK').delete()
             ws.range('F:G').delete()
             # To reduce visual clutter
