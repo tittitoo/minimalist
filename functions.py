@@ -286,7 +286,7 @@ def hide_columns(sheet):
 def summary(wb, discount=False, detail=False):
     summary_formula = []
     collect = [] # Collect formula to be put in summary page.
-    formula_fragment = '=IF(OR(Config!B13="COMMERCIAL PROPOSAL", Config!B13="BUDGETARY PROPOSAL"),'
+    # formula_fragment = '=IF(OR(Config!B13="COMMERCIAL PROPOSAL", Config!B13="BUDGETARY PROPOSAL"),'
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     # The design will now be taken from PERSONAL.XLSB
     pwb = xw.books('PERSONAL.XLSB')
@@ -297,9 +297,9 @@ def summary(wb, discount=False, detail=False):
             if sheet not in skip_sheets:
                 sheet = wb.sheets[sheet]
                 last_row = sheet.range('G1048576').end('up').row
-                collect = [ formula_fragment + "'" + sheet.name + "'!$G$" + str(last_row) + ', "")',
-                            formula_fragment + "'" + sheet.name + "'!$U$" + str(last_row) + ', "")']
-                    #    "='" + sheet.name + "'!$AF$" + str(last_row)]
+                collect = [ "='" + sheet.name + "'!$G$" + str(last_row),
+                            "='" + sheet.name + "'!$U$" + str(last_row)]
+                    #    "='" + sheet.name + "'!$AF$" + str(last_row
                 summary_formula.extend(collect)
                 collect = []
 
@@ -373,14 +373,14 @@ def summary(wb, discount=False, detail=False):
             if sheet not in skip_sheets:
                 sheet = wb.sheets[sheet]
                 last_row = sheet.range('G1048576').end('up').row
-                collect = [ formula_fragment + "'" + sheet.name + "'!$G$" + str(last_row) + ', "")',
-                            formula_fragment + "'" + sheet.name + "'!$S$" + str(last_row) + ', "")',
-                            formula_fragment + "'" + sheet.name + "'!$V$" + str(last_row) + ', "")',
-                            formula_fragment + "'" + sheet.name + "'!$W$" + str(last_row) + ', "")',
-                            formula_fragment + "'" + sheet.name + "'!$X$" + str(last_row) + ', "")',
-                            formula_fragment + "'" + sheet.name + "'!$Y$" + str(last_row) + ', "")',
-                            formula_fragment + "'" + sheet.name + "'!$Z$" + str(last_row) + ', "")',
-                            formula_fragment + "'" + sheet.name + "'!$U$" + str(last_row) + ', "")']
+                collect = [ "='" + sheet.name + "'!$G$" + str(last_row),
+                            "='" + sheet.name + "'!$S$" + str(last_row),
+                            "='" + sheet.name + "'!$V$" + str(last_row),
+                            "='" + sheet.name + "'!$W$" + str(last_row),
+                            "='" + sheet.name + "'!$X$" + str(last_row),
+                            "='" + sheet.name + "'!$Y$" + str(last_row),
+                            "='" + sheet.name + "'!$Z$" + str(last_row),
+                            "='" + sheet.name + "'!$U$" + str(last_row)]
                     #    "='" + sheet.name + "'!$AF$" + str(last_row)]
                 summary_formula.extend(collect)
                 collect = []
@@ -544,7 +544,7 @@ def technical(wb):
     wb.sheets['Cover'].range('D6:D8').value = wb.sheets['Cover'].range('D6:D8').raw_value
     wb.sheets['Summary'].range('D20:D100').value = ''
     wb.sheets['Summary'].range('C20:C100').value = wb.sheets['Summary'].range('C20:C100').raw_value
-    wb.sheets['Summary'].range('G:P').delete()
+    wb.sheets['Summary'].range('G:S').delete()
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     for sheet in wb.sheet_names:
         ws = wb.sheets[sheet]
@@ -552,6 +552,7 @@ def technical(wb):
         if sheet not in skip_sheets:
             last_row = ws.range('B1048576').end('up').row
             ws.range('B3:B' + str(last_row)).value = ws.range('B3:B' + str(last_row)).raw_value
+            ws.range('AL3:AL' + str(last_row)).value = ws.range('AL3:AL' + str(last_row)).raw_value
             ws.range('AM:BD').delete()
             ws.range('I:AK').delete()
             ws.range('F:G').delete()
@@ -566,27 +567,56 @@ def technical(wb):
     technical_wb = xw.Book(file_name)
     print_technical(technical_wb)
 
-def prepare_to_print_commercial(wb):
+def commercial(wb):
+    directory = os.path.dirname(wb.fullname)
     """Takes a work book, set horizantal borders at pagebreaks."""
-    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     # macro_nb = xw.Book('PERSONAL.XLSB')
-    current_sheet = wb.sheets.active
+    # current_sheet = wb.sheets.active
+    wb.sheets['Cover'].range('D6:D8').value = wb.sheets['Cover'].range('D6:D8').raw_value
+    wb.sheets['Cover'].range('D39').value = 'COMMERCIAL PROPOSAL'
+    wb.sheets['Cover'].range('C42:C47').value = wb.sheets['Cover'].range('C42:C47').raw_value
+    last_row = wb.sheets['Summary'].range('D1048576').end('up').row
+    wb.sheets['Summary'].range(f'G20:P{last_row}').value = wb.sheets['Summary'].range(f'G20:P{last_row}').raw_value
+    wb.sheets['Summary'].range('C20:C100').value = wb.sheets['Summary'].range('C20:C100').raw_value
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     page_setup(wb)
     for sheet in wb.sheet_names:
+        ws = wb.sheets[sheet]
+        ws.range('A1').value = ws.range('A1').raw_value #Remove formula
         if sheet not in skip_sheets:
-            wb.sheets[sheet].activate()
+            last_row = ws.range('G1048576').end('up').row
+            ws.activate()
             # Adjust column width as sometimes, the long value does not show.
-            wb.sheets[sheet].range('A:A').column_width = 4
-            wb.sheets[sheet].range('B:B').autofit()
-            wb.sheets[sheet].range('C:C').autofit()
-            wb.sheets[sheet].range('C:C').column_width = 55
-            # wb.sheets[sheet].range('C:C').wrap_text = True
+            ws.range(f'A3:AL{last_row}').value = ws.range(f'A3:AL{last_row}').raw_value
+            ws.range('A:A').column_width = 4
+            ws.range('B:B').autofit()
+            ws.range('C:C').autofit()
+            ws.range('C:C').column_width = 55
+            # wb.sheets[sheet].range('C:C').wrap_text = 
+            ws.range(f'G3:G{last_row-1}').formula = '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
+            ws.range(f'G{last_row}').formula = '=SUM(G3:G' + str(last_row-1) + ')'
             wb.sheets[sheet].range('D:H').autofit()
+            ws.range('AM:BD').delete()
+            ws.range('I:AK').delete()
+            ws.range(f'AM1:AM{last_row}').value = ws.range(f'I1:I{last_row}').raw_value
+            ws.range('I:I').delete()
+            ws.range('AL:AL').column_width = 0
             # Call macros
             macro_nb.macro('conditional_format')()
             macro_nb.macro('remove_h_borders')()
             macro_nb.macro('pagebreak_borders')()
-    wb.sheets[current_sheet].activate()
+
+    wb.sheets['Summary'].range('G:X').delete()
+    wb.sheets['Config'].delete()
+    wb.sheets['Summary'].activate()
+    file_name = 'Commercial ' + wb.name[:-4] + 'xlsx'
+    wb.save(Path(directory, file_name), password='')
+    commercial_wb = xw.Book(file_name)
+    try:
+        commercial_wb.to_pdf(show=True)
+    except Exception:
+            # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
+            xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
 
 def prepare_to_print_technical(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
@@ -617,15 +647,6 @@ def prepare_to_print_internal(wb):
             macro_nb.macro('remove_h_borders')()
             macro_nb.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
-
-def print_commercial(wb):
-    """The commercial proposal will be written to the cwd."""
-    prepare_to_print_commercial(wb)
-    try:
-        wb.to_pdf(exclude='Config', show=True)
-    except Exception:
-            # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
-            xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
 
 def print_technical(wb):
     """The technical proposal will be written to the cwd."""
