@@ -536,6 +536,22 @@ def number_title(wb, count=10, step=10):
         system = systems[systems['System'] == system]
         sheet.range('A2').options(index=False).value = system['NO']
 
+def prepare_to_print_technical(wb):
+    """Takes a work book, set horizantal borders at pagebreaks."""
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    # macro_nb = xw.Book('PERSONAL.XLSB')
+    current_sheet = wb.sheets.active
+    page_setup(wb)
+    for sheet in wb.sheet_names:
+        if sheet not in skip_sheets:
+            wb.sheets[sheet].activate()
+            wb.sheets[sheet].range('C:C').autofit()
+            wb.sheets[sheet].range('C:C').column_width = 60
+            macro_nb.macro('conditional_format')()
+            macro_nb.macro('remove_h_borders')()
+            macro_nb.macro('pagebreak_borders')()
+    wb.sheets[current_sheet].activate()
+
 def technical(wb):
     directory = os.path.dirname(wb.fullname)
 
@@ -557,7 +573,10 @@ def technical(wb):
             ws.range('I:AK').delete()
             ws.range('F:G').delete()
             # To reduce visual clutter
-            ws.range('G:H').column_width = 0
+            ws.range(f'AM1:AM{last_row}').value = ws.range(f'G1:G{last_row}').raw_value
+            ws.range('G:G').delete()
+            ws.range('AL:AL').column_width = 0
+            # ws.range('G:H').column_width = 0
     wb.sheets['Config'].delete()
     wb.sheets['T&C'].delete()
     prepare_to_print_technical(wb)
@@ -617,22 +636,6 @@ def commercial(wb):
     except Exception:
             # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
             xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
-
-def prepare_to_print_technical(wb):
-    """Takes a work book, set horizantal borders at pagebreaks."""
-    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-    # macro_nb = xw.Book('PERSONAL.XLSB')
-    current_sheet = wb.sheets.active
-    page_setup(wb)
-    for sheet in wb.sheet_names:
-        if sheet not in skip_sheets:
-            wb.sheets[sheet].activate()
-            wb.sheets[sheet].range('C:C').autofit()
-            wb.sheets[sheet].range('C:C').column_width = 60
-            macro_nb.macro('conditional_format_technical')()
-            macro_nb.macro('remove_h_borders')()
-            macro_nb.macro('pagebreak_borders')()
-    wb.sheets[current_sheet].activate()
 
 def prepare_to_print_internal(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
