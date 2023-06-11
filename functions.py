@@ -297,7 +297,8 @@ def summary(wb, discount=False, detail=False):
             if sheet not in skip_sheets:
                 sheet = wb.sheets[sheet]
                 last_row = sheet.range('G1048576').end('up').row
-                collect = [ "='" + sheet.name + "'!$G$" + str(last_row),
+                collect = [ "='" + sheet.name + "'!$C$3",
+                            "='" + sheet.name + "'!$G$" + str(last_row),
                             "='" + sheet.name + "'!$U$" + str(last_row)]
                     #    "='" + sheet.name + "'!$AF$" + str(last_row
                 summary_formula.extend(collect)
@@ -320,7 +321,8 @@ def summary(wb, discount=False, detail=False):
                 sheet.range('B' + str(offset)).value = count
                 # sheet.range('C' + str(offset)).value = system
                 # Change to C3 value
-                sheet.range('C' + str(offset)).value = wb.sheets[system].range('C3').value
+                # sheet.range('C' + str(offset)).value = wb.sheets[system].range('C3').value
+                sheet.range('C' + str(offset)).value = odered_summary_formula.pop()
                 sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('D' + str(offset)).number_format = n_format
                 sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
@@ -373,7 +375,8 @@ def summary(wb, discount=False, detail=False):
             if sheet not in skip_sheets:
                 sheet = wb.sheets[sheet]
                 last_row = sheet.range('G1048576').end('up').row
-                collect = [ "='" + sheet.name + "'!$G$" + str(last_row),
+                collect = [ "='" + sheet.name + "'!$C$3",
+                            "='" + sheet.name + "'!$G$" + str(last_row),
                             "='" + sheet.name + "'!$S$" + str(last_row),
                             "='" + sheet.name + "'!$V$" + str(last_row),
                             "='" + sheet.name + "'!$W$" + str(last_row),
@@ -403,7 +406,8 @@ def summary(wb, discount=False, detail=False):
                 sheet.range('B' + str(offset)).value = count
                 # sheet.range('C' + str(offset)).value = system
                 # Change the value to cell C3
-                sheet.range('C' + str(offset)).value = wb.sheets[system].range('C3').value
+                # sheet.range('C' + str(offset)).value = wb.sheets[system].range('C3').value
+                sheet.range('C' + str(offset)).value = odered_summary_formula.pop()
                 sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('D' + str(offset)).number_format = n_format
                 sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
@@ -1118,8 +1122,9 @@ def page_setup(wb):
         sheet.page_setup.footer_margin = 0.3  # in inches
         sheet.page_setup.fit_to_width = True
         if sheet.name in ['Technical_Notes', 'T&C']:
+            sheet.range('A:A').column_width = 2
             sheet.range('B:B').autofit()
-            sheet.range('C:C').column_width = 75
+            sheet.range('C:C').column_width = 70
             sheet.range('C:C').rows.autofit()
             sheet.range('C:C').wrap_text = True
 
