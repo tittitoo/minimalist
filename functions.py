@@ -1117,6 +1117,12 @@ def page_setup(wb):
         sheet.page_setup.header_margin = 0.3  # in inches
         sheet.page_setup.footer_margin = 0.3  # in inches
         sheet.page_setup.fit_to_width = True
+        if sheet.name in ['Technical_Notes', 'T&C']:
+            sheet.range('B:B').autofit()
+            sheet.range('C:C').column_width = 75
+            sheet.range('C:C').rows.autofit()
+            sheet.range('C:C').wrap_text = True
+
         
 def fill_formula_active_row(wb, ws):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
