@@ -318,20 +318,12 @@ def summary(wb, discount=False, detail=False):
         for system in wb.sheet_names:
             if system not in skip_sheets:
                 (pwb.sheets['Design'].range('21:21')).copy(sheet.range(str(offset) + ':' + str(offset)))
-                sheet.range('B' + str(offset)).value = count
-                # sheet.range('C' + str(offset)).value = system
-                # Change to C3 value
-                # sheet.range('C' + str(offset)).value = wb.sheets[system].range('C3').value
-                sheet.range('C' + str(offset)).value = odered_summary_formula.pop()
+                sheet.range('B' + str(offset)).value = str(count) + ' ‣ '
+                sheet.range('C' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('D' + str(offset)).number_format = n_format
                 sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('H' + str(offset)).number_format = n_format
                 sheet.range('I' + str(offset)).formula = '=IF(H'+ str(offset) + '<>"",D' + str(offset) + '- H' + str(offset) + ',"")'
-                sheet.range('I' + str(offset)).number_format = n_format
-                # sheet.range('J' + str(offset)).formula = '=IF(I' + str(offset) + '<>"",I' + str(offset) + '/D' + str(offset) + ',"")'
                 sheet.range('J' + str(offset)).formula = '=IF(OR(D' + str(offset) + '>0.00001, D' + str(offset) + '<-0.00001), I' + str(offset) + '/D' + str(offset) + ', 0)'
-                sheet.range('J' + str(offset)).number_format = '0.00%'
                 count += 1
                 offset += 1
         
@@ -339,15 +331,19 @@ def summary(wb, discount=False, detail=False):
         (pwb.sheets['Design'].range('13:13')).copy(sheet.range(str(start_row) + ':' + str(start_row)))
         (pwb.sheets['Design'].range('11:11')).copy(sheet.range(str(offset) + ':' + str(offset)))
         (pwb.sheets['Design'].range('7:7')).copy(sheet.range(str(offset+1) + ':' + str(offset+1)))
+
         # sheet = wb.sheets['Summary']
         sheet.range('C' + str(offset+1)).value = '="TOTAL PROJECT (" & Config!B12 & ")"'
         sheet.range('D' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ')'
         sheet.range('E' + str(offset+1)).formula = '=IF(COUNTIF(E20:E' + str(offset) + ',"OPTION"), "Excluding Option", "")'
         sheet.range('H' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ')'
         sheet.range('I' + str(offset+1)).formula = '=IF(H'+ str(offset+1) + '<>"", D' + str(offset+1) + '- H' + str(offset+1) + ',"")'
-        # sheet.range('J' + str(offset+1)).formula = '=IF(I' + str(offset+1) + '<>0,I' + str(offset+1) + '/D' + str(offset+1) + ',"")'
         sheet.range('J' + str(offset+1)).formula = '=IF(OR(D' + str(offset+1) + '>0.00001, D' + str(offset+1) + '<-0.00001), I' + str(offset+1) + '/D' + str(offset+1) + ', 0)'
-        sheet.range('J' + str(offset+1)).number_format = '0.00%'
+
+        # Format
+        sheet.range(f'D20:I{offset+1}').number_format = n_format          
+        sheet.range(f'J20:J{offset+1}').number_format = '0.00%' 
+
         if discount:
             (pwb.sheets['Design'].range('8:8')).copy(sheet.range(str(offset+2) + ':' + str(offset+2)))
             (pwb.sheets['Design'].range('9:9')).copy(sheet.range(str(offset+3) + ':' + str(offset+3)))
@@ -370,6 +366,7 @@ def summary(wb, discount=False, detail=False):
             sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
             sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
             sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+    
     else: #detail
         for sheet in wb.sheet_names:
             if sheet not in skip_sheets:
@@ -402,76 +399,47 @@ def summary(wb, discount=False, detail=False):
         for system in wb.sheet_names:
             if system not in skip_sheets:
                 (pwb.sheets['Design'].range('21:21')).copy(sheet.range(str(offset) + ':' + str(offset)))
-                sheet.range('B' + str(offset)).value = count
-                sheet.range('B' + str(offset)).value = count
-                # sheet.range('C' + str(offset)).value = system
-                # Change the value to cell C3
-                # sheet.range('C' + str(offset)).value = wb.sheets[system].range('C3').value
-                sheet.range('C' + str(offset)).value = odered_summary_formula.pop()
+                sheet.range('B' + str(offset)).value = str(count) + ' ‣ '
+                sheet.range('C' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('D' + str(offset)).number_format = n_format
                 sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('H' + str(offset)).number_format = n_format
-                sheet.range('H' + str(offset)).font.color = (4, 50, 255)
                 sheet.range('I' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('I' + str(offset)).number_format = n_format
-                sheet.range('I' + str(offset)).font.color = (148, 55, 255)
                 sheet.range('J' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('J' + str(offset)).number_format = n_format
-                sheet.range('J' + str(offset)).font.color = (148, 55, 255)
                 sheet.range('K' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('K' + str(offset)).number_format = n_format
-                sheet.range('K' + str(offset)).font.color = (148, 55, 255)
                 sheet.range('L' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('L' + str(offset)).number_format = n_format
-                sheet.range('L' + str(offset)).font.color = (148, 55, 255)
                 sheet.range('M' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('M' + str(offset)).number_format = n_format
-                sheet.range('M' + str(offset)).font.color = (148, 55, 255)
                 sheet.range('N' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('N' + str(offset)).number_format = n_format
                 sheet.range('O' + str(offset)).formula = '=IF(N'+ str(offset) + '<>"",D' + str(offset) + '- N' + str(offset) + ',"")'
-                sheet.range('O' + str(offset)).number_format = n_format
-                # sheet.range('P' + str(offset)).formula = '=IF(O' + str(offset) + '<>"",O' + str(offset) + '/D' + str(offset) + ',"")'
                 sheet.range('P' + str(offset)).formula = '=IF(OR(D' + str(offset) + '>0.00001, D' + str(offset) + '<-0.00001), O' + str(offset) + '/D' + str(offset) + ', 0)'
-                sheet.range('P' + str(offset)).number_format = '0.00%'
                 count += 1
                 offset += 1
-        
+     
         # Drawing lines
         (pwb.sheets['Design'].range('15:15')).copy(sheet.range(str(start_row) + ':' + str(start_row)))
         (pwb.sheets['Design'].range('11:11')).copy(sheet.range(str(offset) + ':' + str(offset)))
         (pwb.sheets['Design'].range('17:17')).copy(sheet.range(str(offset+1) + ':' + str(offset+1)))
+
         # sheet = wb.sheets['Summary']
         sheet.range('C' + str(offset+1)).value = '="TOTAL PROJECT (" & Config!B12 & ")"'
         sheet.range('D' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ')'
         sheet.range('D' + str(offset+1)).number_format = n_format
         sheet.range('E' + str(offset+1)).formula = '=IF(COUNTIF(E20:E' + str(offset) + ',"OPTION"), "Excluding Option", "")'
         sheet.range('H' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ')'
-        sheet.range('H' + str(offset+1)).number_format = n_format
-        sheet.range('H' + str(offset+1)).font.color = (4, 50, 255)
         sheet.range('I' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",I20:I' + str(offset) + ')'
-        sheet.range('I' + str(offset+1)).number_format = n_format
-        sheet.range('I' + str(offset+1)).font.color = (148, 55, 255)
         sheet.range('J' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",J20:J' + str(offset) + ')'
-        sheet.range('J' + str(offset+1)).number_format = n_format
-        sheet.range('J' + str(offset+1)).font.color = (148, 55, 255)
         sheet.range('K' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",K20:K' + str(offset) + ')'
-        sheet.range('K' + str(offset+1)).number_format = n_format
-        sheet.range('K' + str(offset+1)).font.color = (148, 55, 255)
         sheet.range('L' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",L20:L' + str(offset) + ')'
-        sheet.range('L' + str(offset+1)).number_format = n_format
-        sheet.range('L' + str(offset+1)).font.color = (148, 55, 255)
         sheet.range('M' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",M20:M' + str(offset) + ')'
-        sheet.range('M' + str(offset+1)).number_format = n_format
-        sheet.range('M' + str(offset+1)).font.color = (148, 55, 255)
         sheet.range('N' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",N20:N' + str(offset) + ')'
-        sheet.range('N' + str(offset+1)).number_format = n_format
         sheet.range('O' + str(offset+1)).formula = '=IF(N'+ str(offset+1) + '<>"", D' + str(offset+1) + '- N' + str(offset+1) + ',"")'
-        sheet.range('O' + str(offset+1)).number_format = n_format
-        # sheet.range('P' + str(offset+1)).formula = '=IF(O' + str(offset+1) + '<>0,O' + str(offset+1) + '/D' + str(offset+1) + ',"")'
         sheet.range('P' + str(offset+1)).formula = '=IF(OR(D' + str(offset+1) + '>0.00001, D' + str(offset+1) + '<-0.00001), O' + str(offset+1) + '/D' + str(offset+1) + ', 0)'
-        sheet.range('P' + str(offset+1)).number_format = '0.00%'
+
+        # Format
+        sheet.range(f'D20:O{offset+1}').number_format = n_format
+        sheet.range(f'H20:H{offset+1}').font.color = (4, 50, 255)
+        sheet.range(f'I20:M{offset+1}').font.color = (148, 55, 255)          
+        sheet.range(f'P20:P{offset+1}').number_format = '0.00%' 
+
         if discount:
             (pwb.sheets['Design'].range('18:18')).copy(sheet.range(str(offset+2) + ':' + str(offset+2)))
             (pwb.sheets['Design'].range('19:19')).copy(sheet.range(str(offset+3) + ':' + str(offset+3)))
@@ -484,7 +452,6 @@ def summary(wb, discount=False, detail=False):
             sheet.range('N' + str(offset+3)).number_format = n_format
             sheet.range('O' + str(offset+3)).formula = '=IF(N'+ str(offset+3) + '<>"", D' + str(offset+3) + '- N' + str(offset+3) + ',"")'
             sheet.range('O' + str(offset+3)).number_format = n_format
-            # sheet.range('P' + str(offset+3)).formula = '=IF(O' + str(offset+3) + '<>0,O' + str(offset+3) + '/D' + str(offset+3) + ',"")'
             sheet.range('P' + str(offset+3)).formula = '=IF(OR(D' + str(offset+3) + '>0.00001, D' + str(offset+3) + '<-0.00001), O' + str(offset+3) + '/D' + str(offset+3) + ', 0)'
             sheet.range('P' + str(offset+3)).number_format = '0.00%'
             sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
