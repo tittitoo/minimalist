@@ -14,17 +14,17 @@ import xlwings as xw
 
 import hide
 
-legend = {'UC': 'Unit cost in original (buying) currency',
+LEGEND = {'UC': 'Unit cost in original (buying) currency',
         'SC': 'Subtotal cost in original (buying) currency',
         'Discount': 'Discount in percentage from the supplier',
         'UCD': 'Unit cost after discount in original (buying) currency',
         'SCD': 'Subtotal cost after discount in original (buying) currency'
         }
 
-macro_nb = xw.Book('PERSONAL.XLSB')
+MACRO_NB = xw.Book('PERSONAL.XLSB')
 
 # Accounting number format
-n_format = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
+N_FORMAT = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
 
 def set_nitty_gritty(text):
     """Fix annoying text"""
@@ -259,7 +259,7 @@ def unhide_columns_wb(wb):
 def hide_columns(sheet):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     if sheet.name not in skip_sheets:
-        sheet.range('AI:AN').column_width = 0
+        sheet.range('AI:AM').column_width = 0
         sheet.range('AC:AD').column_width = 0
         sheet.range('AF:AF').column_width = 0
         sheet.range('AB:AB').column_width = 10
@@ -277,7 +277,6 @@ def summary(wb, discount=False, detail=False):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     # The design will now be taken from PERSONAL.XLSB
     pwb = xw.books('PERSONAL.XLSB')
-    # n_format = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
 
     if not detail:
         for sheet in wb.sheet_names:
@@ -328,7 +327,7 @@ def summary(wb, discount=False, detail=False):
         sheet.range('J' + str(offset+1)).formula = '=IF(OR(D' + str(offset+1) + '>0.00001, D' + str(offset+1) + '<-0.00001), I' + str(offset+1) + '/D' + str(offset+1) + ', 0)'
 
         # Format
-        sheet.range(f'D20:I{offset+1}').number_format = n_format          
+        sheet.range(f'D20:I{offset+1}').number_format = N_FORMAT          
         sheet.range(f'J20:J{offset+1}').number_format = '0.00%' 
 
         if discount:
@@ -337,12 +336,12 @@ def summary(wb, discount=False, detail=False):
             sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
             sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'
             # Number format for discout field
-            sheet.range('D' + str(offset+2)).number_format = n_format
-            sheet.range('D' + str(offset+3)).number_format = n_format
+            sheet.range('D' + str(offset+2)).number_format = N_FORMAT
+            sheet.range('D' + str(offset+3)).number_format = N_FORMAT
             sheet.range('H' + str(offset+3)).formula = '=$H$' +str(offset+1)
-            sheet.range('H' + str(offset+3)).number_format = n_format
+            sheet.range('H' + str(offset+3)).number_format = N_FORMAT
             sheet.range('I' + str(offset+3)).formula = '=IF(H'+ str(offset+3) + '<>"", D' + str(offset+3) + '- H' + str(offset+3) + ',"")'
-            sheet.range('I' + str(offset+3)).number_format = n_format
+            sheet.range('I' + str(offset+3)).number_format = N_FORMAT
             # sheet.range('J' + str(offset+3)).formula = '=IF(I' + str(offset+3) + '<>0,I' + str(offset+3) + '/D' + str(offset+3) + ',"")'
             sheet.range('J' + str(offset+3)).formula = '=IF(OR(D' + str(offset+3) + '>0.00001, D' + str(offset+3) + '<-0.00001), I' + str(offset+3) + '/D' + str(offset+3) + ', 0)'
             sheet.range('J' + str(offset+3)).number_format = '0.00%'
@@ -409,7 +408,6 @@ def summary(wb, discount=False, detail=False):
         # sheet = wb.sheets['Summary']
         sheet.range('C' + str(offset+1)).value = '="TOTAL PROJECT (" & Config!B12 & ")"'
         sheet.range('D' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ')'
-        sheet.range('D' + str(offset+1)).number_format = n_format
         sheet.range('E' + str(offset+1)).formula = '=IF(COUNTIF(E20:E' + str(offset) + ',"OPTION"), "Excluding Option", "")'
         sheet.range('H' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ')'
         sheet.range('I' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",I20:I' + str(offset) + ')'
@@ -422,7 +420,7 @@ def summary(wb, discount=False, detail=False):
         sheet.range('P' + str(offset+1)).formula = '=IF(OR(D' + str(offset+1) + '>0.00001, D' + str(offset+1) + '<-0.00001), O' + str(offset+1) + '/D' + str(offset+1) + ', 0)'
 
         # Format
-        sheet.range(f'D20:O{offset+1}').number_format = n_format
+        sheet.range(f'D20:O{offset+1}').number_format = N_FORMAT
         sheet.range(f'H20:H{offset+1}').font.color = (4, 50, 255)
         sheet.range(f'I20:M{offset+1}').font.color = (148, 55, 255)          
         sheet.range(f'P20:P{offset+1}').number_format = '0.00%' 
@@ -433,12 +431,12 @@ def summary(wb, discount=False, detail=False):
             sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
             sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'
             # Number format for discout field
-            sheet.range('D' + str(offset+2)).number_format = n_format
-            sheet.range('D' + str(offset+3)).number_format = n_format
+            sheet.range('D' + str(offset+2)).number_format = N_FORMAT
+            sheet.range('D' + str(offset+3)).number_format = N_FORMAT
             sheet.range('N' + str(offset+3)).formula = '=$N$' +str(offset+1)
-            sheet.range('N' + str(offset+3)).number_format = n_format
+            sheet.range('N' + str(offset+3)).number_format = N_FORMAT
             sheet.range('O' + str(offset+3)).formula = '=IF(N'+ str(offset+3) + '<>"", D' + str(offset+3) + '- N' + str(offset+3) + ',"")'
-            sheet.range('O' + str(offset+3)).number_format = n_format
+            sheet.range('O' + str(offset+3)).number_format = N_FORMAT
             sheet.range('P' + str(offset+3)).formula = '=IF(OR(D' + str(offset+3) + '>0.00001, D' + str(offset+3) + '<-0.00001), O' + str(offset+3) + '/D' + str(offset+3) + ', 0)'
             sheet.range('P' + str(offset+3)).number_format = '0.00%'
             sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
@@ -505,9 +503,9 @@ def prepare_to_print_technical(wb):
             wb.sheets[sheet].activate()
             wb.sheets[sheet].range('C:C').autofit()
             wb.sheets[sheet].range('C:C').column_width = 60
-            macro_nb.macro('conditional_format')()
-            macro_nb.macro('remove_h_borders')()
-            macro_nb.macro('pagebreak_borders')()
+            MACRO_NB.macro('conditional_format')()
+            MACRO_NB.macro('remove_h_borders')()
+            MACRO_NB.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
 
 def technical(wb):
@@ -579,9 +577,9 @@ def commercial(wb):
             ws.range('I:I').delete()
             ws.range('AL:AL').column_width = 0
             # Call macros
-            macro_nb.macro('conditional_format')()
-            macro_nb.macro('remove_h_borders')()
-            macro_nb.macro('pagebreak_borders')()
+            MACRO_NB.macro('conditional_format')()
+            MACRO_NB.macro('remove_h_borders')()
+            MACRO_NB.macro('pagebreak_borders')()
 
     wb.sheets['Summary'].range('G:X').delete()
     wb.sheets['Config'].delete()
@@ -604,9 +602,9 @@ def prepare_to_print_internal(wb):
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
             wb.sheets[sheet].activate()
-            macro_nb.macro('conditional_format_internal_costing')()
-            macro_nb.macro('remove_h_borders')()
-            macro_nb.macro('pagebreak_borders')()
+            MACRO_NB.macro('conditional_format_internal_costing')()
+            MACRO_NB.macro('remove_h_borders')()
+            MACRO_NB.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
 
 def print_technical(wb):
@@ -628,7 +626,7 @@ def conditional_format_wb(wb):
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
             wb.sheets[sheet].activate()
-            macro_nb.macro('conditional_format')()
+            MACRO_NB.macro('conditional_format')()
     wb.sheets[current_sheet].activate()
 
 def fix_unit_price(wb):
@@ -762,9 +760,9 @@ def shaded(wb, shaded=True):
         if sheet not in skip_sheets:
             wb.sheets[sheet].activate()
             if shaded:
-                macro_nb.macro('shaded')()
+                MACRO_NB.macro('shaded')()
             else:
-                macro_nb.macro('unshaded')()
+                MACRO_NB.macro('unshaded')()
     wb.sheets[current_sheet].activate()
 
 def internal_costing(wb):
@@ -783,7 +781,7 @@ def internal_costing(wb):
     wb.sheets['Summary'].range('H7:I16').value = wb.sheets['Config'].range('A1:B10').raw_value
     wb.sheets['Summary'].range('I8:I16').number_format = '0.0000'
     wb.sheets['Summary'].range('K7').value = 'Legend'
-    wb.sheets['Summary'].range('K9').value = legend
+    wb.sheets['Summary'].range('K9').value = LEGEND
 
 
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
