@@ -204,44 +204,31 @@ def fill_lastrow_sheet(wb, sheet):
         last_row = sheet.range('C1048576').end('up').row
         (pwb.sheets['Design'].range('5:5')).copy(sheet.range(str(last_row+2) + ':' + str(last_row+2)))
         sheet.range('F'+ str(last_row+2)).formula = '="Subtotal(" & Config!B12 & ")"'
-        sheet.range('F'+ str(last_row+2)).font.bold = True
         sheet.range('F'+ str(last_row+2)).font.size = 9
         sheet.range('G' + str(last_row+2)).formula = '=SUM(G3:G' + str(last_row+1) + ')'
-        sheet.range('G' + str(last_row+2)).font.bold = True
         # SCDQ: Subtotal cost after discount in quoted currency
         sheet.range('S' + str(last_row+2)).formula = '=SUM(S3:S' + str(last_row+1) + ')'
-        sheet.range('S' + str(last_row+2)).font.bold = True
-        sheet.range('S' + str(last_row+2)).font.color = (0, 144, 81)
         # BSCQ: Base subtotal cost in quoted currency
         sheet.range('U' + str(last_row+2)).formula = '=SUM(U3:U' + str(last_row+1) + ')'
-        sheet.range('U' + str(last_row+2)).font.bold = True
         # Default
         sheet.range('V' + str(last_row+2)).formula = '=SUM(V3:V' + str(last_row+1) + ')'
-        sheet.range('V' + str(last_row+2)).font.bold = True
-        sheet.range('V' + str(last_row+2)).font.color = (0, 144, 81)
         # Warranty
         sheet.range('W' + str(last_row+2)).formula = '=SUM(W3:W' + str(last_row+1) + ')'
-        sheet.range('W' + str(last_row+2)).font.bold = True
-        sheet.range('W' + str(last_row+2)).font.color = (0, 144, 81)
         # Freight (Inbound)
         sheet.range('X' + str(last_row+2)).formula = '=SUM(X3:X' + str(last_row+1) + ')'
-        sheet.range('X' + str(last_row+2)).font.bold = True
-        sheet.range('X' + str(last_row+2)).font.color = (0, 144, 81)
         # Special (Conditions)
         sheet.range('Y' + str(last_row+2)).formula = '=SUM(Y3:Y' + str(last_row+1) + ')'
-        sheet.range('Y' + str(last_row+2)).font.bold = True
-        sheet.range('Y' + str(last_row+2)).font.color = (0, 144, 81)
         # Risk
         sheet.range('Z' + str(last_row+2)).formula = '=SUM(Z3:Z' + str(last_row+1) + ')'
-        sheet.range('Z' + str(last_row+2)).font.bold = True
-        sheet.range('Z' + str(last_row+2)).font.color = (0, 144, 81)
         sheet.range('AF' + str(last_row+2)).formula = '=SUM(AF3:AF' + str(last_row+1) + ')'
-        sheet.range('AF' + str(last_row+2)).font.bold = True
         sheet.range('AG' + str(last_row+2)).formula = '=SUM(AG3:AG' + str(last_row+1) + ')'
-        sheet.range('AG' + str(last_row+2)).font.bold = True
         sheet.range('AH' + str(last_row+2)).formula = '=AG' + str(last_row+2) + '/AF' + str(last_row+2)
-        sheet.range('AH' + str(last_row+2)).font.bold = True
         sheet.range('AL' + str(last_row+2)).value = 'Title'
+
+        # Format
+        sheet.range(f'S{last_row+2}:S{last_row+2}').font.color = (0, 144, 81)
+        sheet.range(f'V{last_row+2}:Z{last_row+2}').font.color = (0, 144, 81)
+        sheet.range(f'{last_row+2}:{last_row+2}').font.bold= True
 
         # Set-up print area
         sheet.page_setup.print_area = 'A1:H' + str(last_row+2)
