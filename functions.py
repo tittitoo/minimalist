@@ -1136,11 +1136,21 @@ def delete_extra_empty_row_wb(wb):
             delete_extra_empty_row(sheet)
 
 def format_cell_data(wb):
-    """ Format the cell data to correct number or text representation. 
-    E.g. 1,000.00 or 1.00%"""
+    """ 
+    Set the cell font and font size
+    Format the cell data to correct number or text representation. 
+    E.g. 1,000.00 or 1.00%
+    """
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     for sheet in wb.sheets:
         if sheet.name not in skip_sheets:
+            last_row = sheet.range('C1048576').end('up').row + 1
+            # Set cell font and size
+            sheet.range(f'A3:BD{last_row}').font.name = 'Arial'
+            sheet.range('2:2').font.size = 9
+            sheet.range(f'A3:BD{last_row}').font.size = 12
+            sheet.range('C3').font.size = 14
+            # Set cell format
             sheet.range('A:B').number_format = '0'         
             sheet.range('D:D').number_format = '0'         
             sheet.range('F:G').number_format = N_FORMAT          
