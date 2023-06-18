@@ -22,6 +22,7 @@ def fill_formula_wb():
     functions.fill_formula_wb(wb)
     functions.format_text(wb, title_lineitem_or_description=True)
     functions.format_text(wb, indent_description=True, bullet_description=True)
+    functions.format_cell_data(wb)
     functions.conditional_format_wb(wb)
 
 def subtotal():

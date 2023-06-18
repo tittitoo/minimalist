@@ -25,6 +25,7 @@ MACRO_NB = xw.Book('PERSONAL.XLSB')
 
 # Accounting number format
 N_FORMAT = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
+N_FORMAT_EX = '_(* #,##0.0000_);_(* (#,##0.0000);_(* "-"????_);_(@_)'
 
 def set_nitty_gritty(text):
     """Fix annoying text"""
@@ -627,6 +628,11 @@ def conditional_format_wb(wb):
         if sheet not in skip_sheets:
             wb.sheets[sheet].activate()
             MACRO_NB.macro('conditional_format')()
+            # Remove H borders in original excel
+            MACRO_NB.macro('remove_h_borders')()
+            # Fix the columns border
+            # TODO To update after updating PERSONAL.XLSB to team.
+            # MACRO_NB.macro('format_column_border')()
     wb.sheets[current_sheet].activate()
 
 def fix_unit_price(wb):
@@ -1128,3 +1134,25 @@ def delete_extra_empty_row_wb(wb):
     for sheet in wb.sheets:
        if sheet.name not in skip_sheets:
             delete_extra_empty_row(sheet)
+
+def format_cell_data(wb):
+    """ Format the cell data to correct number or text representation. 
+    E.g. 1,000.00 or 1.00%"""
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    for sheet in wb.sheets:
+        if sheet.name not in skip_sheets:
+            sheet.range('A:B').number_format = '0'         
+            sheet.range('D:D').number_format = '0'         
+            sheet.range('F:G').number_format = N_FORMAT          
+            sheet.range('K:L').number_format = N_FORMAT          
+            sheet.range('M:M').number_format = '0.00%' 
+            sheet.range('N:O').number_format = N_FORMAT          
+            sheet.range('Q:Q').number_format = N_FORMAT_EX
+            sheet.range('R:Z').number_format = N_FORMAT          
+            sheet.range('MU:MU').number_format = '0.00%' 
+            sheet.range('AB:AG').number_format = N_FORMAT          
+            sheet.range('AH:AH').number_format = '0.00%' 
+            sheet.range('AI:AJ').number_format = N_FORMAT          
+            sheet.range('I1:R1').number_format = '0.00%' 
+
+
