@@ -1164,5 +1164,12 @@ def format_cell_data(wb):
             sheet.range('AH:AH').number_format = '0.00%' 
             sheet.range('AI:AJ').number_format = N_FORMAT          
             sheet.range('I1:R1').number_format = '0.00%' 
+            # Delet 'Catergory' and 'System' fields to avoid visual clutter.
+            if sheet.range('AN2').value == 'System':
+                sheet.range('AN:AN').delete()
+            if sheet.range('AM2').value == 'Category':
+                sheet.range('AM:AM').delete()
+            
+
 
 
