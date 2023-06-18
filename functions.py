@@ -24,8 +24,8 @@ LEGEND = {'UC': 'Unit cost in original (buying) currency',
 MACRO_NB = xw.Book('PERSONAL.XLSB')
 
 # Accounting number format
-N_FORMAT = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
-N_FORMAT_EX = '_(* #,##0.0000_);_(* (#,##0.0000);_(* "-"????_);_(@_)'
+ACCOUNTING = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
+EXCNANGE_RATE = '_(* #,##0.0000_);_(* (#,##0.0000);_(* "-"????_);_(@_)'
 
 def set_nitty_gritty(text):
     """Fix annoying text"""
@@ -328,7 +328,7 @@ def summary(wb, discount=False, detail=False):
         sheet.range('J' + str(offset+1)).formula = '=IF(OR(D' + str(offset+1) + '>0.00001, D' + str(offset+1) + '<-0.00001), I' + str(offset+1) + '/D' + str(offset+1) + ', 0)'
 
         # Format
-        sheet.range(f'D20:I{offset+1}').number_format = N_FORMAT          
+        sheet.range(f'D20:I{offset+1}').number_format = ACCOUNTING          
         sheet.range(f'J20:J{offset+1}').number_format = '0.00%' 
 
         if discount:
@@ -337,12 +337,12 @@ def summary(wb, discount=False, detail=False):
             sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
             sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'
             # Number format for discout field
-            sheet.range('D' + str(offset+2)).number_format = N_FORMAT
-            sheet.range('D' + str(offset+3)).number_format = N_FORMAT
+            sheet.range('D' + str(offset+2)).number_format = ACCOUNTING
+            sheet.range('D' + str(offset+3)).number_format = ACCOUNTING
             sheet.range('H' + str(offset+3)).formula = '=$H$' +str(offset+1)
-            sheet.range('H' + str(offset+3)).number_format = N_FORMAT
+            sheet.range('H' + str(offset+3)).number_format = ACCOUNTING
             sheet.range('I' + str(offset+3)).formula = '=IF(H'+ str(offset+3) + '<>"", D' + str(offset+3) + '- H' + str(offset+3) + ',"")'
-            sheet.range('I' + str(offset+3)).number_format = N_FORMAT
+            sheet.range('I' + str(offset+3)).number_format = ACCOUNTING
             # sheet.range('J' + str(offset+3)).formula = '=IF(I' + str(offset+3) + '<>0,I' + str(offset+3) + '/D' + str(offset+3) + ',"")'
             sheet.range('J' + str(offset+3)).formula = '=IF(OR(D' + str(offset+3) + '>0.00001, D' + str(offset+3) + '<-0.00001), I' + str(offset+3) + '/D' + str(offset+3) + ', 0)'
             sheet.range('J' + str(offset+3)).number_format = '0.00%'
@@ -421,7 +421,7 @@ def summary(wb, discount=False, detail=False):
         sheet.range('P' + str(offset+1)).formula = '=IF(OR(D' + str(offset+1) + '>0.00001, D' + str(offset+1) + '<-0.00001), O' + str(offset+1) + '/D' + str(offset+1) + ', 0)'
 
         # Format
-        sheet.range(f'D20:O{offset+1}').number_format = N_FORMAT
+        sheet.range(f'D20:O{offset+1}').number_format = ACCOUNTING
         sheet.range(f'H20:H{offset+1}').font.color = (4, 50, 255)
         sheet.range(f'I20:M{offset+1}').font.color = (148, 55, 255)          
         sheet.range(f'P20:P{offset+1}').number_format = '0.00%' 
@@ -432,12 +432,12 @@ def summary(wb, discount=False, detail=False):
             sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
             sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'
             # Number format for discout field
-            sheet.range('D' + str(offset+2)).number_format = N_FORMAT
-            sheet.range('D' + str(offset+3)).number_format = N_FORMAT
+            sheet.range('D' + str(offset+2)).number_format = ACCOUNTING
+            sheet.range('D' + str(offset+3)).number_format = ACCOUNTING
             sheet.range('N' + str(offset+3)).formula = '=$N$' +str(offset+1)
-            sheet.range('N' + str(offset+3)).number_format = N_FORMAT
+            sheet.range('N' + str(offset+3)).number_format = ACCOUNTING
             sheet.range('O' + str(offset+3)).formula = '=IF(N'+ str(offset+3) + '<>"", D' + str(offset+3) + '- N' + str(offset+3) + ',"")'
-            sheet.range('O' + str(offset+3)).number_format = N_FORMAT
+            sheet.range('O' + str(offset+3)).number_format = ACCOUNTING
             sheet.range('P' + str(offset+3)).formula = '=IF(OR(D' + str(offset+3) + '>0.00001, D' + str(offset+3) + '<-0.00001), O' + str(offset+3) + '/D' + str(offset+3) + ', 0)'
             sheet.range('P' + str(offset+3)).number_format = '0.00%'
             sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
@@ -1153,16 +1153,16 @@ def format_cell_data(wb):
             # Set cell format
             sheet.range('A:B').number_format = '0'         
             sheet.range('D:D').number_format = '0'         
-            sheet.range('F:G').number_format = N_FORMAT          
-            sheet.range('K:L').number_format = N_FORMAT          
+            sheet.range('F:G').number_format = ACCOUNTING          
+            sheet.range('K:L').number_format = ACCOUNTING          
             sheet.range('M:M').number_format = '0.00%' 
-            sheet.range('N:O').number_format = N_FORMAT          
-            sheet.range('Q:Q').number_format = N_FORMAT_EX
-            sheet.range('R:Z').number_format = N_FORMAT          
+            sheet.range('N:O').number_format = ACCOUNTING          
+            sheet.range('Q:Q').number_format = EXCNANGE_RATE
+            sheet.range('R:Z').number_format = ACCOUNTING          
             sheet.range('MU:MU').number_format = '0.00%' 
-            sheet.range('AB:AG').number_format = N_FORMAT          
+            sheet.range('AB:AG').number_format = ACCOUNTING          
             sheet.range('AH:AH').number_format = '0.00%' 
-            sheet.range('AI:AJ').number_format = N_FORMAT          
+            sheet.range('AI:AJ').number_format = ACCOUNTING          
             sheet.range('I1:R1').number_format = '0.00%' 
             # Delet 'Catergory' and 'System' fields to avoid visual clutter.
             if sheet.range('AN2').value == 'System':
