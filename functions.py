@@ -279,82 +279,28 @@ def summary(wb, discount=False, detail=False):
     # The design will now be taken from PERSONAL.XLSB
     pwb = xw.books('PERSONAL.XLSB')
 
-    if not detail:
-        for sheet in wb.sheet_names:
-            if sheet not in skip_sheets:
-                sheet = wb.sheets[sheet]
-                last_row = sheet.range('G1048576').end('up').row
-                collect = [ "='" + sheet.name + "'!$C$3",
-                            "='" + sheet.name + "'!$G$" + str(last_row),
-                            "='" + sheet.name + "'!$U$" + str(last_row)]
-                    #    "='" + sheet.name + "'!$AF$" + str(last_row
-                summary_formula.extend(collect)
-                collect = []
+    # Initialize counters
+    start_row = 19
+    count = 1
+    offset = 20
+    sheet = wb.sheets['Summary']
 
-        start_row = 19
-        count = 1
-        offset = 20
-        odered_summary_formula = summary_formula[::-1]
-        sheet = wb.sheets['Summary']
-        # Clear summary page first
-        sheet.range('A18:Z1000').clear()
-        # Set format
-        sheet.range('C:C').column_width = 55
-        # sheet.range('E20:E1000').horizontal_alignment = 'center'
- 
-        for system in wb.sheet_names:
-            if system not in skip_sheets:
-                (pwb.sheets['Design'].range('21:21')).copy(sheet.range(str(offset) + ':' + str(offset)))
-                sheet.range('B' + str(offset)).value = str(count) + ' ‣ '
-                sheet.range('C' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range('I' + str(offset)).formula = '=IF(H'+ str(offset) + '<>"",D' + str(offset) + '- H' + str(offset) + ',"")'
-                sheet.range('J' + str(offset)).formula = '=IF(OR(D' + str(offset) + '>0.00001, D' + str(offset) + '<-0.00001), I' + str(offset) + '/D' + str(offset) + ', 0)'
-                count += 1
-                offset += 1
-        
-        # Drawing lines
-        (pwb.sheets['Design'].range('13:13')).copy(sheet.range(str(start_row) + ':' + str(start_row)))
-        (pwb.sheets['Design'].range('11:11')).copy(sheet.range(str(offset) + ':' + str(offset)))
-        (pwb.sheets['Design'].range('7:7')).copy(sheet.range(str(offset+1) + ':' + str(offset+1)))
+    # Need to collect information if already exists so that it can be repopulated
+    system_count = wb.sheets.count - 5 # 5 is number of default skip_sheets
+    remarks = {}
+    discount_price = 0
 
-        # sheet = wb.sheets['Summary']
-        sheet.range('C' + str(offset+1)).value = '="TOTAL PROJECT (" & Config!B12 & ")"'
-        sheet.range('D' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ')'
-        sheet.range('E' + str(offset+1)).formula = '=IF(COUNTIF(E20:E' + str(offset) + ',"OPTION"), "Excluding Option", "")'
-        sheet.range('H' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ')'
-        sheet.range('I' + str(offset+1)).formula = '=IF(H'+ str(offset+1) + '<>"", D' + str(offset+1) + '- H' + str(offset+1) + ',"")'
-        sheet.range('J' + str(offset+1)).formula = '=IF(OR(D' + str(offset+1) + '>0.00001, D' + str(offset+1) + '<-0.00001), I' + str(offset+1) + '/D' + str(offset+1) + ', 0)'
-
-        # Format
-        sheet.range(f'D20:I{offset+1}').number_format = ACCOUNTING          
-        sheet.range(f'J20:J{offset+1}').number_format = '0.00%' 
-
-        if discount:
-            (pwb.sheets['Design'].range('8:8')).copy(sheet.range(str(offset+2) + ':' + str(offset+2)))
-            (pwb.sheets['Design'].range('9:9')).copy(sheet.range(str(offset+3) + ':' + str(offset+3)))
-            sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
-            sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'
-            # Number format for discout field
-            sheet.range('D' + str(offset+2)).number_format = ACCOUNTING
-            sheet.range('D' + str(offset+3)).number_format = ACCOUNTING
-            sheet.range('H' + str(offset+3)).formula = '=$H$' +str(offset+1)
-            sheet.range('H' + str(offset+3)).number_format = ACCOUNTING
-            sheet.range('I' + str(offset+3)).formula = '=IF(H'+ str(offset+3) + '<>"", D' + str(offset+3) + '- H' + str(offset+3) + ',"")'
-            sheet.range('I' + str(offset+3)).number_format = ACCOUNTING
-            # sheet.range('J' + str(offset+3)).formula = '=IF(I' + str(offset+3) + '<>0,I' + str(offset+3) + '/D' + str(offset+3) + ',"")'
-            sheet.range('J' + str(offset+3)).formula = '=IF(OR(D' + str(offset+3) + '>0.00001, D' + str(offset+3) + '<-0.00001), I' + str(offset+3) + '/D' + str(offset+3) + ', 0)'
-            sheet.range('J' + str(offset+3)).number_format = '0.00%'
-            sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
-            sheet.range('C' + str(offset+6)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."
-            sheet.range('C' + str(offset+7)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
-        else:
-            sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
-            sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
-            sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+    # Collect the remarks on summary sheet, such as 'OPTION'
+    # It will collect without checking whether data exists or not
+    for item in range(system_count):
+        remarks[sheet.range(f'C{start_row+1+item}').value] = [sheet.range(f'E{start_row+1+item}').value]
     
-    else: #detail
+    # Collect discount
+    if sheet.range(f'C{system_count+start_row+3}').value in ['SPECIAL DISCOUNT', 'SPECIAL PROJECT DISCOUNT']: 
+         discount_price = sheet.range(f'D{system_count+start_row+3}').value
+
+    if detail:
+        # Collect formula
         for sheet in wb.sheet_names:
             if sheet not in skip_sheets:
                 sheet = wb.sheets[sheet]
@@ -372,12 +318,12 @@ def summary(wb, discount=False, detail=False):
                 summary_formula.extend(collect)
                 collect = []
 
-        start_row = 19
-        count = 1
-        offset = 20
+        # Reverse the order of collected items
         odered_summary_formula = summary_formula[::-1]
+
+        # Set sheet to summary
         sheet = wb.sheets['Summary']
-        # Clear summary page first
+        # Clear summary page
         sheet.range('A18:Z1000').clear()
         # Set format
         sheet.range('C:C').column_width = 55
@@ -424,7 +370,12 @@ def summary(wb, discount=False, detail=False):
         sheet.range(f'D20:O{offset+1}').number_format = ACCOUNTING
         sheet.range(f'H20:H{offset+1}').font.color = (4, 50, 255)
         sheet.range(f'I20:M{offset+1}').font.color = (148, 55, 255)          
-        sheet.range(f'P20:P{offset+1}').number_format = '0.00%' 
+        sheet.range(f'P20:P{offset+1}').number_format = '0.00%'
+
+        # Write back remarks
+        for item in range(system_count):
+            if sheet.range(f'C{start_row+1+item}').value in remarks:
+                sheet.range(f'E{start_row+1+item}').value = remarks[sheet.range(f'C{start_row+1+item}').value]
 
         if discount:
             (pwb.sheets['Design'].range('18:18')).copy(sheet.range(str(offset+2) + ':' + str(offset+2)))
@@ -443,11 +394,101 @@ def summary(wb, discount=False, detail=False):
             sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
             sheet.range('C' + str(offset+6)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."
             sheet.range('C' + str(offset+7)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+
+            # Write back the discount
+            if sheet.range(f'C{system_count+start_row+3}').value in ['SPECIAL DISCOUNT', 'SPECIAL PROJECT DISCOUNT']: 
+                sheet.range(f'D{system_count+start_row+3}').value = discount_price
+
         else:
             sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
             sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
             sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
 
+    else:
+        for sheet in wb.sheet_names:
+            if sheet not in skip_sheets:
+                sheet = wb.sheets[sheet]
+                last_row = sheet.range('G1048576').end('up').row
+                collect = [ "='" + sheet.name + "'!$C$3",
+                            "='" + sheet.name + "'!$G$" + str(last_row),
+                            "='" + sheet.name + "'!$U$" + str(last_row)]
+                    #    "='" + sheet.name + "'!$AF$" + str(last_row
+                summary_formula.extend(collect)
+                collect = []
+
+        # Reverse the order of collected items
+        odered_summary_formula = summary_formula[::-1]
+
+        # Set sheet to summary
+        sheet = wb.sheets['Summary']
+        # Clear summary page
+        sheet.range('A18:Z1000').clear()
+        # Set format
+        sheet.range('C:C').column_width = 55
+        # sheet.range('E20:E1000').horizontal_alignment = 'center'
+ 
+        for system in wb.sheet_names:
+            if system not in skip_sheets:
+                (pwb.sheets['Design'].range('21:21')).copy(sheet.range(str(offset) + ':' + str(offset)))
+                sheet.range('B' + str(offset)).value = str(count) + ' ‣ '
+                sheet.range('C' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range('I' + str(offset)).formula = '=IF(H'+ str(offset) + '<>"",D' + str(offset) + '- H' + str(offset) + ',"")'
+                sheet.range('J' + str(offset)).formula = '=IF(OR(D' + str(offset) + '>0.00001, D' + str(offset) + '<-0.00001), I' + str(offset) + '/D' + str(offset) + ', 0)'
+                count += 1
+                offset += 1
+        
+        # Drawing lines
+        (pwb.sheets['Design'].range('13:13')).copy(sheet.range(str(start_row) + ':' + str(start_row)))
+        (pwb.sheets['Design'].range('11:11')).copy(sheet.range(str(offset) + ':' + str(offset)))
+        (pwb.sheets['Design'].range('7:7')).copy(sheet.range(str(offset+1) + ':' + str(offset+1)))
+
+        # sheet = wb.sheets['Summary']
+        sheet.range('C' + str(offset+1)).value = '="TOTAL PROJECT (" & Config!B12 & ")"'
+        sheet.range('D' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ')'
+        sheet.range('E' + str(offset+1)).formula = '=IF(COUNTIF(E20:E' + str(offset) + ',"OPTION"), "Excluding Option", "")'
+        sheet.range('H' + str(offset+1)).formula = '=SUMIF(E20:E' + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ')'
+        sheet.range('I' + str(offset+1)).formula = '=IF(H'+ str(offset+1) + '<>"", D' + str(offset+1) + '- H' + str(offset+1) + ',"")'
+        sheet.range('J' + str(offset+1)).formula = '=IF(OR(D' + str(offset+1) + '>0.00001, D' + str(offset+1) + '<-0.00001), I' + str(offset+1) + '/D' + str(offset+1) + ', 0)'
+
+        # Format
+        sheet.range(f'D20:I{offset+1}').number_format = ACCOUNTING          
+        sheet.range(f'J20:J{offset+1}').number_format = '0.00%' 
+
+        # Write back remarks
+        for item in range(system_count):
+            if sheet.range(f'C{start_row+1+item}').value in remarks:
+                sheet.range(f'E{start_row+1+item}').value = remarks[sheet.range(f'C{start_row+1+item}').value]
+
+        if discount:
+            (pwb.sheets['Design'].range('8:8')).copy(sheet.range(str(offset+2) + ':' + str(offset+2)))
+            (pwb.sheets['Design'].range('9:9')).copy(sheet.range(str(offset+3) + ':' + str(offset+3)))
+            sheet.range('C' + str(offset+3)).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
+            sheet.range('D' + str(offset+3)).formula = '=SUM(D' +str(offset+1) + ':D' + str(offset+2) + ')'
+            # Number format for discout field
+            sheet.range('D' + str(offset+2)).number_format = ACCOUNTING
+            sheet.range('D' + str(offset+3)).number_format = ACCOUNTING
+            sheet.range('H' + str(offset+3)).formula = '=$H$' +str(offset+1)
+            sheet.range('H' + str(offset+3)).number_format = ACCOUNTING
+            sheet.range('I' + str(offset+3)).formula = '=IF(H'+ str(offset+3) + '<>"", D' + str(offset+3) + '- H' + str(offset+3) + ',"")'
+            sheet.range('I' + str(offset+3)).number_format = ACCOUNTING
+            # sheet.range('J' + str(offset+3)).formula = '=IF(I' + str(offset+3) + '<>0,I' + str(offset+3) + '/D' + str(offset+3) + ',"")'
+            sheet.range('J' + str(offset+3)).formula = '=IF(OR(D' + str(offset+3) + '>0.00001, D' + str(offset+3) + '<-0.00001), I' + str(offset+3) + '/D' + str(offset+3) + ', 0)'
+            sheet.range('J' + str(offset+3)).number_format = '0.00%'
+            sheet.range('C' + str(offset+5)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
+            sheet.range('C' + str(offset+6)).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."
+            sheet.range('C' + str(offset+7)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+            
+            # Write back the discount
+            if sheet.range(f'C{system_count+start_row+3}').value in ['SPECIAL DISCOUNT', 'SPECIAL PROJECT DISCOUNT']: 
+                sheet.range(f'D{system_count+start_row+3}').value = discount_price
+        
+        else:
+            sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
+            sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
+            sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+    
     sheet.range('D:D').autofit()
     sheet.range('E:E').column_width = 15
     sheet.range('F:P').autofit()
