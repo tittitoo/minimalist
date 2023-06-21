@@ -672,8 +672,7 @@ def conditional_format_wb(wb):
             # Remove H borders in original excel
             MACRO_NB.macro('remove_h_borders')()
             # Fix the columns border
-            # TODO To update after updating PERSONAL.XLSB to team.
-            # MACRO_NB.macro('format_column_border')()
+            MACRO_NB.macro('format_column_border')()
     wb.sheets[current_sheet].activate()
 
 def fix_unit_price(wb):
