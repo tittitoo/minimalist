@@ -243,19 +243,31 @@ def unhide_columns(sheet):
         sheet.range('C:C').column_width = 55
         sheet.range('C:C').rows.autofit()
         sheet.range('C:C').wrap_text = True
-        sheet.range('I:AQ').wrap_text = False
         sheet.range('D:H').autofit()
+        sheet.range('I:AQ').wrap_text = False
         sheet.range('I:I').column_width = 10
         sheet.range('J:O').autofit()
         sheet.range('P:P').column_width = 20
         sheet.range('Q:AN').autofit()
 
 def unhide_columns_wb(wb):
-    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
-
     for sheet in wb.sheets:
-       if sheet.name not in skip_sheets:
-            unhide_columns(sheet)
+        unhide_columns(sheet)
+
+def adjust_columns(sheet):
+    """Unhide all columns while setting the width for selected columns"""
+    skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+    if sheet.name not in skip_sheets:
+        sheet.range('A:A').column_width = 5
+        sheet.range('B:B').autofit()
+        sheet.range('C:C').column_width = 55
+        sheet.range('C:C').rows.autofit()
+        sheet.range('C:C').wrap_text = True
+        sheet.range('D:H').autofit()
+
+def adjust_columns_wb(wb):
+    for sheet in wb.sheets:
+        adjust_columns(sheet)
 
 def hide_columns(sheet):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
