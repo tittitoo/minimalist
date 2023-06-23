@@ -604,7 +604,7 @@ def commercial(wb):
     # macro_nb = xw.Book('PERSONAL.XLSB')
     # current_sheet = wb.sheets.active
     wb.sheets['Cover'].range('D6:D8').value = wb.sheets['Cover'].range('D6:D8').raw_value
-    wb.sheets['Cover'].range('D39').value = 'COMMERCIAL PROPOSAL'
+    wb.sheets['Cover'].range('D39').value = wb.sheets['Config'].range('B13').value
     wb.sheets['Cover'].range('C42:C47').value = wb.sheets['Cover'].range('C42:C47').raw_value
     last_row = wb.sheets['Summary'].range('D1048576').end('up').row
     wb.sheets['Summary'].range(f'G20:P{last_row}').value = wb.sheets['Summary'].range(f'G20:P{last_row}').raw_value
