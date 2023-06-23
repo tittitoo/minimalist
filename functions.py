@@ -557,6 +557,7 @@ def prepare_to_print_technical(wb):
             wb.sheets[sheet].activate()
             wb.sheets[sheet].range('C:C').autofit()
             wb.sheets[sheet].range('C:C').column_width = 60
+            wb.sheet.range('C:C').wrap_text = True
             MACRO_NB.macro('conditional_format')()
             MACRO_NB.macro('remove_h_borders')()
             MACRO_NB.macro('pagebreak_borders')()
