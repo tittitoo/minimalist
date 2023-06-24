@@ -246,9 +246,11 @@ def unhide_columns(sheet):
         sheet.range('D:H').autofit()
         sheet.range('I:AQ').wrap_text = False
         sheet.range('I:I').column_width = 10
+        sheet.range('I:I').wrap_text = False
         sheet.range('J:O').autofit()
         sheet.range('P:P').column_width = 20
-        sheet.range('Q:AN').autofit()
+        sheet.range('P:P').wrap_text = False
+        sheet.range('Q:AP').autofit()
 
 def unhide_columns_wb(wb):
     for sheet in wb.sheets:
@@ -272,16 +274,31 @@ def adjust_columns_wb(wb):
 def hide_columns(sheet):
     skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
     if sheet.name not in skip_sheets:
-        sheet.range('AI:AM').column_width = 0
+        sheet.range('AI:AL').column_width = 0
         sheet.range('AC:AD').column_width = 0
         sheet.range('AF:AF').column_width = 0
-        sheet.range('AB:AB').column_width = 10
         sheet.range('S:AA').column_width = 0
         sheet.range('Q:Q').column_width = 0
         sheet.range('P:P').column_width = 20
+        sheet.range('P:P').wrap_text = False
+        sheet.range('R:R').autofit()
         sheet.range('O:O').column_width = 0
         sheet.range('L:L').column_width = 0
         sheet.range('T:T').autofit()
+        sheet.range('AB:AB').autofit()
+        sheet.range('AE:AE').autofit()
+        sheet.range('AG:AH').autofit()
+        sheet.range('AM:AP').autofit()
+        sheet.range('M:N').autofit()
+        sheet.range('D:H').autofit()
+        sheet.range('I:I').column_width = 10
+        sheet.range('I:I').wrap_text = False
+        sheet.range('J:K').autofit()
+        sheet.range('C:C').column_width = 55
+        sheet.range('C:C').rows.autofit()
+        sheet.range('C:C').wrap_text = True
+        sheet.range('B:B').autofit()
+        sheet.range('A:A').column_width = 5
 
 def summary(wb, discount=False, detail=False):
     summary_formula = []
