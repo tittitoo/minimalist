@@ -587,7 +587,11 @@ def technical(wb):
     wb.sheets['Summary'].range('D20:D100').value = ''
     wb.sheets['Summary'].range('C20:C100').value = wb.sheets['Summary'].range('C20:C100').raw_value
 
-    if wb.name[:10] == 'Commercial':
+    if wb.name[:9] == 'Technical':
+        xw.apps.active.alert('The file already seems to be technical.')
+        return
+
+    elif wb.name[:10] == 'Commercial':
         for sheet in wb.sheet_names:
             ws = wb.sheets[sheet]
             skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
@@ -597,8 +601,8 @@ def technical(wb):
                 ws.range('AL3:AL' + str(last_row)).value = ws.range('AL3:AL' + str(last_row)).raw_value
                 # To reduce visual clutter
                 ws.range(f'AM1:AM{last_row}').value = ws.range(f'AJ1:AJ{last_row}').raw_value
-                ws.range('AL:AL').column_width = 0
                 ws.range('AJ:AJ').delete()
+                ws.range('AL:AL').column_width = 0
         wb.sheets['T&C'].delete()
         prepare_to_print_technical(wb)
         wb.sheets['Summary'].activate()
