@@ -300,7 +300,7 @@ def hide_columns(sheet):
         sheet.range('B:B').autofit()
         sheet.range('A:A').column_width = 5
 
-def summary(wb, discount=False, detail=False):
+def summary(wb, discount=False, detail=False, simulation=True, discount_level=15):
     summary_formula = []
     collect = [] # Collect formula to be put in summary page.
     # formula_fragment = '=IF(OR(Config!B13="COMMERCIAL PROPOSAL", Config!B13="BUDGETARY PROPOSAL"),'
@@ -428,6 +428,33 @@ def summary(wb, discount=False, detail=False):
             if sheet.range(f'C{system_count+start_row+3}').value in ['SPECIAL DISCOUNT', 'SPECIAL PROJECT DISCOUNT']: 
                 sheet.range(f'D{system_count+start_row+3}').value = discount_price
 
+            # Discount percentages simulation
+            if simulation:
+                sheet.range(f'H{offset+5}').value = 'Actual Dis'
+                sheet.range(f'I{offset+5}').formula = f'=-D{offset+2}/D{offset+1}'
+                sheet.range(f'I{offset+5}').number_format = '0.00%'
+                sheet.range(f'H{offset+6}').value = 'Price'
+                sheet.range(f'I{offset+6}').value = 'D%'
+                sheet.range(f'J{offset+6}').value = 'Discount'
+                sheet.range(f'K{offset+6}').value = 'D Price'
+                sheet.range(f'L{offset+6}').value = 'Cost'
+                sheet.range(f'M{offset+6}').value = 'Profit'
+                sheet.range(f'N{offset+6}').value = 'MU'
+                for i in range(discount_level):
+                    sheet.range(f'H{offset+7+i}').formula = f'=D{offset+1}'
+                    sheet.range(f'I{offset+7+i}').value = (i+1)/100
+                    sheet.range(f'J{offset+7+i}').formula = f'=H{offset+7+i}*I{offset+7+i}'
+                    sheet.range(f'K{offset+7+i}').formula = f'=H{offset+7+i}-J{offset+7+i}'
+                    sheet.range(f'L{offset+7+i}').formula = f'=N{offset+1}'
+                    sheet.range(f'M{offset+7+i}').formula = f'=K{offset+7+i}-L{offset+7+i}'
+                    sheet.range(f'N{offset+7+i}').formula = f'=M{offset+7+i}/K{offset+7+i}'
+                # Format
+                sheet.range(f'H{offset+7}:H{offset+7+discount_level}').number_format = ACCOUNTING
+                sheet.range(f'I{offset+7}:I{offset+7+discount_level}').number_format = '0.00%'
+                sheet.range(f'J{offset+7}:M{offset+7+discount_level}').number_format = ACCOUNTING
+                sheet.range(f'N{offset+7}:N{offset+7+discount_level}').number_format = '0.00%'
+ 
+
         else:
             sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
             sheet.range('C' + str(offset+4)).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
@@ -512,6 +539,33 @@ def summary(wb, discount=False, detail=False):
             # Write back the discount
             if sheet.range(f'C{system_count+start_row+3}').value in ['SPECIAL DISCOUNT', 'SPECIAL PROJECT DISCOUNT']: 
                 sheet.range(f'D{system_count+start_row+3}').value = discount_price
+            
+            # Discount percentages simulation
+            # Discount percentages simulation
+            if simulation:
+                sheet.range(f'H{offset+5}').value = 'Actual Dis'
+                sheet.range(f'I{offset+5}').formula = f'=-D{offset+2}/D{offset+1}'
+                sheet.range(f'I{offset+5}').number_format = '0.00%'
+                sheet.range(f'H{offset+6}').value = 'Price'
+                sheet.range(f'I{offset+6}').value = 'D%'
+                sheet.range(f'J{offset+6}').value = 'Discount'
+                sheet.range(f'K{offset+6}').value = 'D Price'
+                sheet.range(f'L{offset+6}').value = 'Cost'
+                sheet.range(f'M{offset+6}').value = 'Profit'
+                sheet.range(f'N{offset+6}').value = 'MU'
+                for i in range(discount_level):
+                    sheet.range(f'H{offset+7+i}').formula = f'=D{offset+1}'
+                    sheet.range(f'I{offset+7+i}').value = (i+1)/100
+                    sheet.range(f'J{offset+7+i}').formula = f'=H{offset+7+i}*I{offset+7+i}'
+                    sheet.range(f'K{offset+7+i}').formula = f'=H{offset+7+i}-J{offset+7+i}'
+                    sheet.range(f'L{offset+7+i}').formula = f'=H{offset+1}'
+                    sheet.range(f'M{offset+7+i}').formula = f'=K{offset+7+i}-L{offset+7+i}'
+                    sheet.range(f'N{offset+7+i}').formula = f'=M{offset+7+i}/K{offset+7+i}'
+                # Format
+                sheet.range(f'H{offset+7}:H{offset+7+discount_level}').number_format = ACCOUNTING
+                sheet.range(f'I{offset+7}:I{offset+7+discount_level}').number_format = '0.00%'
+                sheet.range(f'J{offset+7}:M{offset+7+discount_level}').number_format = ACCOUNTING
+                sheet.range(f'N{offset+7}:N{offset+7+discount_level}').number_format = '0.00%'
         
         else:
             sheet.range('C' + str(offset+3)).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
