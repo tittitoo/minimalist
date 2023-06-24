@@ -571,11 +571,15 @@ def prepare_to_print_technical(wb):
     page_setup(wb)
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
+            last_row = wb.sheets[sheet].range('C1048576').end('up').row
             wb.sheets[sheet].activate()
             wb.sheets[sheet].range('C:C').autofit()
             wb.sheets[sheet].range('C:C').column_width = 60
             wb.sheets[sheet].range('C:C').wrap_text = True
             wb.sheets[sheet].range('D:F').autofit()
+            # Adjust the last two rows so that unwanted pagebreak can be prevented
+            wb.sheets[sheet].range(f'{last_row+1}:{last_row+1}').delete()
+            wb.sheets[sheet].range(f'{last_row+1}:{last_row+1}').row_height = 2
             MACRO_NB.macro('conditional_format')()
             MACRO_NB.macro('remove_h_borders')()
             MACRO_NB.macro('pagebreak_borders')()
