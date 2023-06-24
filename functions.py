@@ -931,9 +931,11 @@ def internal_costing(wb):
     wb.sheets['Cover'].range('C42:C47').value = wb.sheets['Cover'].range('C42:C47').raw_value
     wb.sheets['Cover'].range('D6:D8').value = wb.sheets['Cover'].range('D6:D8').raw_value
 
+    summary_last_row = wb.sheets['Summary'].range('D1048576').end('up').row
     wb.sheets['Summary'].range('D20:D100').value = ''
     wb.sheets['Summary'].range('C20:C100').value = wb.sheets['Summary'].range('C20:C100').raw_value
-    wb.sheets['Summary'].range('H20:H100').value = wb.sheets['Summary'].range('H20:H100').raw_value
+    wb.sheets['Summary'].range(f'H20:H{summary_last_row}').value = wb.sheets['Summary'].range(f'H20:H{summary_last_row}').raw_value
+    wb.sheets['Summary'].range(f'H{summary_last_row+1}:H{summary_last_row+50}').value = ''
     wb.sheets['Summary'].range('I:P').value = ''
 
     # Write out exchange rates
