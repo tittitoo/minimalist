@@ -759,7 +759,8 @@ def prepare_to_print_internal(wb):
             wb.sheets[sheet].activate()
             MACRO_NB.macro('conditional_format_internal_costing')()
             MACRO_NB.macro('remove_h_borders')()
-            MACRO_NB.macro('pagebreak_borders')()
+            # Below is commented out so that blue lines do not show
+            # MACRO_NB.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
 
 def print_technical(wb):
@@ -960,15 +961,18 @@ def internal_costing(wb):
             last_row = ws.range('G1048576').end('up').row
             ws.range('B3:B' + str(last_row)).value = ws.range('B3:B' + str(last_row)).raw_value
             ws.range('F3:G'+ str(last_row)).value = ''
-            ws.range('K3:Q'+ str(last_row)).value = ws.range('K3:Q'+ str(last_row)).raw_value
-            ws.range('AM:AM').delete()
+            # ws.range('K3:Q'+ str(last_row)).value = ws.range('K3:Q'+ str(last_row)).raw_value
+            ws.range('Q3:Q'+ str(last_row)).value = ws.range('Q3:Q'+ str(last_row)).raw_value
+            # ws.range('AM:AM').delete()
             ws.range('R:AK').delete()
             ws.range('W3').value = escalation
             ws.range('W7').value = 'Total'
             ws.range('X7').formula = '=SUM(X3:X6)'
             ws.range('X3:X7').number_format = '0.00%'
+            # Insert Escalation column
+            ws.range('S:S').insert('right')
             ws.range('S2').value = 'Escalation'
-            ws.range('S3:S' +str(last_row)).formula = '=IF(AND(D3<>"", J3<>"",K3<>""), $X$7, "")'
+            ws.range('S3:S' +str(last_row)).formula = '=IF(AND(D3<>"", J3<>"",K3<>""), $Y$7, "")'
             ws.range('S3:S' +str(last_row)).number_format = '0.00%'
 
             # To reduce visual clutter
@@ -1324,6 +1328,9 @@ def format_cell_data(wb):
                 sheet.range('AN:AN').delete()
             if sheet.range('AM2').value == 'Category':
                 sheet.range('AM:AM').delete()
+            sheet.range('AM2').value = 'Leadtime'
+            sheet.range('AN2').value = 'Supplier'
+            sheet.range('AO2').value = 'Maker'
             
 
 
