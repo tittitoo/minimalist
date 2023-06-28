@@ -713,6 +713,7 @@ def commercial(wb):
     for sheet in wb.sheet_names:
         ws = wb.sheets[sheet]
         ws.range('A1').value = ws.range('A1').raw_value #Remove formula
+        ws.range('A1').wrap_text = False
         if sheet not in skip_sheets:
             last_row = ws.range('G1048576').end('up').row
             ws.activate()
