@@ -25,6 +25,7 @@ def fill_formula_wb():
     functions.format_cell_data(wb)
     functions.adjust_columns_wb(wb)
     functions.conditional_format_wb(wb)
+    functions.fill_lastrow(wb)
 
 def subtotal():
     wb = xw.Book.caller()
