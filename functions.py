@@ -675,6 +675,7 @@ def technical(wb):
         for sheet in wb.sheet_names:
             ws = wb.sheets[sheet]
             ws.range('A1').value = ws.range('A1').raw_value #Remove formula
+            ws.range('A1').wrap_text = False
             skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
             if sheet not in skip_sheets:
                 last_row = ws.range('B1048576').end('up').row
