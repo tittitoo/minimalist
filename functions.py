@@ -573,7 +573,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
             sheet.range('C' + str(offset+5)).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
     
     sheet.range('D:D').autofit()
-    sheet.range('E:E').column_width = 15
+    sheet.range('E:E').autofit()
     sheet.range('F:P').autofit()
     last_row = sheet.range('C1048576').end('up').row
     sheet.page_setup.print_area = 'A1:F' + str(last_row+3)
