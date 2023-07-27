@@ -283,7 +283,7 @@ def hide_columns(sheet):
         sheet.range('P:P').wrap_text = False
         sheet.range('R:R').autofit()
         sheet.range('O:O').column_width = 0
-        sheet.range('L:L').column_width = 0
+        sheet.range('L:L').autofit()
         sheet.range('T:T').autofit()
         sheet.range('AB:AB').autofit()
         sheet.range('AE:AE').autofit()
