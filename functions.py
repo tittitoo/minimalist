@@ -76,6 +76,7 @@ def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
     # The regex below essentially ignore the letters in lower case letter.
     # Now cases such as iPhone, mPower, c/w are recognized.
     # acronym_regex = re.compile(r'\b([a-z0-9\.]?[A-Z0-9\/][A-Z0-9a-z-]*)(?=\b|[^a-z])')
+    # Remove matching hyphen
     acronym_regex = re.compile(r'\b([a-z0-9\.]?[A-Z0-9\/][A-Z0-9a-z]*)(?=\b|[^a-z])')
     # acronym_regex = re.compile(r'\b([a-z]?[A-Z0-9][A-Z0-9-]*)(?=\b|[^a-z])')
     acronyms = acronym_regex.findall(text)
