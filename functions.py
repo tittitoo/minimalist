@@ -865,7 +865,12 @@ def format_text(wb, indent_description=False, bullet_description=False, title_li
             if systems.at[idx, 'Format'] == 'Description':
                 systems.at[idx, 'Description'] = '   ' + (str(systems.loc[idx, 'Description']).strip()).lstrip('• ')
                 if bullet_description:
-                    systems.at[idx, 'Description'] = '   • ' + str(systems.loc[idx, 'Description']).strip()
+                    if str(systems.loc[idx, 'Description']).strip().startswith('#'):
+                        systems.at[idx, 'Description'] = '      ‣ ' + str(systems.loc[idx, 'Description']).strip().lstrip('# ')
+                    elif str(systems.loc[idx, 'Description']).strip().startswith('‣'):
+                        systems.at[idx, 'Description'] = '      ‣ ' + str(systems.loc[idx, 'Description']).strip().lstrip('‣ ')
+                    else:
+                        systems.at[idx, 'Description'] = '   • ' + str(systems.loc[idx, 'Description']).strip()
             
         if title_lineitem_or_description:
             if systems.at[idx, 'Format'] == 'Lineitem': 
