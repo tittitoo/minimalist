@@ -655,6 +655,7 @@ def technical(wb):
         for sheet in wb.sheet_names:
             ws = wb.sheets[sheet]
             skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
+            wb.sheets[2].activate()
             if sheet not in skip_sheets:
                 # Require to remove h_borders as these willl not be detected
                 # when columns are removed and page setup changed.
