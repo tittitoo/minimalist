@@ -656,6 +656,9 @@ def technical(wb):
             ws = wb.sheets[sheet]
             skip_sheets = ['Config', 'Cover', 'Summary', 'Technical_Notes', 'T&C']
             if sheet not in skip_sheets:
+                # Require to remove h_borders as these willl not be detected
+                # when columns are removed and page setup changed.
+                MACRO_NB.macro('remove_h_borders')()
                 last_row = ws.range('C1048576').end('up').row
                 ws.range('F:G').delete()
                 ws.range('AL3:AL' + str(last_row)).value = ws.range('AL3:AL' + str(last_row)).raw_value
