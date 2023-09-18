@@ -752,9 +752,10 @@ def commercial(wb):
     commercial_wb = xw.Book(file_name)
     try:
         commercial_wb.to_pdf(show=True)
-    except Exception:
+    except Exception as e:
             # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
-            xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
+            # xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
+            xw.apps.active.alert(f'This error is encountered {e}. The PDF file already exists?')
 
 def prepare_to_print_internal(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
