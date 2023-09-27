@@ -696,11 +696,7 @@ def technical(wb):
                 ws.range('AL:AL').column_width = 0
         wb.sheets['Config'].delete()
     
-        # If T&C does not exist, does nothing.
-        try:
-            wb.sheets['T&C'].delete()
-        except Exception as e:
-            pass
+        wb.sheets['T&C'].delete()
         prepare_to_print_technical(wb)
         wb.sheets['Summary'].activate()
         file_name = 'Technical ' + wb.name[:-4] + 'xlsx'
