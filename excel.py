@@ -2,7 +2,7 @@
     © Thiha Aung
 """
 
-import xlwings as xw
+import xlwings as xw    # type: ignore
 import functions
 
 

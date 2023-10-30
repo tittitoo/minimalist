@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import requests
-import xlwings as xw
+import xlwings as xw    # type: ignore
 
 import hide
 
