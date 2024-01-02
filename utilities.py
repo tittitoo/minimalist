@@ -41,11 +41,16 @@ except Exception as e:
     pass
 
 # Logo as Form. This is for A4 paper currently.
+# Flag is required because form needs to be defined once and the function does not return value
+FORM_FLAG = True
 def put_logo(c: canvas.Canvas, logo = ('./resources/Jason_Transparent_Logo_SS.png')):
     c.saveState()
-    c.beginForm('logo_Form')
-    c.drawImage(logo, 6.5*inch, 780, width=1.25*inch, height=(1.25*inch)*0.224, mask='auto')
-    c.endForm()
+    global FORM_FLAG
+    if FORM_FLAG:
+        c.beginForm('logo_Form')
+        c.drawImage(logo, 6.5*inch, 780, width=1.25*inch, height=(1.25*inch)*0.224, mask='auto')
+        c.endForm()
+        FORM_FLAG = False
     c.restoreState()
 
     c.doForm('logo_Form')
@@ -56,16 +61,15 @@ def page_color(c: canvas.Canvas, color=lightcyan):
     c.rect(0, 0, c._pagesize[0], c._pagesize[1], stroke=0, fill=1)
     c.restoreState()
 
-def draw_checkbox(c: canvas.Canvas, checklists: list, x: int, y: int, step=20) -> int:
-# def draw_checkbox(c, checklists, x, y, step=20):
+def draw_checkbox(c: canvas.Canvas, checklists: list, x: int, y: int, step=20, color=None) -> int:
     """
     Draw checkboxes on the canvas form a list.
+    TODO: Need to handle long checklist that spans multiple lines
     """
-    c.saveState()
     form = c.acroForm
     for i, checklist in enumerate(checklists):
         c.setFont('Helvetica', 12)
-        print(i, checklist, x, y)
+        # print(i, checklist, x, y)
         c.drawString(x, y, str(i+1) + '. ' + checklist)
         form.checkbox(
             name=str(i+1),
@@ -83,9 +87,9 @@ def draw_checkbox(c: canvas.Canvas, checklists: list, x: int, y: int, step=20) -
         y -= step
         if y <= 80:
             c.showPage()
-            page_color(c)
+            if color:
+                page_color(c)
             put_logo(c)
             y = 750
-    c.restoreState()
     c.showPage()
     return y
