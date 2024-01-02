@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import requests
 from datetime import datetime
+from textwrap import wrap
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
@@ -61,35 +62,98 @@ def page_color(c: canvas.Canvas, color=lightcyan):
     c.rect(0, 0, c._pagesize[0], c._pagesize[1], stroke=0, fill=1)
     c.restoreState()
 
-def draw_checkbox(c: canvas.Canvas, checklists: list, x: int, y: int, step=20, color=None) -> int:
+def draw_checkbox(c: canvas.Canvas, checklists: list, x: int, y: int, step=20, initial=0, color=None) -> tuple:
     """
     Draw checkboxes on the canvas form a list.
-    TODO: Need to handle long checklist that spans multiple lines
     """
     form = c.acroForm
+    offset = 3
     for i, checklist in enumerate(checklists):
+        i += initial
         c.setFont('Helvetica', 12)
-        # print(i, checklist, x, y)
-        c.drawString(x, y, str(i+1) + '. ' + checklist)
-        form.checkbox(
-            name=str(i+1),
-            tooltip=f"{i+1}",
-            x=x+475,
-            y=y,
-            buttonStyle="check",
-            size=13,
-            borderColor=black,
-            borderStyle="solid",
-            fillColor=white,
-            # textColor=black,
-            # forceBorder=False,
-        )
-        y -= step
+        if i < 9:
+            c.drawString(x, y, ' ' + str(i+1) + '. ')
+            skip = c.stringWidth(' ' + str(i+1) + '. ')
+        else:
+            c.drawString(x, y, str(i+1) + '. ')
+            skip = c.stringWidth(str(i+1) + '. ')
+        for n, line in enumerate(wrap(checklist, 80)):
+            c.drawString(x+skip, y, line)
+            if n == 0:
+                form.checkbox(
+                    name=str(i+1),
+                    tooltip=f"{i+1}",
+                    x=x+465,
+                    y=y-offset,
+                    buttonStyle="check",
+                    size=13,
+                    borderColor=black,
+                    borderStyle="solid",
+                    fillColor=white,
+                    # textColor=black,
+                    # forceBorder=False,
+                )
+            y -= step
+            if y <= 80:
+                c.showPage()
+                if color:
+                    page_color(c, color)
+                put_logo(c)
+                y = 750
+        y -= offset
         if y <= 80:
             c.showPage()
             if color:
-                page_color(c)
+                page_color(c, color)
             put_logo(c)
             y = 750
-    c.showPage()
-    return y
+    # c.showPage()
+    return (i+1, y)
+
+def yes_no_choices(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, initial=0, color=None) -> tuple:
+    form = c.acroForm
+    i = initial
+    # offset = 0
+    c.setFont('Helvetica', 11)
+    for k, v in checklists.items():
+        print(k)
+        # print(v)
+        if i < 9:
+            c.drawString(x, y, ' ' + str(i+1) + '. ')
+            skip = c.stringWidth(' ' + str(i+1) + '. ')
+        else:
+            c.drawString(x, y, str(i+1) + '. ')
+            skip = c.stringWidth(str(i+1) + '. ')
+        for n, line in enumerate(wrap(k, 80)):
+            c.drawString(x+skip, y, line)
+            if n == 0:
+                form.choice(# name='', 
+                            # tooltip='',
+                            value='empty',
+                            options=v,
+                            x=x+440,
+                            y=y, 
+                            width=40, 
+                            height=18,
+                            # borderColor=black, 
+                            fillColor=white,
+                            fontSize=11, 
+                            # textColor=black, 
+                            # forceBorder=True,
+                            )
+            y -= step
+            if y <= 80:
+                c.showPage()
+                if color:
+                    page_color(c, color)
+                put_logo(c)
+                y = 750
+        # y -= step
+        if y <= 80:
+            c.showPage()
+            if color:
+                page_color(c, color)
+            put_logo(c)
+            y = 750
+        i += 1
+    return (i, y)
