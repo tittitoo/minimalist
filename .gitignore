@@ -9,4 +9,4 @@ __pycache__/functions.cpython-38.pyc
 __pycache__/hide.cpython-38.pyc
 projects.txt
 test.ipynb
-__pycache__/scratch.cpython-310.pyc
+*.pyc

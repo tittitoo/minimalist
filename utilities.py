@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 import subprocess
-import requests
+# import requests
 from datetime import datetime
 from textwrap import wrap
 
@@ -12,34 +12,34 @@ from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import lightcyan, black, white, lightyellow
 
-def download_file(path, filename, url):
-    """
-    path: directory
-    filename: filename with extension
-    url: url to download
-    """
-    local_file_path = Path(path, filename)
-    if not os.path.exists(local_file_path):
-        response = requests.get(url)
-        if response.status_code == 200:
-            with open(local_file_path, 'wb') as fd:
-                for chunk in response.iter_content(chunk_size=8192):
-                    fd.write(chunk)
-            print(f"Downloaded {local_file_path}")
-        else:
-            print("Failed to download file.")
+# def download_file(path, filename, url):
+#     """
+#     path: directory
+#     filename: filename with extension
+#     url: url to download
+#     """
+#     local_file_path = Path(path, filename)
+#     if not os.path.exists(local_file_path):
+#         response = requests.get(url)
+#         if response.status_code == 200:
+#             with open(local_file_path, 'wb') as fd:
+#                 for chunk in response.iter_content(chunk_size=8192):
+#                     fd.write(chunk)
+#             print(f"Downloaded {local_file_path}")
+#         else:
+#             print("Failed to download file.")
 
-# Download necessary files to local machine in 'Documents' folder
-try:
-    bid = os.path.join(os.path.expanduser('~/Documents'), 'Bid')
-    if not os.path.exists(bid):
-        os.makedirs(bid)
-    # Download Jason Logo
-    download_file(bid, 
-                  'Jason_Transparent_Logo_SS.png', 
-                  'https://filedn.com/liTeg81ShEXugARC7cg981h/Bid/Jason_Transparent_Logo_SS.png')
-except Exception as e:
-    pass
+# # Download necessary files to local machine in 'Documents' folder
+# try:
+#     bid = os.path.join(os.path.expanduser('~/Documents'), 'Bid')
+#     if not os.path.exists(bid):
+#         os.makedirs(bid)
+#     # Download Jason Logo
+#     download_file(bid, 
+#                   'Jason_Transparent_Logo_SS.png', 
+#                   'https://filedn.com/liTeg81ShEXugARC7cg981h/Bid/Jason_Transparent_Logo_SS.png')
+# except Exception as e:
+#     pass
 
 # Logo as Form. This is for A4 paper currently.
 # Flag is required because form needs to be defined once and the function does not return value
@@ -72,8 +72,9 @@ def draw_checkbox(c: canvas.Canvas, checklists: list, x: int, y: int, step=20, i
         i += initial
         c.setFont('Helvetica', 12)
         if i < 9:
-            c.drawString(x, y, ' ' + str(i+1) + '. ')
-            skip = c.stringWidth(' ' + str(i+1) + '. ')
+            spacer = c.stringWidth('0')
+            c.drawString(x+spacer, y, str(i+1) + '. ')
+            skip = c.stringWidth(str(i+10) + '. ')
         else:
             c.drawString(x, y, str(i+1) + '. ')
             skip = c.stringWidth(str(i+1) + '. ')
@@ -113,14 +114,15 @@ def draw_checkbox(c: canvas.Canvas, checklists: list, x: int, y: int, step=20, i
 def yes_no_choices(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, initial=0, color=None) -> tuple:
     form = c.acroForm
     i = initial
-    # offset = 0
-    c.setFont('Helvetica', 11)
+    offset = 3
+    c.setFont('Helvetica', 12)
     for k, v in checklists.items():
         print(k)
         # print(v)
         if i < 9:
-            c.drawString(x, y, ' ' + str(i+1) + '. ')
-            skip = c.stringWidth(' ' + str(i+1) + '. ')
+            spacer = c.stringWidth('0')
+            c.drawString(x+spacer, y, str(i+1) + '. ')
+            skip = c.stringWidth(str(i+10) + '. ')
         else:
             c.drawString(x, y, str(i+1) + '. ')
             skip = c.stringWidth(str(i+1) + '. ')
@@ -129,10 +131,10 @@ def yes_no_choices(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, initia
             if n == 0:
                 form.choice(# name='', 
                             # tooltip='',
-                            value='empty',
+                            value=v[0][1], # Take the second value of the first tuple
                             options=v,
-                            x=x+440,
-                            y=y, 
+                            x=x+465-(40/2),   # 40 is width
+                            y=y-offset, 
                             width=40, 
                             height=18,
                             # borderColor=black, 
@@ -148,7 +150,7 @@ def yes_no_choices(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, initia
                     page_color(c, color)
                 put_logo(c)
                 y = 750
-        # y -= step
+        y -= offset
         if y <= 80:
             c.showPage()
             if color:

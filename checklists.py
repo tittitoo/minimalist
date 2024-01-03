@@ -129,8 +129,8 @@ ikigai_checklists = [
     "Does it generate money?",
 ]
 
-general_checklist = {"Have you done it?": [('', 'empty'), ('Yes', 'Yes'), ('No')],
-                     "Have you not done it?": [('', 'empty'), ('Yes', 'Yes'), ('No')]}
+general_checklist = {"Have you done it? How does it really work?": [('', ' '), ('Yes'), ('No')],
+                     "Have you not done it?": [('', ' '), ('Yes'), ('No')]}
 
 c = canvas.Canvas(str(file_path), pagesize=A4)
 utilities.page_color(c)
@@ -140,9 +140,10 @@ c.drawCentredString(c._pagesize[0]/2, 750, filename[:-15].upper())
 c.setFont('Helvetica-Oblique', 12)
 c.drawRightString(A4[0]-50, 730, datetime.now().date().strftime("%Y-%m-%d"))
 
-last_position = utilities.draw_checkbox(c, ikigai_checklists, x=70, y=700)
+last_position = utilities.draw_checkbox(c, leave_checklists, x=70, y=700)
 # last_position = utilities.yes_no_choices(c, general_checklist, x=70, initial=0, y=700)
 last_position = utilities.yes_no_choices(c, general_checklist, x=70, initial=(last_position[0]), y=last_position[1])
+last_position = utilities.draw_checkbox(c, leave_checklists, x=70, initial=(last_position[0]), y=last_position[1])
 # pdf_scratch.create_simple_choices()
 c.showPage
 c.save()
