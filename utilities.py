@@ -2,9 +2,9 @@
 
 import os
 from pathlib import Path
-import subprocess
+# import subprocess
 # import requests
-from datetime import datetime
+# from datetime import datetime
 from textwrap import wrap
 
 from reportlab.pdfgen import canvas
@@ -102,55 +102,13 @@ def draw_checkbox(c: canvas.Canvas, checklists: str, x: int, y: int, step=20, in
         i += 1
         # y -= step
         if y <= 80:
+            number_page(c)
             c.showPage()
             if color:
                 page_color(c, color)
             put_logo(c)
             y = 750
         return(i, y)
-    # for i, checklist in enumerate(checklists):
-    #     i += initial
-    #     # c.setFont('Helvetica', 12)
-    #     if i < 9:
-    #         spacer = c.stringWidth('0')
-    #         c.drawString(x+spacer, y, str(i+1) + '. ')
-    #         skip = c.stringWidth(str(i+10) + '. ')
-    #     else:
-    #         c.drawString(x, y, str(i+1) + '. ')
-    #         skip = c.stringWidth(str(i+1) + '. ')
-    #     if isinstance(checklists, list):
-    #         for n, line in enumerate(wrap(checklist, 80)):
-    #             c.drawString(x+skip, y, line)
-    #             if n == 0:
-    #                 form.checkbox(
-    #                     name=str(i+1),
-    #                     tooltip=f"{i+1}",
-    #                     x=PAPERWIDTH - RIGHT_MARGIN - 13, # 13 is the size
-    #                     y=y-offset,
-    #                     buttonStyle="check",
-    #                     size=13,
-    #                     borderColor=black,
-    #                     borderStyle="solid",
-    #                     fillColor=white,
-    #                     # textColor=black,
-    #                     # forceBorder=False,
-    #                 )
-    #             y -= step
-    #             if y <= 80:
-    #                 c.showPage()
-    #                 if color:
-    #                     page_color(c, color)
-    #                 put_logo(c)
-    #                 y = 750
-    #     y -= offset
-    #     if y <= 80:
-    #         c.showPage()
-    #         if color:
-    #             page_color(c, color)
-    #         put_logo(c)
-    #         y = 750
-    # # c.showPage()
-    #     i += 1
     return (i, y)
 
 def draw_choice(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, width=40, initial=0, color=None) -> tuple[int, int]:
@@ -174,7 +132,7 @@ def draw_choice(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, width=40,
                             value=options, 
                             options=options,
                             width=width, 
-                            height=18,
+                            height=17,
                             x=PAPERWIDTH - RIGHT_MARGIN - width,
                             y=y-offset, 
                             # borderColor=black, 
@@ -185,6 +143,7 @@ def draw_choice(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, width=40,
                             )
             y -= step
             if y <= 80:
+                number_page(c)
                 c.showPage()
                 if color:
                     page_color(c, color)
@@ -192,6 +151,7 @@ def draw_choice(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, width=40,
                 y = 750
         y -= offset
         if y <= 80:
+            number_page(c)
             c.showPage()
             if color:
                 page_color(c, color)
@@ -237,6 +197,7 @@ def draw_textfield(c: canvas.Canvas, checklist: tuple, x=0, y=0, step=20, initia
             )
         y -= step
         if y <= 80:
+            number_page(c)
             c.showPage()
             if color:
                 page_color(c, color)
@@ -245,70 +206,23 @@ def draw_textfield(c: canvas.Canvas, checklist: tuple, x=0, y=0, step=20, initia
         i += 1
     return (i, y)
 
-# def draw_textfield(c: canvas.Canvas, checklists: list, x=0, y=0, step=20, initial=0, color=None) -> tuple[int, int]:
-#     """ Checklists here is a list of tuples of 'str' and 'width: int'"""
-#     form = c.acroForm
-#     i = initial
-#     offset = 3
-#     # c.setFont('Helvetica', 12)
-#     for name, width in checklists:
-#         if i < 9:
-#             spacer = c.stringWidth('0')
-#             c.drawString(x+spacer, y, str(i+1) + '. ')
-#             skip = c.stringWidth(str(i+10) + '. ')
-#         else:
-#             c.drawString(x, y, str(i+1) + '. ')
-#             skip = c.stringWidth(str(i+1) + '. ')
-#         wrap_width = int((PAPERWIDTH - width - RIGHT_MARGIN) / c.stringWidth('0'))
-#         if wrap_width > 80:
-#             wrap_width = 80
-#         print(wrap_width)
-#         for n, line in enumerate(wrap(name, wrap_width)):
-#             c.drawString(x+skip, y, line)
-#             if n == 0:
-#                 form.textfield(
-#                     # name="fname",
-#                     # tooltip="First Name",
-#                     x=PAPERWIDTH - RIGHT_MARGIN - width,
-#                     y=y-offset,
-#                     borderStyle="solid",
-#                     borderColor=black,
-#                     fillColor=white,
-#                     width=width,
-#                     height=18,
-#                     textColor=blue,
-#                     fontSize=11,
-#                     forceBorder=True,
-#                 )
-#             y -= step
-#             if y <= 80:
-#                 c.showPage()
-#                 if color:
-#                     page_color(c, color)
-#                 put_logo(c)
-#                 y = 750
-#         y -= offset
-#         if y <= 80:
-#             c.showPage()
-#             if color:
-#                 page_color(c, color)
-#             put_logo(c)
-#             y = 750
-#         i += 1
-#     return (i, y)
+def number_page(c: canvas.Canvas):
+    c.saveState()
+    c.setFont('Helvetica-Oblique', 11)
+    page_number = 'Page %s' % c.getPageNumber()
+    # c.drawRightString(PAPERWIDTH - RIGHT_MARGIN, 60, page_number)
+    c.drawCentredString(PAPERWIDTH/2, 60, page_number)
+    c.restoreState()
 
-# May need to handle only 3 types: str, tuple, dict  
-    
 LAST_POSITION = (int, int)
-def produce_checklist(c: canvas.Canvas, checklists: list, x=70, y=700, step=20, initial=0, color=None):
+def produce_checklist(c: canvas.Canvas, checklists: list, x=70, y=700, step=20, initial=0, width=40, color=None):
     global LAST_POSITION
     LAST_POSITION = (initial, y)
-    print(LAST_POSITION[0], LAST_POSITION[1])
     for checklist in checklists:
         if isinstance(checklist, str):
             LAST_POSITION = draw_checkbox(c, checklist, x, initial=LAST_POSITION[0], y=LAST_POSITION[1])  #type:ignore 
         if isinstance(checklist, dict):
-            LAST_POSITION = draw_choice(c, checklist, x, initial=LAST_POSITION[0], y=LAST_POSITION[1])   #type:ignore
+            LAST_POSITION = draw_choice(c, checklist, x, initial=LAST_POSITION[0], y=LAST_POSITION[1], width=width)   #type:ignore
         if isinstance(checklist, tuple):
             LAST_POSITION = draw_textfield(c, checklist, x, initial=LAST_POSITION[0], y=LAST_POSITION[1])   #type:ignore
         if isinstance(checklist, list):
