@@ -190,7 +190,7 @@ def draw_textfield(c: canvas.Canvas, checklist: tuple, x=0, y=0, step=20, initia
                 borderColor=black,
                 fillColor=white,
                 width=width,
-                height=18,
+                height=17,
                 textColor=blue,
                 fontSize=11,
                 forceBorder=True,
