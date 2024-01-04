@@ -43,16 +43,17 @@ c.setFont('Helvetica', 11)
 # last_position = utilities.draw_choice(c, cc.general_checklist2, x=70, initial=(last_position[0]), y=last_position[1])
 
 # utilities.produce_checklist(c, leave_checklist)
-leave_checklist = ['Something here']
+leave_checklist = []
 leave_checklist.append(cc.leave_application_checklist)   #type:ignore
 # leave_checklist.append(cc.general_checklist)   #type:ignore
-# leave_checklist.append(cc.textbox_checklist)   #type:ignore
+leave_checklist.append(cc.textbox_checklist)   #type:ignore
 # leave_checklist.append('Something more here And something else here I can make this sentence long so that I can see')
 # leave_checklist.append('Something more here And something else here I can make this sentence long so that I can see')
 # leave_checklist.append('Something more here And something else here')
-# leave_checklist.append(cc.ikigai_checklists)   #type:ignore
+leave_checklist.append(cc.ikigai_checklists)   #type:ignore
 
 utilities.produce_checklist(c, leave_checklist)
+
 c.showPage
 c.save()
 

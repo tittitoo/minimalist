@@ -19,7 +19,18 @@ general_checklist2 = {"Have you done it? How does it really work?": [('', ' '), 
 
 leave_application_checklist =[
     "Have you marked the leave in the team calendar?",
+    "Have you marked the leave in the team calendar?",
+    "Have you marked the leave in the team calendar?",
+    ['What happend here?',
+    'What happend here?',
+    'What happend here?',
+    'What happend here?'],
+    "Have you marked the leave in the team calendar?",
+    "Have you marked the leave in the team calendar?",
+    {"Have you not done it?": [(' '), ('Yes'), ('No')]},
     "Have you put reminder to put in the email signature for long leave?",
+    [('Name let us write something long here so that I know how it will behave.', 120), 
+    ('Firstname let us write something long here so that I know how it will behavaviour.', 100)],
 ]
 
 ikigai_checklists = [
