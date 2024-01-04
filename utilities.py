@@ -43,7 +43,7 @@ from reportlab.lib.colors import lightcyan, black, white, lightyellow, blue
 
 # Global Variables
 
-RIGHT_OFFSET = 50
+RIGHT_MARGIN = 50
 PAPERWIDTH = A4[0]
 
 # Logo as Form. This is for A4 paper currently.
@@ -67,7 +67,7 @@ def page_color(c: canvas.Canvas, color=lightyellow):
     c.rect(0, 0, c._pagesize[0], c._pagesize[1], stroke=0, fill=1)
     c.restoreState()
 
-def draw_checkbox(c: canvas.Canvas, checklists: [list, str], x: int, y: int, step=20, initial=0, color=None) -> tuple[int, int]:
+def draw_checkbox(c: canvas.Canvas, checklists: list | str, x: int, y: int, step=20, initial=0, color=None) -> tuple[int, int]:
     """
     Draw checkboxes on the canvas form a list.
     """
@@ -86,7 +86,7 @@ def draw_checkbox(c: canvas.Canvas, checklists: [list, str], x: int, y: int, ste
         form.checkbox(
             name=str(i+1),
             tooltip=f"{i+1}",
-            x=PAPERWIDTH - RIGHT_OFFSET - 13, # 13 is the size
+            x=PAPERWIDTH - RIGHT_MARGIN - 13, # 13 is the size
             y=y-offset,
             buttonStyle="check",
             size=13,
@@ -125,7 +125,7 @@ def draw_checkbox(c: canvas.Canvas, checklists: [list, str], x: int, y: int, ste
                     form.checkbox(
                         name=str(i+1),
                         tooltip=f"{i+1}",
-                        x=PAPERWIDTH - RIGHT_OFFSET - 13, # 13 is the size
+                        x=PAPERWIDTH - RIGHT_MARGIN - 13, # 13 is the size
                         y=y-offset,
                         buttonStyle="check",
                         size=13,
@@ -175,7 +175,7 @@ def draw_choice(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, width=40,
                             options=options,
                             width=width, 
                             height=18,
-                            x=PAPERWIDTH - RIGHT_OFFSET - width,
+                            x=PAPERWIDTH - RIGHT_MARGIN - width,
                             y=y-offset, 
                             # borderColor=black, 
                             fillColor=white,
@@ -214,7 +214,7 @@ def draw_textfield(c: canvas.Canvas, checklists: list, x=0, y=0, step=20, initia
         else:
             c.drawString(x, y, str(i+1) + '. ')
             skip = c.stringWidth(str(i+1) + '. ')
-        wrap_width = int((PAPERWIDTH - width - RIGHT_OFFSET) / c.stringWidth('0'))
+        wrap_width = int((PAPERWIDTH - width - RIGHT_MARGIN) / c.stringWidth('0'))
         if wrap_width > 80:
             wrap_width = 80
         print(wrap_width)
@@ -224,7 +224,7 @@ def draw_textfield(c: canvas.Canvas, checklists: list, x=0, y=0, step=20, initia
                 form.textfield(
                     # name="fname",
                     # tooltip="First Name",
-                    x=PAPERWIDTH - RIGHT_OFFSET - width,
+                    x=PAPERWIDTH - RIGHT_MARGIN - width,
                     y=y-offset,
                     borderStyle="solid",
                     borderColor=black,
@@ -252,6 +252,19 @@ def draw_textfield(c: canvas.Canvas, checklists: list, x=0, y=0, step=20, initia
         i += 1
     return (i, y)
 
+# Here is a function to walk through the list, nested or flat
+def walk_list(the_list: list):
+    for item in the_list:
+        if isinstance(item, str):
+            return item
+        if isinstance(item, dict):
+            return item
+        if isinstance(item, tuple):
+            return item
+        if isinstance(item, list):
+            walk_list (item)
+
+# I may need to handle only 3 types: str, tuple, dict
 def produce_checklist(c: canvas.Canvas, checklists: list, x=70, y=700, step=20, initial=0, color=None):
     last_position = (initial, y)
     for checklist in checklists:
