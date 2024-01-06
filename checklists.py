@@ -7,14 +7,25 @@ from pathlib import Path
 import subprocess
 from datetime import datetime
 from textwrap import wrap
+import requests
+import xlwings as xw   #type:ignore
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import lightcyan, black, white, lightyellow, blue
 
-import utilities
 import checklist_collections as cc
+import hide
+
+
+# Global Variables
+RIGHT_MARGIN = 50
+PAPERWIDTH = A4[0]
+LOGO = os.path.join(os.path.expanduser('~/Documents'), 'Bid/Jason_Transparent_Logo_SS.png')
+# LOGO = os.path.abspath("./resources/Jason_Transparent_Logo_SS.png")
+# LOGO1 = '/Users/infowizard/Programming/minimalist/resources/Jason_Transparent_Logo_SS.png'
+# MACRO_NB = xw.Book('PERSONAL.XLSB')
 
 def show_checklist(checklist: list, title='Checklist', color=None):
     """ Take checklist and generates pdf in user download folder """
@@ -38,10 +49,10 @@ def show_checklist(checklist: list, title='Checklist', color=None):
 
     c.showPage()
     c.save()
-    open_pdf(file_path)
+    open_file(file_path)
 
-def open_pdf(file_path):
-    """Open PDF is system default application"""
+def open_file(file_path):
+    """Open PDF or other files in system default application"""
     try:
         if os.name == 'posix':
             subprocess.call(['open', str(file_path)])
@@ -50,51 +61,16 @@ def open_pdf(file_path):
     except Exception as e:
         print(f'Unsupported os {e}.')
 
-# show_checklist(cc.ikigai_checklists, title='Ikigai Checklist')
-
-# def download_file(path, filename, url):
-#     """
-#     path: directory
-#     filename: filename with extension
-#     url: url to download
-#     """
-#     local_file_path = Path(path, filename)
-#     if not os.path.exists(local_file_path):
-#         response = requests.get(url)
-#         if response.status_code == 200:
-#             with open(local_file_path, 'wb') as fd:
-#                 for chunk in response.iter_content(chunk_size=8192):
-#                     fd.write(chunk)
-#             print(f"Downloaded {local_file_path}")
-#         else:
-#             print("Failed to download file.")
-
-# # Download necessary files to local machine in 'Documents' folder
-# try:
-#     bid = os.path.join(os.path.expanduser('~/Documents'), 'Bid')
-#     if not os.path.exists(bid):
-#         os.makedirs(bid)
-#     # Download Jason Logo
-#     download_file(bid, 
-#                   'Jason_Transparent_Logo_SS.png', 
-#                   'https://filedn.com/liTeg81ShEXugARC7cg981h/Bid/Jason_Transparent_Logo_SS.png')
-# except Exception as e:
-#     pass
-
-# Global Variables
-
-RIGHT_MARGIN = 50
-PAPERWIDTH = A4[0]
-
 # Logo as Form. This is for A4 paper currently.
 # Flag is required because form needs to be defined once and the function does not return value
 FORM_FLAG = True
-def put_logo(c: canvas.Canvas, logo = ('./resources/Jason_Transparent_Logo_SS.png')):
+def put_logo(c: canvas.Canvas, logo=str(LOGO)):
     c.saveState()
     global FORM_FLAG
     if FORM_FLAG:
+        width=1.25*inch
         c.beginForm('logo_Form')
-        c.drawImage(logo, 6.5*inch, 780, width=1.25*inch, height=(1.25*inch)*0.224, mask='auto')
+        c.drawImage(logo, PAPERWIDTH-RIGHT_MARGIN-width, 780, width=width, height=(1.25*inch)*0.224, mask='auto')
         c.endForm()
         FORM_FLAG = False
     c.restoreState()
@@ -151,7 +127,7 @@ def draw_checkbox(c: canvas.Canvas, checklists: str, x: int, y: int, step=20, in
         return(i, y)
     return (i, y)
 
-def draw_choice(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, width=40, initial=0, color=None) -> tuple[int, int]:
+def draw_choice(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, width=40, initial=0, color=white) -> tuple[int, int]:
     form = c.acroForm
     i = initial
     offset = 3
@@ -176,7 +152,7 @@ def draw_choice(c: canvas.Canvas, checklists: dict, x=0, y=0, step=20, width=40,
                             x=PAPERWIDTH - RIGHT_MARGIN - width,
                             y=y-offset, 
                             # borderColor=black, 
-                            fillColor=white,
+                            fillColor=color,
                             fontSize=11, 
                             # textColor=black, 
                             # forceBorder=True,
@@ -268,4 +244,88 @@ def produce_checklist(c: canvas.Canvas, checklists: list, x=70, y=700, step=20, 
         if isinstance(checklist, list):
             produce_checklist(c, checklist, x, initial=LAST_POSITION[0], y=LAST_POSITION[1])
 
-show_checklist(cc.leave_application_checklist, title="Leave Application Checklist", color=lightyellow)
+def leave_application_checklist():
+    show_checklist(cc.leave_application_checklist, title="Leave Application Checklist", color=lightcyan)
+
+
+def run_once(func):
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+                wrapper.has_run = True
+                return func(*args, **kwargs)
+        wrapper.has_run = False
+        return wrapper
+
+# show_checklist(cc.leave_application_checklist, title="Leave Application Checklist", color=lightyellow)
+# show_checklist(cc.ikigai_checklists, title='Ikigai Checklist')
+# @run_once
+def download_file(path, filename, url):
+    """
+    path: directory
+    filename: filename with extension
+    url: url to download
+    """
+    local_file_path = Path(path, filename)
+    if not os.path.exists(local_file_path):
+        response = requests.get(url)
+        if response.status_code == 200:
+            with open(local_file_path, 'wb') as fd:
+                for chunk in response.iter_content(chunk_size=8192):
+                    fd.write(chunk)
+            print(f"Downloaded {local_file_path}")
+        else:
+            print("Download is not necessary.")
+
+
+# Download necessary files to local machine in 'Documents' folder
+def download_logo():
+    try:
+        bid = os.path.join(os.path.expanduser('~/Documents'), 'Bid')
+        if not os.path.exists(bid):
+            os.makedirs(bid)
+        # Download Jason Logo
+        download_file(bid, 
+                    'Jason_Transparent_Logo_SS.png', 
+                    'https://filedn.com/liTeg81ShEXugARC7cg981h/Bid/Jason_Transparent_Logo_SS.png')
+    except Exception as e:
+        print(f'{e} has occured.')
+
+
+# Can be done as tempfile
+def download_template():
+    try:
+        bid = os.path.join(os.path.expanduser('~/Documents'), 'Bid')
+        filename = 'Template.xlsx'
+        file_path = Path(bid, filename)
+        # Delete the file if exists
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            # print('Deleted the existing Template')
+        download_file(bid, 
+                    filename,
+                    # 'https://filedn.com/liTeg81ShEXugARC7cg981h/Bid/Jason_Transparent_Logo_SS.png')
+                    'https://filedn.com/liTeg81ShEXugARC7cg981h/Template.xlsx')
+        wb = xw.Book.caller()
+        wb.app.books.open(file_path.absolute(), password=hide.legacy)
+    except Exception as e:
+        print (f'Failed to download template -> {e}')
+
+# Can be done as tempfile
+def download_planner():
+    try:
+        bid = os.path.join(os.path.expanduser('~/Documents'), 'Bid')
+        filename = 'Planner.xlsx'
+        file_path = Path(bid, filename)
+        # Delete the file if exists
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            # print('Deleted the existing Template')
+        download_file(bid, 
+                    filename,
+                    'https://filedn.com/liTeg81ShEXugARC7cg981h/Project_Planner_R0.xlsx')
+        wb = xw.Book.caller()
+        wb.app.books.open(file_path.absolute())
+    except Exception as e:
+        print (f'Failed to download template -> {e}')
+
+

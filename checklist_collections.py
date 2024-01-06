@@ -26,7 +26,7 @@ leave_application_checklist =[
     {"Is the leave longer than 10 days duration including weekends and holidays?": NO_YES,
      """If the above is 'Yes', it is required to put the note in the email signature
        two weeks before the due leave. Have you put the reminder for yourself for this?""": NA_YES_NO,
-    "Have you answered all the checklist items carefully?": NO_YES}
+    """You are responsible for filling out this checklist. Have you answered all the checklist items carefully?""": NIL_YES_NO}
 ]
 
 ikigai_checklists = [

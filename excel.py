@@ -4,6 +4,10 @@
 
 import xlwings as xw    # type: ignore
 import functions
+import checklists
+import checklist_collections as cc
+
+# from reportlab.lib.colors import lightcyan, black, white, lightyellow, blue
 
 
 def fill_formula():
@@ -119,3 +123,16 @@ def delete_extra_empty_row():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.delete_extra_empty_row(ws)
+
+# Need to download logo if not exist
+checklists.download_logo()
+
+def leave_application_checklist():
+    # wb = xw.Book.caller()
+    checklists.leave_application_checklist()
+
+def download_template():
+    checklists.download_template()
+
+def download_planner():
+    checklists.download_planner()
