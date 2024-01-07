@@ -10,3 +10,4 @@ __pycache__/hide.cpython-38.pyc
 projects.txt
 test.ipynb
 *.pyc
+.vscode
