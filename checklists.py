@@ -118,7 +118,7 @@ def draw_checkbox(
         form.checkbox(
             name=str(i + 1),
             tooltip=f"{i+1}",
-            x=PAPERWIDTH - RIGHT_MARGIN - 13,  # 13 is the size
+            x=PAPERWIDTH - RIGHT_MARGIN - 13,  # Numerical value is the size
             y=y - offset,
             buttonStyle="check",
             size=13,
@@ -151,7 +151,7 @@ def draw_choice(
     x=0,
     y=0,
     step=20,
-    width=40,
+    # width=30,
     initial=0,
     color=None,
 ) -> tuple[int, int]:
@@ -167,7 +167,13 @@ def draw_choice(
         else:
             c.drawString(x, y, str(i + 1) + ". ")
             skip = c.stringWidth(str(i + 1) + ". ")
-        for n, line in enumerate(wrap(k, 80)):
+
+        # Get width from last item of the options
+        width = options.pop()
+        wrap_width = int((PAPERWIDTH - width - RIGHT_MARGIN) / c.stringWidth("0"))
+        if wrap_width > 80:
+            wrap_width = 80
+        for n, line in enumerate(wrap(k, wrap_width)):
             c.drawString(x + skip, y, line)
             if n == 0:
                 form.choice(  # name='',
@@ -260,7 +266,7 @@ def number_page(c: canvas.Canvas):
     c.setFont("Helvetica-Oblique", 11)
     page_number = "Page %s" % c.getPageNumber()
     # c.drawRightString(PAPERWIDTH - RIGHT_MARGIN, 60, page_number)
-    c.drawCentredString(PAPERWIDTH / 2, 60, page_number)
+    c.drawCentredString(PAPERWIDTH/2, 60, page_number)
     c.restoreState()
 
 
@@ -274,7 +280,7 @@ def produce_checklist(
     y=700,
     step=20,
     initial=0,
-    width=40,
+    # width=30,
     color=None,
 ):
     global LAST_POSITION
@@ -288,7 +294,7 @@ def produce_checklist(
                 initial=LAST_POSITION[0],
                 y=LAST_POSITION[1],   #type:ignore
                 color=color,
-            )  # type:ignore
+            )
         if isinstance(checklist, dict):
             LAST_POSITION = draw_choice(
                 c,
@@ -296,7 +302,7 @@ def produce_checklist(
                 x,
                 initial=LAST_POSITION[0],
                 y=LAST_POSITION[1],
-                width=width,
+                # width=width,
                 color=color,
             )  # type:ignore
         if isinstance(checklist, tuple):

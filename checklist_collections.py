@@ -3,23 +3,24 @@
 Idea
 Checklist: list or dynamically construct a list
 Inside:
-checkbox: list: first item str
-choice: dict (item and choices)
-textbox: list: first item tuple (item and width)
+checkbox: str
+choice: dict (item and choices). The last number of the choices list controls widget width
+textbox: list: Tuple. The number controls the widget's width.
 
 Checked for type and take necessary action. If needs be, a list can be constructed
 from different checklists.
 """
 
-NIL_YES_NO = [" ", "Yes", "No"]
-YES_NO = ["Yes", "No"]
-NO_YES = ["No", "Yes"]
-NIL_YES_NO_NA = [" ", "Yes", "No", "NA"]
-NA_YES_NO = ["NA", "Yes", "No"]
+# The last item controls the widget's width and wrap_width.
+NIL_YES_NO = [" ", "Yes", "No", 30]
+YES_NO = ["Yes", "No", 35]
+NO_YES = ["No", "Yes", 30]
+NIL_YES_NO_NA = [" ", "Yes", "No", "NA", 30]
+NA_YES_NO = ["NA", "Yes", "No", 30]
 
 general_checklist2 = {
-    "Have you done it? How does it really work?": [("", " "), ("Yes"), ("No")],
-    "Have you not done it?": [("", " "), ("Yes"), ("No")],
+    "Have you done it? How does it really work?": [("", " "), ("Yes"), ("No"), 30],
+    "Have you not done it?": [("", " "), ("Yes"), ("No"), 30],
 }
 
 leave_application_checklist = [
@@ -27,9 +28,9 @@ leave_application_checklist = [
     "For AM or PM leave, have you marked the exact time in the calendar?",
     {
         "Is the leave longer than 10 days duration including weekends and holidays?": NO_YES,
-        """If the above is 'Yes', it is required to put the note in the email signature
-       two weeks before the due leave. Have you put the reminder for yourself for this?""": NA_YES_NO,
-        """You are responsible for filling out this checklist. Have you answered all the checklist items carefully?""": NIL_YES_NO,
+        """If the above is 'Yes', it is required to put the note in the email signature 
+        two weeks before the due leave. Have you put the reminder for yourself for this?""": NA_YES_NO,
+        "You are responsible for filling out this checklist. Have you answered all the checklist items carefully?": NIL_YES_NO,
     },
 ]
 
