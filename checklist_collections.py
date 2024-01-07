@@ -43,8 +43,8 @@ ikigai_checklists = [
 
 
 general_checklist = {
-    "Have you done it? How does it really work?": [" ", "Yes", "No"],
-    "Have you not done it?": [" ", "Yes", "No", "NA"],
+    "Have you done it? How does it really work?": [" ", "Yes", "No", 30],
+    "Have you not done it?": [" ", "Yes", "No", "NA", 30],
 }
 
 textbox_checklist = [

@@ -2,7 +2,7 @@
     © Thiha Aung
 """
 
-import xlwings as xw    # type: ignore
+import xlwings as xw  # type: ignore
 import functions
 import checklists
 import checklist_collections as cc
@@ -14,6 +14,7 @@ def fill_formula():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.fill_formula(ws)
+
 
 # Fix the whole workbook. The function name will later change to fix_workbook
 # Now is tied ot Fix Wrokbook in Excel
@@ -31,108 +32,134 @@ def fill_formula_wb():
     functions.conditional_format_wb(wb)
     functions.fill_lastrow(wb)
 
+
 def subtotal():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.fill_lastrow_sheet(wb, ws)
 
+
 def subtotal_wb():
     wb = xw.Book.caller()
     functions.fill_lastrow(wb)
+
 
 def unhide_columns():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.unhide_columns(ws)
 
+
 def summary():
     wb = xw.Book.caller()
     functions.summary(wb, discount=False)
+
 
 def summary_discount():
     wb = xw.Book.caller()
     functions.summary(wb, discount=True)
 
+
 def summary_detail():
     wb = xw.Book.caller()
     functions.summary(wb, discount=False, detail=True)
+
 
 def summary_detail_discount():
     wb = xw.Book.caller()
     functions.summary(wb, discount=True, detail=True)
 
+
 def number_title():
     wb = xw.Book.caller()
     functions.number_title(wb)
+
 
 def hide_columns():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.hide_columns(ws)
 
+
 def technical():
     wb = xw.Book.caller()
     functions.technical(wb)
+
 
 def prepare_to_print_commercial():
     wb = xw.Book.caller()
     functions.prepare_for_print_commercial(wb)
 
+
 def print_commercial():
     wb = xw.Book.caller()
     functions.commercial(wb)
+
 
 def conditional_format_wb():
     wb = xw.Book.caller()
     functions.conditional_format_wb(wb)
 
+
 def fix_unit_price():
     wb = xw.Book.caller()
     functions.fix_unit_price(wb)
+
 
 def format_text():
     wb = xw.Book.caller()
     functions.format_text(wb, title_lineitem_or_description=True)
 
+
 def indent_description():
     wb = xw.Book.caller()
     functions.format_text(wb, indent_description=True, bullet_description=True)
+
 
 def shaded():
     wb = xw.Book.caller()
     functions.shaded(wb, shaded=True)
 
+
 def unshaded():
     wb = xw.Book.caller()
     functions.shaded(wb, shaded=False)
+
 
 def internal_costing():
     wb = xw.Book.caller()
     functions.internal_costing(wb)
 
+
 def convert_legacy():
     wb = xw.Book.caller()
     functions.convert_legacy(wb)
+
 
 def fill_formula_active_row():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.fill_formula_active_row(wb, ws)
 
+
 def delete_extra_empty_row():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.delete_extra_empty_row(ws)
 
+
 # Need to download logo if not exist
 checklists.download_logo()
+
 
 def leave_application_checklist():
     # wb = xw.Book.caller()
     checklists.leave_application_checklist()
 
+
 def download_template():
     checklists.download_template()
+
 
 def download_planner():
     checklists.download_planner()

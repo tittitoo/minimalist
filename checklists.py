@@ -31,7 +31,7 @@ LOGO = os.path.join(
 def show_checklist(checklist: list, title="Checklist", color=None):
     """Take checklist and generates pdf in user download folder"""
     downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-    filename = title.title() + " " + datetime.now().date().strftime("%Y-%m-%d") + ".pdf"
+    filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")} .pdf'
     file_path = Path(downloads_folder, filename)
 
     # Create canvas and initialize
@@ -69,7 +69,7 @@ def open_file(file_path):
 FORM_FLAG = True
 
 
-def put_logo(c: canvas.Canvas, logo=str(LOGO)):
+def put_logo(c: canvas.Canvas, logo=LOGO):
     c.saveState()
     global FORM_FLAG
     if FORM_FLAG:
@@ -218,7 +218,6 @@ def draw_textfield(
     form = c.acroForm
     i = initial
     offset = 3
-    # c.setFont('Helvetica', 12)
     name, width = checklist  # Unpack tuple
     if i < 9:
         spacer = c.stringWidth("0")
@@ -245,7 +244,7 @@ def draw_textfield(
                 fillColor=color,
                 width=width,
                 height=17,
-                textColor=blue,
+                # textColor=black,
                 fontSize=11,
                 forceBorder=True,
             )
@@ -265,7 +264,6 @@ def number_page(c: canvas.Canvas):
     c.saveState()
     c.setFont("Helvetica-Oblique", 11)
     page_number = "Page %s" % c.getPageNumber()
-    # c.drawRightString(PAPERWIDTH - RIGHT_MARGIN, 60, page_number)
     c.drawCentredString(PAPERWIDTH/2, 60, page_number)
     c.restoreState()
 
@@ -368,7 +366,6 @@ def download_template():
         # Delete the file if exists
         if os.path.exists(file_path):
             os.remove(file_path)
-            # print('Deleted the existing Template')
         download_file(
             bid, filename, "https://filedn.com/liTeg81ShEXugARC7cg981h/Template.xlsx"
         )
@@ -387,7 +384,6 @@ def download_planner():
         # Delete the file if exists
         if os.path.exists(file_path):
             os.remove(file_path)
-            # print('Deleted the existing Template')
         download_file(
             bid,
             filename,
@@ -405,3 +401,7 @@ def leave_application_checklist():
         title="Leave Application Checklist",
         color=lightyellow,
     )
+
+# TODO
+def proposal_checklist():
+    pass
