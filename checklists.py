@@ -31,7 +31,7 @@ LOGO = os.path.join(
 def show_checklist(checklist: list, title="Checklist", color=None):
     """Take checklist and generates pdf in user download folder"""
     downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-    filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")} .pdf'
+    filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
     file_path = Path(downloads_folder, filename)
 
     # Create canvas and initialize
@@ -59,7 +59,10 @@ def open_file(file_path):
         if os.name == "posix":
             subprocess.call(["open", str(file_path)])
         elif os.name == "nt":
-            subprocess.call(["start", str(file_path)], shell=True)
+            # subprocess.call(["start", str(file_path)], shell=True)
+            # subprocess.Popen(["explorer", str(file_path)],
+                            #  creationflags=subprocess.DETACHED_PROCESS)
+            os.startfile(file_path)
     except Exception as e:
         print(f"Unsupported os {e}.")
 
@@ -169,7 +172,7 @@ def draw_choice(
             skip = c.stringWidth(str(i + 1) + ". ")
 
         # Get width from last item of the options
-        width = options.pop()
+        width = float(options.pop())
         wrap_width = int((PAPERWIDTH - width - RIGHT_MARGIN) / c.stringWidth("0"))
         if wrap_width > 80:
             wrap_width = 80
