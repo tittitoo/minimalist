@@ -99,7 +99,7 @@ def page_color(c: canvas.Canvas, color=lightyellow):
 
 def draw_checkbox(
     c: canvas.Canvas, checklists: str, x: int, y: int, step=20, initial=0, color=None
-) -> tuple[int, int]:
+) -> tuple:
     """
     Draw checkboxes on the canvas form a list.
     """
@@ -154,7 +154,7 @@ def draw_choice(
     # width=30,
     initial=0,
     color=None,
-) -> tuple[int, int]:
+) -> tuple:
     form = c.acroForm
     i = initial
     offset = 3
@@ -213,7 +213,7 @@ def draw_choice(
 
 def draw_textfield(
     c: canvas.Canvas, checklist: tuple, x=0, y=0, step=20, initial=0, color=None
-) -> tuple[int, int]:
+) -> tuple:
     """Checklists here is a list of tuples of 'str' and 'width: int'"""
     form = c.acroForm
     i = initial
