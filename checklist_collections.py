@@ -11,6 +11,7 @@ Checked for type and take necessary action. If needs be, a list can be construct
 from different checklists.
 """
 
+DELIVERY = "EXW, FOB, CIF, DAP, 70"
 
 leave_application_checklist = [
     "Have you marked the leave in the team calendar?",
@@ -47,11 +48,11 @@ sales_checklist = [   #type:ignore
         "Customer type": ["Existing", "New", 70],
         "If 'Existing Customer', do we have any past issues with the customer we need to be aware of?": ['No', 'Yes', 'Unknown', 70],
     },
-    ("If above is 'Yes', state the reason.", 300, 17*2),
+    ("If above is 'Yes', state the reason.", 300, 17),
     ("Yard name the vessel will be built in", 200, 17),
     ("End user or owner name", 200, 17),
     ("Infrastructure Type", 200, 17),
-    ("The operating region of the vessel", 200, 17),
+    ("The operating country/region of the vessel", 200, 17),
     {
         "Classification society": [' ', 'DNV', 'ABS', 'BV', 'LR', 'Others', 70]
     },
@@ -63,14 +64,17 @@ sales_checklist = [   #type:ignore
     },
     ("Preferred margin to be quoted in percentage", 30, 17),
     ("Preferred payment terms", 250, 17),
-    ("Preferred delivey terms", 200, 17),
-    ("Warranty duration or/and warranty end date", 200, 17),
+    {
+        "Preferred delivery terms": DELIVERY.split(','),
+    },
+    ("Delivery location based above delivery terms, e.g. if EXW, it will be 'Jason Premises'.", 200, 17),
+    ("Warranty duration and/or warranty end date", 200, 17),
     ("Commissioning location", 200, 17),
     ("Estimated project delivery date", 200, 17),
     {
         "Any special requirement?": ['No', 'Yes', 'Unknown', 70],
     },
-    ("If above is 'Yes', state the requirement.", 200, 17),
+    ("If above is 'Yes', state the requirement.", 300, 17),
     ("Any known competitor?", 200, 17),
     ("Any known concern?", 200, 17),
 

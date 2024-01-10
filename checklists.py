@@ -223,8 +223,6 @@ def draw_textfield(
     i = initial
     offset = 3
     name, width, height = checklist
-    print(name)
-    # height = 17 # Unpack tuple
     if i < 9:
         spacer = c.stringWidth("0")
         c.drawString(x + spacer, y, str(i + 1) + ". ")
@@ -232,8 +230,11 @@ def draw_textfield(
     else:
         c.drawString(x, y, str(i + 1) + ". ")
         skip = c.stringWidth(str(i + 1) + ". ")
-    wrap_width = int((PAPERWIDTH - width - RIGHT_MARGIN) / c.stringWidth("0"))
-    if wrap_width > 80:
+    if width <= MAX_TEXTBOX_WIDTH:
+        wrap_width = int((PAPERWIDTH - width - RIGHT_MARGIN) / c.stringWidth("0"))
+        if wrap_width > 80:
+            wrap_width = 80
+    else:
         wrap_width = 80
     # print(wrap_width)
     for n, line in enumerate(wrap(name, wrap_width)):
@@ -265,7 +266,7 @@ def draw_textfield(
         i += 1
     if width > MAX_TEXTBOX_WIDTH:
         width = PAPERWIDTH - x - RIGHT_MARGIN
-        # If the box does not fit in the current page, start at next page
+        # If the textbox does not fit in the current page, start at next page
         if y - height <= 80:
             number_page(c)
             c.showPage()
@@ -273,8 +274,8 @@ def draw_textfield(
                 page_color(c, color)
             put_logo(c)
             y = 750
-        if y != 750:
-            y -= step
+        # if y != 750:
+        #     y -= step
         form.textfield(
             # name="fname",
             # tooltip="First Name",
@@ -284,7 +285,7 @@ def draw_textfield(
             borderColor=black,
             borderWidth=0.5,
             fillColor=color,
-            width=width-skip,
+            width=width - skip,
             height=height,
             # textColor=black,
             fontSize=11,
