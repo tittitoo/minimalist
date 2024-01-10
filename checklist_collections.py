@@ -11,6 +11,7 @@ Checked for type and take necessary action. If needs be, a list can be construct
 from different checklists.
 """
 
+
 leave_application_checklist = [
     "Have you marked the leave in the team calendar?",
     "For AM or PM leave, have you marked the exact time in the calendar?",
@@ -46,7 +47,7 @@ sales_checklist = [   #type:ignore
         "Customer type": ["Existing", "New", 70],
         "If 'Existing Customer', do we have any past issues with the customer we need to be aware of?": ['No', 'Yes', 'Unknown', 70],
     },
-    ("If above is 'Yes', state the reason.", 200, 17),
+    ("If above is 'Yes', state the reason.", 300, 17*2),
     ("Yard name the vessel will be built in", 200, 17),
     ("End user or owner name", 200, 17),
     ("Infrastructure Type", 200, 17),
@@ -61,7 +62,7 @@ sales_checklist = [   #type:ignore
         "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70]
     },
     ("Preferred margin to be quoted in percentage", 30, 17),
-    ("Preferred payment terms", 200, 17),
+    ("Preferred payment terms", 250, 17),
     ("Preferred delivey terms", 200, 17),
     ("Warranty duration or/and warranty end date", 200, 17),
     ("Commissioning location", 200, 17),
@@ -71,7 +72,7 @@ sales_checklist = [   #type:ignore
     },
     ("If above is 'Yes', state the requirement.", 200, 17),
     ("Any known competitor?", 200, 17),
-    ("Any known concern?", 200, 17)
+    ("Any known concern?", 200, 17),
 
 ]
 

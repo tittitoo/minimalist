@@ -25,6 +25,7 @@ PAPERWIDTH = A4[0]
 LOGO = os.path.join(
     os.path.expanduser("~/Documents"), "Bid/Jason_Transparent_Logo_SS.png"
 )
+MAX_TEXTBOX_WIDTH = 250 # If greater than this number, textbox will flow to next line item
 # MACRO_NB = xw.Book('PERSONAL.XLSB')
 
 
@@ -81,7 +82,7 @@ def put_logo(c: canvas.Canvas, logo=LOGO):
         c.drawImage(
             logo,
             PAPERWIDTH - RIGHT_MARGIN - width,
-            780,
+            788,
             width=width,
             height=(1.25 * inch) * 0.224,
             mask="auto",
@@ -222,6 +223,7 @@ def draw_textfield(
     i = initial
     offset = 3
     name, width, height = checklist
+    print(name)
     # height = 17 # Unpack tuple
     if i < 9:
         spacer = c.stringWidth("0")
@@ -236,7 +238,7 @@ def draw_textfield(
     # print(wrap_width)
     for n, line in enumerate(wrap(name, wrap_width)):
         c.drawString(x + skip, y, line)
-        if n == 0:
+        if n == 0 and width <= MAX_TEXTBOX_WIDTH:
             form.textfield(
                 # name="fname",
                 # tooltip="First Name",
@@ -261,6 +263,35 @@ def draw_textfield(
             put_logo(c)
             y = 750
         i += 1
+    if width > MAX_TEXTBOX_WIDTH:
+        width = PAPERWIDTH - x - RIGHT_MARGIN
+        # If the box does not fit in the current page, start at next page
+        if y - height <= 80:
+            number_page(c)
+            c.showPage()
+            if color:
+                page_color(c, color)
+            put_logo(c)
+            y = 750
+        if y != 750:
+            y -= step
+        form.textfield(
+            # name="fname",
+            # tooltip="First Name",
+            x=PAPERWIDTH - RIGHT_MARGIN - width + skip,
+            y=y - offset,
+            borderStyle="solid",
+            borderColor=black,
+            borderWidth=0.5,
+            fillColor=color,
+            width=width-skip,
+            height=height,
+            # textColor=black,
+            fontSize=11,
+            forceBorder=True,
+            fieldFlags='multiline'
+        )
+        y -= step
     return (i, y)
 
 
@@ -414,7 +445,7 @@ def sales_checklist():
         color=lightcyan,
     )
 
-# sales_checklist()
+sales_checklist()
 
 # TODO
 def proposal_checklist():
