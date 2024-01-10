@@ -13,7 +13,7 @@ import xlwings as xw  # type:ignore
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.colors import black, lightyellow, blue
+from reportlab.lib.colors import black, lightyellow, blue, lightcyan
 
 import checklist_collections as cc
 import hide
@@ -221,7 +221,8 @@ def draw_textfield(
     form = c.acroForm
     i = initial
     offset = 3
-    name, width = checklist  # Unpack tuple
+    name, width, height = checklist
+    # height = 17 # Unpack tuple
     if i < 9:
         spacer = c.stringWidth("0")
         c.drawString(x + spacer, y, str(i + 1) + ". ")
@@ -246,7 +247,7 @@ def draw_textfield(
                 borderWidth=0.5,
                 fillColor=color,
                 width=width,
-                height=17,
+                height=height,
                 # textColor=black,
                 fontSize=11,
                 forceBorder=True,
@@ -404,6 +405,16 @@ def leave_application_checklist():
         title="Leave Application Checklist",
         color=lightyellow,
     )
+
+
+def sales_checklist():
+    show_checklist(
+        cc.sales_checklist,
+        title="Sales Checklist",
+        color=lightcyan,
+    )
+
+# sales_checklist()
 
 # TODO
 def proposal_checklist():
