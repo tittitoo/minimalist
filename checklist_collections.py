@@ -20,6 +20,7 @@ DELIVERY_TERMS = "EXW, FOB, CIF, CPT, FCA, DAP, DDU, DDP, 50"
 CREDIT_TERMS = "30 Days, 45 Days, Advanced T/T, COD, 7 Days, 10 Days, 14 Days, LC at Sight, 70"
 CLASS_SOCIETY = "NA, DNV, ABS, LR, BV, Others, 50"
 VALIDITY = "30 Days, 45 Days, 60 Days, 90 Days, 120 Days, 7 Days, 15 Days, 70"
+TEXTBOX_HEIGHT = 17
 
 leave_application_checklist = [
     "Have you marked the leave in the team calendar?",
@@ -50,18 +51,18 @@ textbox_checklist_example = [
 
 
 sales_checklist = [   #type:ignore
-    ("Project name", 200, 17),
-    ("Job code", 200, 17),
-    ("Customer name", 200, 17),
+    ("Project name", 200, TEXTBOX_HEIGHT),
+    ("Job code", 200, TEXTBOX_HEIGHT),
+    ("Customer name", 200, TEXTBOX_HEIGHT),
     {
         "Customer type": ["Existing", "New", 70],
         "If 'Existing Customer', do we have any past issues with the customer we need to be aware of?": ['No', 'Yes', 'Unknown', 70],
     },
-    ("If above is 'Yes', state the reason.", 300, 17*2),
-    ("Yard name the vessel will be built in", 200, 17),
-    ("End user or owner name", 200, 17),
-    ("Infrastructure Type", 200, 17),
-    ("The operating country/region of the vessel", 200, 17),
+    ("If above is 'Yes', state the reason.", 300, TEXTBOX_HEIGHT*2),
+    ("Yard name the vessel will be built in", 200, TEXTBOX_HEIGHT),
+    ("End user or owner name", 200, TEXTBOX_HEIGHT),
+    ("Infrastructure Type", 200, TEXTBOX_HEIGHT),
+    ("The operating country/region of the vessel", 200, TEXTBOX_HEIGHT),
     {
         "Classification society": CLASS_SOCIETY.split(','),
     },
@@ -71,25 +72,25 @@ sales_checklist = [   #type:ignore
         "Type of quotation": ['Budgetary', 'Firmed', 70],
         "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70]
     },
-    ("Preferred margin to be quoted in percentage", 30, 17),
-    ("Preferred milestone payment terms", 300, 17),
+    ("Preferred margin to be quoted in percentage", 30, TEXTBOX_HEIGHT),
+    ("Preferred milestone payment terms", 300, TEXTBOX_HEIGHT),
     {
         "Preferred credit terms": CREDIT_TERMS.split(','),
         "Preferred delivery terms": DELIVERY_TERMS.split(','),
     },
-    ("Delivery location based above delivery terms (to or from)", 150, 17),
+    ("Delivery location based above delivery terms (to or from)", 150, TEXTBOX_HEIGHT),
     {
         "Quotation validity": VALIDITY.split(','),
     },
-    ("Warranty duration and/or warranty end date", 200, 17),
-    ("Commissioning location", 200, 17),
-    ("Estimated project delivery date", 200, 17),
+    ("Warranty duration and/or warranty end date", 200, TEXTBOX_HEIGHT),
+    ("Commissioning location", 200, TEXTBOX_HEIGHT),
+    ("Estimated project delivery date", 200, TEXTBOX_HEIGHT),
     {
         "Any special requirement?": ['No', 'Yes', 'Unknown', 70],
     },
-    ("If above is 'Yes', state the requirement.", 300, 17*5),
-    ("Any known competitor?", 200, 17),
-    ("Any known concern?", 200, 17),
+    ("If above is 'Yes', state the requirement.", 300, TEXTBOX_HEIGHT*5),
+    ("Any known competitor?", 200, TEXTBOX_HEIGHT),
+    ("Any known concern?", 200, TEXTBOX_HEIGHT),
     {
         "Have you answered all the checklist items carefully?": NIL_YES_NO.split(','),
     },

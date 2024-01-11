@@ -29,7 +29,7 @@ MAX_TEXTBOX_WIDTH = 250 # If greater than this number, textbox will flow to next
 # MACRO_NB = xw.Book('PERSONAL.XLSB')
 
 
-def show_checklist(checklist: list, title="Checklist", color=None):
+def show_checklist(checklist: list, title="Checklist", font="Helvetica", font_size=9, color=None):
     """Take checklist and generates pdf in user download folder"""
     downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
     filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
@@ -42,11 +42,11 @@ def show_checklist(checklist: list, title="Checklist", color=None):
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
     c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
-    c.setFont("Helvetica-Oblique", 11)
+    c.setFont("Helvetica-Oblique", font_size)
     c.drawRightString(A4[0] - 50, 730, datetime.now().date().strftime("%Y-%m-%d"))
-    c.setFont("Helvetica", 11)
+    c.setFont(font, font_size)
 
-    produce_checklist(c, checklist, color=color)
+    produce_checklist(c, checklist, font=font, font_size=font_size, color=color)
     number_page(c)
 
     c.showPage()
@@ -82,7 +82,7 @@ def put_logo(c: canvas.Canvas, logo=LOGO):
         c.drawImage(
             logo,
             PAPERWIDTH - RIGHT_MARGIN - width,
-            788,
+            780,
             width=width,
             height=(1.25 * inch) * 0.224,
             mask="auto",
@@ -102,7 +102,7 @@ def page_color(c: canvas.Canvas, color=lightyellow):
 
 
 def draw_checkbox(
-    c: canvas.Canvas, checklists: str, x: int, y: int, step=20, initial=0, color=None
+    c: canvas.Canvas, checklists: str, x: int, y: int, step=20, initial=0, font="Helvetica", font_size=11, color=None
 ) -> tuple:
     """
     Draw checkboxes on the canvas form a list.
@@ -144,6 +144,7 @@ def draw_checkbox(
             if color:
                 page_color(c, color)
             put_logo(c)
+            c.setFont(font, font_size)
             y = 750
         return (i, y)
     return (i, y)
@@ -157,6 +158,8 @@ def draw_choice(
     step=20,
     # width=30,
     initial=0,
+    font="Helvetica",
+    font_size=11,
     color=None,
 ) -> tuple:
     form = c.acroForm
@@ -191,32 +194,34 @@ def draw_choice(
                     # borderColor=black,
                     borderWidth=0.5,
                     fillColor=color,
-                    fontSize=11,
+                    fontSize=font_size,
                     # textColor=black,
                     # forceBorder=True,
                 )
             y -= step
             if y <= 80:
-                number_page(c)
+                number_page(c, font_size)
                 c.showPage()
                 if color:
                     page_color(c, color)
                 put_logo(c)
+                c.setFont(font, font_size)
                 y = 750
         y -= offset
         if y <= 80:
-            number_page(c)
+            number_page(c, font_size)
             c.showPage()
             if color:
                 page_color(c, color)
             put_logo(c)
+            c.setFont(font, font_size)
             y = 750
         i += 1
     return (i, y)
 
 
 def draw_textfield(
-    c: canvas.Canvas, checklist: tuple, x=0, y=0, step=20, initial=0, color=None
+    c: canvas.Canvas, checklist: tuple, x=0, y=0, step=20, initial=0, font="Helvetica", font_size=11, color=None
 ) -> tuple:
     """Checklists here is a list of tuples of 'str' and 'width: int'"""
     form = c.acroForm
@@ -252,23 +257,25 @@ def draw_textfield(
                 width=width,
                 height=height,
                 # textColor=black,
-                fontSize=11,
+                fontName=font,
+                fontSize=font_size,
                 forceBorder=True,
             )
         y -= step
         if y <= 80:
-            number_page(c)
+            number_page(c, font_size)
             c.showPage()
             if color:
                 page_color(c, color)
             put_logo(c)
+            c.setFont(font, font_size)
             y = 750
         i += 1
     if width > MAX_TEXTBOX_WIDTH:
         width = PAPERWIDTH - x - RIGHT_MARGIN
         # If the textbox does not fit in the current page, start at next page
         if y - height <= 80:
-            number_page(c)
+            number_page(c, font_size)
             c.showPage()
             if color:
                 page_color(c, color)
@@ -290,7 +297,8 @@ def draw_textfield(
             width=width - skip,
             height=height,
             # textColor=black,
-            fontSize=11,
+            fontName=font,
+            fontSize=font_size,
             forceBorder=True,
             fieldFlags='multiline'
         )
@@ -301,9 +309,9 @@ def draw_textfield(
     return (i, y)
 
 
-def number_page(c: canvas.Canvas):
+def number_page(c: canvas.Canvas, font_size=10):
     c.saveState()
-    c.setFont("Helvetica-Oblique", 11)
+    c.setFont("Helvetica-Oblique", font_size)
     page_number = "Page %s" % c.getPageNumber()
     c.drawCentredString(PAPERWIDTH/2, 60, page_number)
     c.restoreState()
@@ -320,6 +328,8 @@ def produce_checklist(
     step=20,
     initial=0,
     # width=30,
+    font="Helevtica",
+    font_size=10,
     color=None,
 ):
     global LAST_POSITION
@@ -342,6 +352,7 @@ def produce_checklist(
                 initial=LAST_POSITION[0],
                 y=LAST_POSITION[1],
                 # width=width,
+                font_size=font_size,
                 color=color,
             )  # type:ignore
         if isinstance(checklist, tuple):
@@ -351,6 +362,7 @@ def produce_checklist(
                 x,
                 initial=LAST_POSITION[0],
                 y=LAST_POSITION[1],
+                font_size=font_size,
                 color=color,
             )  # type:ignore
         if isinstance(checklist, list):
@@ -436,7 +448,7 @@ def download_planner():
         print(f"Failed to download template -> {e}")
 
 
-def leave_application_checklist():
+def leave_application_checklist(font_size=11):
     show_checklist(
         cc.leave_application_checklist,
         title="Leave Application Checklist",
@@ -444,7 +456,7 @@ def leave_application_checklist():
     )
 
 
-def sales_checklist():
+def sales_checklist(font_size=11):
     show_checklist(
         cc.sales_checklist,
         title="Sales Checklist",
