@@ -11,16 +11,24 @@ Checked for type and take necessary action. If needs be, a list can be construct
 from different checklists.
 """
 
-DELIVERY = "EXW, FOB, CIF, DAP, 70"
+YES_NO = "Yes, No, 50"
+NO_YES = "No, Yes, 50"
+NIL_YES_NO = " , Yes, No, 50"
+NA_YES_NO = "NA, Yes, No, 50"
+NIL_YES_NO_NA = " , Yes, No, NA, 50"
+DELIVERY_TERMS = "EXW, FOB, CIF, CPT, FCA, DAP, DDU, DDP, 50"
+CREDIT_TERMS = "30 Days, 45 Days, Advanced T/T, COD, 7 Days, 10 Days, 14 Days, LC at Sight, 70"
+CLASS_SOCIETY = "NA, DNV, ABS, LR, BV, Others, 50"
+VALIDITY = "30 Days, 45 Days, 60 Days, 90 Days, 120 Days, 7 Days, 15 Days, 70"
 
 leave_application_checklist = [
     "Have you marked the leave in the team calendar?",
     "For AM or PM leave, have you marked the exact time in the calendar?",
     {
-        "Is the leave longer than 10 days duration including weekends and holidays?": ["No", "Yes", 30],
+        "Is the leave longer than 10 days duration including weekends and holidays?": NO_YES.split(','),
         """If the above is 'Yes', it is required to put the note in the email signature 
-        two weeks before the due leave. Have you put the reminder for yourself for this?""": ["NA", "Yes", "No", 30],
-        "You are responsible for filling out this checklist. Have you answered all the checklist items carefully?": [" ", "Yes", "No", 30],
+        two weeks before the due leave. Have you put the reminder for yourself for this?""": NA_YES_NO.split(','),
+        "You are responsible for filling out this checklist. Have you answered all the checklist items carefully?": NIL_YES_NO.split(','),
     },
 ]
 
@@ -43,18 +51,19 @@ textbox_checklist_example = [
 
 sales_checklist = [   #type:ignore
     ("Project name", 200, 17),
+    ("Job code", 200, 17),
     ("Customer name", 200, 17),
     {
         "Customer type": ["Existing", "New", 70],
         "If 'Existing Customer', do we have any past issues with the customer we need to be aware of?": ['No', 'Yes', 'Unknown', 70],
     },
-    ("If above is 'Yes', state the reason.", 300, 17),
+    ("If above is 'Yes', state the reason.", 300, 17*2),
     ("Yard name the vessel will be built in", 200, 17),
     ("End user or owner name", 200, 17),
     ("Infrastructure Type", 200, 17),
     ("The operating country/region of the vessel", 200, 17),
     {
-        "Classification society": [' ', 'DNV', 'ABS', 'BV', 'LR', 'Others', 70]
+        "Classification society": CLASS_SOCIETY.split(','),
     },
     {
         "Jason entity to be quoted under": ["Jason Electronics", "Jason Energy", 120],
@@ -63,20 +72,27 @@ sales_checklist = [   #type:ignore
         "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70]
     },
     ("Preferred margin to be quoted in percentage", 30, 17),
-    ("Preferred payment terms", 250, 17),
+    ("Preferred milestone payment terms", 300, 17),
     {
-        "Preferred delivery terms": DELIVERY.split(','),
+        "Preferred credit terms": CREDIT_TERMS.split(','),
+        "Preferred delivery terms": DELIVERY_TERMS.split(','),
     },
-    ("Delivery location based above delivery terms, e.g. if EXW, it will be 'Jason Premises'.", 200, 17),
+    ("Delivery location based above delivery terms (to or from)", 150, 17),
+    {
+        "Quotation validity": VALIDITY.split(','),
+    },
     ("Warranty duration and/or warranty end date", 200, 17),
     ("Commissioning location", 200, 17),
     ("Estimated project delivery date", 200, 17),
     {
         "Any special requirement?": ['No', 'Yes', 'Unknown', 70],
     },
-    ("If above is 'Yes', state the requirement.", 300, 17),
+    ("If above is 'Yes', state the requirement.", 300, 17*5),
     ("Any known competitor?", 200, 17),
     ("Any known concern?", 200, 17),
+    {
+        "Have you answered all the checklist items carefully?": NIL_YES_NO.split(','),
+    },
 
 ]
 

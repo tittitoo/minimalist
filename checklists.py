@@ -276,6 +276,8 @@ def draw_textfield(
             y = 750
         # if y != 750:
         #     y -= step
+        if height > 17:
+             offset = offset + (height -17)
         form.textfield(
             # name="fname",
             # tooltip="First Name",
@@ -292,7 +294,10 @@ def draw_textfield(
             forceBorder=True,
             fieldFlags='multiline'
         )
-        y -= step
+        if height > 17:
+            y -= step + (height -17)
+        else:
+            y -= step
     return (i, y)
 
 
@@ -447,6 +452,7 @@ def sales_checklist():
     )
 
 sales_checklist()
+# leave_application_checklist()
 
 # TODO
 def proposal_checklist():
