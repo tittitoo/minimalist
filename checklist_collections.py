@@ -16,9 +16,9 @@ NO_YES = "No, Yes, 50"
 NIL_YES_NO = " , Yes, No, 50"
 NA_YES_NO = "NA, Yes, No, 50"
 NIL_YES_NO_NA = " , Yes, No, NA, 50"
-DELIVERY_TERMS = "EXW, FOB, CIF, CPT, FCA, DAP, DDU, DDP, 50"
+DELIVERY_TERMS = "EXW, FOB, CIF, CPT, FCA, DAP, DDU, DDP, 70"
 CREDIT_TERMS = "30 Days, 45 Days, Advanced T/T, COD, 7 Days, 10 Days, 14 Days, LC at Sight, 70"
-CLASS_SOCIETY = "NA, DNV, ABS, LR, BV, Others, 50"
+CLASS_SOCIETY = "NA, DNV, ABS, LR, BV, Others, 70"
 VALIDITY = "30 Days, 45 Days, 60 Days, 90 Days, 120 Days, 7 Days, 15 Days, 70"
 TEXTBOX_HEIGHT = 17
 
@@ -51,8 +51,8 @@ textbox_checklist_example = [
 
 
 sales_checklist = [   #type:ignore
+    ("Job code", 200, TEXTBOX_HEIGHT), 
     ("Project name", 200, TEXTBOX_HEIGHT),
-    ("Job code", 200, TEXTBOX_HEIGHT),
     ("Customer name", 200, TEXTBOX_HEIGHT),
     {
         "Customer type": ["Existing", "New", 70],
@@ -72,7 +72,7 @@ sales_checklist = [   #type:ignore
         "Type of quotation": ['Budgetary', 'Firmed', 70],
         "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70]
     },
-    ("Preferred margin to be quoted in percentage", 30, TEXTBOX_HEIGHT),
+    ("Preferred margin to be quoted in percentage", 70, TEXTBOX_HEIGHT),
     ("Preferred milestone payment terms", 300, TEXTBOX_HEIGHT),
     {
         "Preferred credit terms": CREDIT_TERMS.split(','),
@@ -88,7 +88,7 @@ sales_checklist = [   #type:ignore
     {
         "Any special requirement?": ['No', 'Yes', 'Unknown', 70],
     },
-    ("If above is 'Yes', state the requirement.", 300, TEXTBOX_HEIGHT*5),
+    ("If above is 'Yes', state the requirement.", 300, TEXTBOX_HEIGHT*3),
     ("Any known competitor?", 200, TEXTBOX_HEIGHT),
     ("Any known concern?", 200, TEXTBOX_HEIGHT),
     {

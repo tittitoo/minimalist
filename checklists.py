@@ -10,7 +10,7 @@ import subprocess
 import requests
 import xlwings as xw  # type:ignore
 
-from reportlab.pdfgen import canvas
+from reportlab.pdfgen import canvas 
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import black, lightyellow, blue, lightcyan
@@ -448,22 +448,24 @@ def download_planner():
         print(f"Failed to download template -> {e}")
 
 
-def leave_application_checklist(font_size=11):
+def leave_application_checklist():
     show_checklist(
         cc.leave_application_checklist,
         title="Leave Application Checklist",
+        font_size=11,
         color=lightyellow,
     )
 
 
-def sales_checklist(font_size=11):
+def sales_checklist():
     show_checklist(
         cc.sales_checklist,
         title="Sales Checklist",
+        font_size=10,
         color=lightcyan,
     )
 
-sales_checklist()
+# sales_checklist()
 # leave_application_checklist()
 
 # TODO
