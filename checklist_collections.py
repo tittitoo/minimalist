@@ -56,9 +56,9 @@ sales_checklist = [   #type:ignore
     ("Customer name", 200, TEXTBOX_HEIGHT),
     {
         "Customer type": ["Existing", "New", 70],
-        "If 'Existing Customer', do we have any past issues with the customer we need to be aware of?": ['No', 'Yes', 'Unknown', 70],
+        "If 'Existing Customer', do we have any past concerns/issues with the customer we need to be aware of?": ['No', 'Yes', 'Unknown', 70],
     },
-    ("If above is 'Yes', state the reason.", 300, TEXTBOX_HEIGHT*2),
+    ("If above is 'Yes', please state here.", 300, TEXTBOX_HEIGHT*2),
     ("Yard name the vessel will be built in", 200, TEXTBOX_HEIGHT),
     ("End user or owner name", 200, TEXTBOX_HEIGHT),
     ("Infrastructure Type", 200, TEXTBOX_HEIGHT),
@@ -70,10 +70,10 @@ sales_checklist = [   #type:ignore
         "Jason entity to be quoted under": ["Jason Electronics", "Jason Energy", 120],
         "Currency to be quoted in": ['SGD', 'USD', 70],
         "Type of quotation": ['Budgetary', 'Firmed', 70],
-        "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70]
+        # "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70],
     },
     ("Preferred margin to be quoted in percentage", 70, TEXTBOX_HEIGHT),
-    ("Preferred milestone payment terms", 300, TEXTBOX_HEIGHT),
+    ("Preferred milestone payment terms", 300, TEXTBOX_HEIGHT*3),
     {
         "Preferred credit terms": CREDIT_TERMS.split(','),
         "Preferred delivery terms": DELIVERY_TERMS.split(','),
@@ -82,18 +82,16 @@ sales_checklist = [   #type:ignore
     {
         "Quotation validity": VALIDITY.split(','),
     },
-    ("Warranty duration and/or warranty end date", 200, TEXTBOX_HEIGHT),
+    ("Warranty duration and/or warranty end date", 300, TEXTBOX_HEIGHT*2),
     ("Commissioning location", 200, TEXTBOX_HEIGHT),
     ("Estimated project delivery date", 200, TEXTBOX_HEIGHT),
-    {
-        "Any special requirement?": ['No', 'Yes', 'Unknown', 70],
-    },
-    ("If above is 'Yes', state the requirement.", 300, TEXTBOX_HEIGHT*3),
-    ("Any known competitor?", 200, TEXTBOX_HEIGHT),
-    ("Any known concern?", 200, TEXTBOX_HEIGHT),
-    {
-        "Have you answered all the checklist items carefully?": NIL_YES_NO.split(','),
-    },
+    ("Any special requirement?", 300, TEXTBOX_HEIGHT*2),
+    ("Any known competitor?", 300, TEXTBOX_HEIGHT*2),
+    ("Any known risk that you want to highlight?", 300, TEXTBOX_HEIGHT*2),
+    ("Any remark you want to add?", 300, TEXTBOX_HEIGHT*2),
+    # {
+    #     "Have you answered all the checklist items carefully?": NIL_YES_NO.split(','),
+    # },
 
 ]
 

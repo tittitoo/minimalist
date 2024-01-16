@@ -465,7 +465,7 @@ def sales_checklist():
         color=lightcyan,
     )
 
-# sales_checklist()
+sales_checklist()
 # leave_application_checklist()
 
 # TODO
