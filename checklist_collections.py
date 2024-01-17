@@ -11,13 +11,15 @@ Checked for type and take necessary action. If needs be, a list can be construct
 from different checklists.
 """
 
-YES_NO = "Yes, No, 50"
-NO_YES = "No, Yes, 50"
-NIL_YES_NO = " , Yes, No, 50"
-NA_YES_NO = "NA, Yes, No, 50"
-NIL_YES_NO_NA = " , Yes, No, NA, 50"
+YES_NO = "Yes, No, 70"
+NO_YES = "No, Yes, 70"
+NIL_YES_NO = " , Yes, No, 70"
+NA_YES_NO = "NA, Yes, No, 70"
+NIL_YES_NO_NA = " , Yes, No, NA, 70"
 DELIVERY_TERMS = "EXW, FOB, CIF, CPT, FCA, DAP, DDU, DDP, 70"
-CREDIT_TERMS = "30 Days, 45 Days, Advanced T/T, COD, 7 Days, 10 Days, 14 Days, LC at Sight, 70"
+CREDIT_TERMS = (
+    "30 Days, 45 Days, Advanced T/T, COD, 7 Days, 10 Days, 14 Days, LC at Sight, 70"
+)
 CLASS_SOCIETY = "NA, DNV, ABS, LR, BV, Others, 70"
 VALIDITY = "30 Days, 45 Days, 60 Days, 90 Days, 120 Days, 7 Days, 15 Days, 70"
 TEXTBOX_HEIGHT = 17
@@ -26,10 +28,16 @@ leave_application_checklist = [
     "Have you marked the leave in the team calendar?",
     "For AM or PM leave, have you marked the exact time in the calendar?",
     {
-        "Is the leave longer than 10 days duration including weekends and holidays?": NO_YES.split(','),
+        "Is the leave longer than 10 days duration including weekends and holidays?": NO_YES.split(
+            ","
+        ),
         """If the above is 'Yes', it is required to put the note in the email signature 
-        two weeks before the due leave. Have you put the reminder for yourself for this?""": NA_YES_NO.split(','),
-        "You are responsible for filling out this checklist. Have you answered all the checklist items carefully?": NIL_YES_NO.split(','),
+        two weeks before the due leave. Have you put the reminder for yourself for this?""": NA_YES_NO.split(
+            ","
+        ),
+        "You are responsible for filling out this checklist. Have you answered all the checklist items carefully?": NIL_YES_NO.split(
+            ","
+        ),
     },
 ]
 
@@ -50,49 +58,54 @@ textbox_checklist_example = [
 ]
 
 
-sales_checklist = [   #type:ignore
-    ("Job code", 200, TEXTBOX_HEIGHT), 
+sales_checklist = [  # type:ignore
+    ("Job code", 200, TEXTBOX_HEIGHT),
     ("Project name", 200, TEXTBOX_HEIGHT),
     ("Customer name", 200, TEXTBOX_HEIGHT),
     {
         "Customer type": ["Existing", "New", 70],
-        "If 'Existing Customer', do we have any past concerns/issues with the customer we need to be aware of?": ['No', 'Yes', 'Unknown', 70],
+        "If 'Existing Customer', do we have any past concerns/issues with the customer we need to be aware of?": [
+            "No",
+            "Yes",
+            "Unknown",
+            70,
+        ],
     },
-    ("If above is 'Yes', please state here.", 300, TEXTBOX_HEIGHT*2),
+    ("If above is 'Yes', please state here.", 300, TEXTBOX_HEIGHT * 2),
     ("Yard name the vessel will be built in", 200, TEXTBOX_HEIGHT),
     ("End user or owner name", 200, TEXTBOX_HEIGHT),
     ("Infrastructure Type", 200, TEXTBOX_HEIGHT),
     ("The operating country/region of the vessel", 200, TEXTBOX_HEIGHT),
     {
-        "Classification society": CLASS_SOCIETY.split(','),
+        "Classification society": CLASS_SOCIETY.split(","),
+        "Is there any NDA in place?": NO_YES.split(","),
     },
     {
         "Jason entity to be quoted under": ["Jason Electronics", "Jason Energy", 120],
-        "Currency to be quoted in": ['SGD', 'USD', 70],
-        "Type of quotation": ['Budgetary', 'Firmed', 70],
+        "Currency to be quoted in": ["SGD", "USD", 70],
+        "Type of quotation": ["Budgetary", "Firmed", 70],
         # "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70],
     },
     ("Preferred margin to be quoted in percentage", 70, TEXTBOX_HEIGHT),
-    ("Preferred milestone payment terms", 300, TEXTBOX_HEIGHT*3),
+    ("Preferred milestone payment terms", 300, TEXTBOX_HEIGHT * 3),
     {
-        "Preferred credit terms": CREDIT_TERMS.split(','),
-        "Preferred delivery terms": DELIVERY_TERMS.split(','),
+        "Preferred credit terms": CREDIT_TERMS.split(","),
+        "Preferred delivery terms": DELIVERY_TERMS.split(","),
     },
     ("Delivery location based above delivery terms (to or from)", 150, TEXTBOX_HEIGHT),
     {
-        "Quotation validity": VALIDITY.split(','),
+        "Quotation validity": VALIDITY.split(","),
     },
-    ("Warranty duration and/or warranty end date", 300, TEXTBOX_HEIGHT*2),
+    ("Warranty duration and/or warranty end date", 300, TEXTBOX_HEIGHT * 2),
     ("Commissioning location", 200, TEXTBOX_HEIGHT),
     ("Estimated project delivery date", 200, TEXTBOX_HEIGHT),
-    ("Any special requirement?", 300, TEXTBOX_HEIGHT*2),
-    ("Any known competitor?", 300, TEXTBOX_HEIGHT*2),
-    ("Any known risk that you want to highlight?", 300, TEXTBOX_HEIGHT*2),
-    ("Any remark you want to add?", 300, TEXTBOX_HEIGHT*2),
+    ("Any special requirement?", 300, TEXTBOX_HEIGHT * 2),
+    ("Any known competitor?", 300, TEXTBOX_HEIGHT * 2),
+    ("Any known risk that you want to highlight?", 300, TEXTBOX_HEIGHT * 2),
+    ("Any remark you want to add?", 300, TEXTBOX_HEIGHT * 2),
     # {
     #     "Have you answered all the checklist items carefully?": NIL_YES_NO.split(','),
     # },
-
 ]
 
 
