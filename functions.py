@@ -445,7 +445,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 for i in range(discount_level):
                     sheet.range(f'H{offset+7+i}').formula = f'=D{offset+1}'
                     sheet.range(f'I{offset+7+i}').value = (i+1)/100
-                    sheet.range(f'J{offset+7+i}').formula = f'=H{offset+7+i}*I{offset+7+i}'
+                    sheet.range(f'J{offset+7+i}').formula = f'=CEILING(H{offset+7+i}*I{offset+7+i},1)'
                     sheet.range(f'K{offset+7+i}').formula = f'=H{offset+7+i}-J{offset+7+i}'
                     sheet.range(f'L{offset+7+i}').formula = f'=N{offset+1}'
                     sheet.range(f'M{offset+7+i}').formula = f'=K{offset+7+i}-L{offset+7+i}'
