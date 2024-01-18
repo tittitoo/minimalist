@@ -322,7 +322,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
     sheet = wb.sheets['Summary']
 
     # Need to collect information if already exists so that it can be repopulated
-    system_count = wb.sheets.count - 5 # 5 is number of default skip_sheets
+    system_count = wb.sheets.count - len(skip_sheets) # Previously hard-coded to 5,number of default skip_sheets
     remarks = {}
     discount_price = 0
 
@@ -371,6 +371,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 sheet.range('B' + str(offset)).value = str(count) + ' ‣ '
                 sheet.range('C' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range(f'G{offset}').formula = f'=IF(E{offset}<>"OPTION", IF(D{start_row+system_count+2}>0.00001, D{offset}/D{start_row+system_count+2}, ""), "")' # For scope percentage
                 sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('I' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('J' + str(offset)).formula = odered_summary_formula.pop()
@@ -407,6 +408,8 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
         sheet.range(f'H20:H{offset+1}').font.color = (4, 50, 255)
         sheet.range(f'I20:M{offset+1}').font.color = (148, 55, 255)          
         sheet.range(f'P20:P{offset+1}').number_format = '0.00%'
+        sheet.range(f'G20:G{offset+1}').number_format = '0.00%' # For scope percentage
+        sheet.range(f'G20:G{offset+1}').font.color = (0, 128, 0) # Teal
 
         # Write back remarks
         for item in range(system_count):
@@ -496,6 +499,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 sheet.range('B' + str(offset)).value = str(count) + ' ‣ '
                 sheet.range('C' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('D' + str(offset)).formula = odered_summary_formula.pop()
+                sheet.range(f'G{offset}').formula = f'=IF(E{offset}<>"OPTION", IF(D{start_row+system_count+2}>0.00001, D{offset}/D{start_row+system_count+2}, ""), "")' # For scope percentage
                 sheet.range('H' + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range('I' + str(offset)).formula = '=IF(H'+ str(offset) + '<>"",D' + str(offset) + '- H' + str(offset) + ',"")'
                 sheet.range('J' + str(offset)).formula = '=IF(OR(D' + str(offset) + '>0.00001, D' + str(offset) + '<-0.00001), I' + str(offset) + '/D' + str(offset) + ', 0)'
@@ -517,7 +521,9 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
 
         # Format
         sheet.range(f'D20:I{offset+1}').number_format = ACCOUNTING          
-        sheet.range(f'J20:J{offset+1}').number_format = '0.00%' 
+        sheet.range(f'G20:G{offset+1}').number_format = '0.00%' # For scope percentage
+        sheet.range(f'G20:G{offset+1}').font.color = (0, 128, 0) # Teal
+        sheet.range(f'J20:J{offset+1}').number_format = '0.00%'
 
         # Write back remarks
         for item in range(system_count):
