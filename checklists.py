@@ -10,7 +10,7 @@ import subprocess
 import requests
 import xlwings as xw  # type:ignore
 
-from reportlab.pdfgen import canvas 
+from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import black, lightyellow, blue, lightcyan
@@ -22,14 +22,29 @@ import hide
 # Global Variables
 RIGHT_MARGIN = 50
 PAPERWIDTH = A4[0]
+# LOGO = os.path.join(
+#     os.path.expanduser("~/Documents"), "Bid/Jason_Transparent_Logo_SS.png"
+# )
+
 LOGO = os.path.join(
-    os.path.expanduser("~/Documents"), "Bid/Jason_Transparent_Logo_SS.png"
+    os.path.dirname(os.path.realpath(__file__)),
+    "resources/Jason_Transparent_Logo_SS.png",
 )
-MAX_TEXTBOX_WIDTH = 250 # If greater than this number, textbox will flow to next line item
+
+RESOURCES = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    "resources/",
+)
+
+MAX_TEXTBOX_WIDTH = (
+    250  # If greater than this number, textbox will flow to next line item
+)
 # MACRO_NB = xw.Book('PERSONAL.XLSB')
 
 
-def show_checklist(checklist: list, title="Checklist", font="Helvetica", font_size=9, color=None):
+def show_checklist(
+    checklist: list, title="Checklist", font="Helvetica", font_size=9, color=None
+):
     """Take checklist and generates pdf in user download folder"""
     downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
     filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
@@ -62,7 +77,7 @@ def open_file(file_path):
         elif os.name == "nt":
             # subprocess.call(["start", str(file_path)], shell=True)
             # subprocess.Popen(["explorer", str(file_path)],
-                            #  creationflags=subprocess.DETACHED_PROCESS)
+            #  creationflags=subprocess.DETACHED_PROCESS)
             os.startfile(file_path)
     except Exception as e:
         print(f"Unsupported os {e}.")
@@ -102,7 +117,15 @@ def page_color(c: canvas.Canvas, color=lightyellow):
 
 
 def draw_checkbox(
-    c: canvas.Canvas, checklists: str, x: int, y: int, step=20, initial=0, font="Helvetica", font_size=11, color=None
+    c: canvas.Canvas,
+    checklists: str,
+    x: int,
+    y: int,
+    step=20,
+    initial=0,
+    font="Helvetica",
+    font_size=11,
+    color=None,
 ) -> tuple:
     """
     Draw checkboxes on the canvas form a list.
@@ -221,7 +244,15 @@ def draw_choice(
 
 
 def draw_textfield(
-    c: canvas.Canvas, checklist: tuple, x=0, y=0, step=20, initial=0, font="Helvetica", font_size=11, color=None
+    c: canvas.Canvas,
+    checklist: tuple,
+    x=0,
+    y=0,
+    step=20,
+    initial=0,
+    font="Helvetica",
+    font_size=11,
+    color=None,
 ) -> tuple:
     """Checklists here is a list of tuples of 'str' and 'width: int'"""
     form = c.acroForm
@@ -284,7 +315,7 @@ def draw_textfield(
         # if y != 750:
         #     y -= step
         if height > 17:
-             offset = offset + (height -17)
+            offset = offset + (height - 17)
         form.textfield(
             # name="fname",
             # tooltip="First Name",
@@ -300,10 +331,10 @@ def draw_textfield(
             fontName=font,
             fontSize=font_size,
             forceBorder=True,
-            fieldFlags='multiline'
+            fieldFlags="multiline",
         )
         if height > 17:
-            y -= step + (height -17)
+            y -= step + (height - 17)
         else:
             y -= step
     return (i, y)
@@ -313,7 +344,7 @@ def number_page(c: canvas.Canvas, font_size=10):
     c.saveState()
     c.setFont("Helvetica-Oblique", font_size)
     page_number = "Page %s" % c.getPageNumber()
-    c.drawCentredString(PAPERWIDTH/2, 60, page_number)
+    c.drawCentredString(PAPERWIDTH / 2, 60, page_number)
     c.restoreState()
 
 
@@ -341,7 +372,7 @@ def produce_checklist(
                 checklist,
                 x,
                 initial=LAST_POSITION[0],
-                y=LAST_POSITION[1],   #type:ignore
+                y=LAST_POSITION[1],  # type:ignore
                 color=color,
             )
         if isinstance(checklist, dict):
@@ -428,6 +459,13 @@ def download_template():
         print(f"Failed to download template -> {e}")
 
 
+def creat_new_template():
+    filename = "Template.xltx"
+    file_path = Path(RESOURCES, filename)
+    wb = xw.Book.caller()
+    wb.app.books.open(file_path.absolute(), password=hide.legacy)
+
+
 # Can be done as tempfile
 def download_planner():
     try:
@@ -448,6 +486,13 @@ def download_planner():
         print(f"Failed to download template -> {e}")
 
 
+def creat_new_planner():
+    filename = "Planner.xltx"
+    file_path = Path(RESOURCES, filename)
+    wb = xw.Book.caller()
+    wb.app.books.open(file_path.absolute())
+
+
 def leave_application_checklist():
     show_checklist(
         cc.leave_application_checklist,
@@ -465,8 +510,10 @@ def sales_checklist():
         color=lightcyan,
     )
 
+
 # sales_checklist()
 # leave_application_checklist()
+
 
 # TODO
 def proposal_checklist():

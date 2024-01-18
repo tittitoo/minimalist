@@ -149,7 +149,7 @@ def delete_extra_empty_row():
 
 
 # Need to download logo if not exist
-checklists.download_logo()
+# checklists.download_logo()
 
 
 def leave_application_checklist():
@@ -158,8 +158,8 @@ def leave_application_checklist():
 
 
 def download_template():
-    checklists.download_template()
+    checklists.creat_new_template()
 
 
 def download_planner():
-    checklists.download_planner()
+    checklists.creat_new_planner()
