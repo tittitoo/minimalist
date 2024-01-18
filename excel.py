@@ -148,18 +148,13 @@ def delete_extra_empty_row():
     functions.delete_extra_empty_row(ws)
 
 
-# Need to download logo if not exist
-# checklists.download_logo()
-
-
 def leave_application_checklist():
-    # wb = xw.Book.caller()
     checklists.leave_application_checklist()
 
 
 def download_template():
-    checklists.creat_new_template()
+    functions.creat_new_template()
 
 
 def download_planner():
-    checklists.creat_new_planner()
+    functions.creat_new_planner()

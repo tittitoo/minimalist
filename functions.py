@@ -27,6 +27,11 @@ MACRO_NB = xw.Book('PERSONAL.XLSB')
 ACCOUNTING = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
 EXCNANGE_RATE = '_(* #,##0.0000_);_(* (#,##0.0000);_(* "-"????_);_(@_)'
 
+RESOURCES = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    "resources/",
+)
+
 def set_nitty_gritty(text):
     """Fix annoying text"""
     # Strip EOL
@@ -1351,5 +1356,88 @@ def format_cell_data(wb):
             sheet.range('AO2').value = 'Maker'
             
 
+def download_file(path, filename, url):
+    """
+    path: directory
+    filename: filename with extension
+    url: url to download
+    """
+    local_file_path = Path(path, filename)
+    if not os.path.exists(local_file_path):
+        response = requests.get(url)
+        if response.status_code == 200:
+            with open(local_file_path, "wb") as fd:
+                for chunk in response.iter_content(chunk_size=8192):
+                    fd.write(chunk)
+            print(f"Downloaded {local_file_path}")
+        else:
+            print("Download is not necessary.")
 
+
+# Download necessary files to local machine in 'Documents' folder
+def download_logo():
+    try:
+        bid = os.path.join(os.path.expanduser("~/Documents"), "Bid")
+        if not os.path.exists(bid):
+            os.makedirs(bid)
+        # Download Jason Logo
+        download_file(
+            bid,
+            "Jason_Transparent_Logo_SS.png",
+            "https://filedn.com/liTeg81ShEXugARC7cg981h/Bid/Jason_Transparent_Logo_SS.png",
+        )
+    except Exception as e:
+        print(f"{e} has occured.")
+
+
+# Can be done as tempfile
+def download_template():
+    try:
+        bid = os.path.join(os.path.expanduser("~/Documents"), "Bid")
+        filename = "Template.xlsx"
+        file_path = Path(bid, filename)
+        # Delete the file if exists
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        download_file(
+            bid, filename, "https://filedn.com/liTeg81ShEXugARC7cg981h/Template.xlsx"
+        )
+        wb = xw.Book.caller()
+        wb.app.books.open(file_path.absolute(), password=hide.legacy)
+    except Exception as e:
+        print(f"Failed to download template -> {e}")
+
+
+def creat_new_template():
+    filename = "Template.xltx"
+    file_path = Path(RESOURCES, filename)
+    wb = xw.Book.caller()
+    wb.app.books.open(file_path.absolute(), password=hide.legacy)
+
+
+# Can be done as tempfile
+def download_planner():
+    try:
+        bid = os.path.join(os.path.expanduser("~/Documents"), "Bid")
+        filename = "Planner.xlsx"
+        file_path = Path(bid, filename)
+        # Delete the file if exists
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        download_file(
+            bid,
+            filename,
+            "https://filedn.com/liTeg81ShEXugARC7cg981h/Project_Planner_R0.xlsx",
+        )
+        wb = xw.Book.caller()
+        wb.app.books.open(file_path.absolute())
+    except Exception as e:
+        print(f"Failed to download template -> {e}")
+
+
+def creat_new_planner():
+    filename = "Planner.xltx"
+    file_path = Path(RESOURCES, filename)
+    wb = xw.Book.caller()
+    wb.app.books.open(file_path.absolute())
 
