@@ -87,6 +87,7 @@ sales_checklist = [  # type:ignore
         # "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70],
     },
     ("Preferred margin to be quoted in percentage", 70, TEXTBOX_HEIGHT),
+    ("Project budget if known", 70, TEXTBOX_HEIGHT),
     ("Preferred milestone payment terms", 300, TEXTBOX_HEIGHT * 3),
     {
         "Preferred credit terms": CREDIT_TERMS.split(","),

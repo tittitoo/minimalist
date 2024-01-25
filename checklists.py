@@ -307,6 +307,7 @@ def draw_textfield(
             if color:
                 page_color(c, color)
             put_logo(c)
+            c.setFont(font, font_size)
             y = 750
         # if y != 750:
         #     y -= step
