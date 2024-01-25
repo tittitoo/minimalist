@@ -158,3 +158,7 @@ def download_template():
 
 def download_planner():
     functions.creat_new_planner()
+
+
+def sales_checklist():
+    checklists.sales_checklist()

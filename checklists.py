@@ -421,10 +421,6 @@ def sales_checklist():
     )
 
 
-# sales_checklist()
-# leave_application_checklist()
-
-
 # TODO
 def proposal_checklist():
     pass
