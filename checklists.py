@@ -9,6 +9,8 @@ from textwrap import wrap
 import subprocess
 import requests
 import xlwings as xw  # type:ignore
+import numpy as np
+import pandas as pd
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
