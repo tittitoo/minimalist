@@ -109,6 +109,13 @@ sales_checklist = [  # type:ignore
     # },
 ]
 
+general = [   #type:ignore
+    "Here",
+]
+
+paga = [
+    "There",
+]
 
 test = []
 test.append(leave_application_checklist)

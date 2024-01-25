@@ -415,7 +415,7 @@ def leave_application_checklist():
     )
 
 
-def sales_checklist():
+def generate_sales_checklist():
     show_checklist(
         cc.sales_checklist,
         title="Sales Checklist",
@@ -424,6 +424,31 @@ def sales_checklist():
     )
 
 
-# TODO
-def proposal_checklist():
+def generate_proposal_checklist(wb, proposal_type='firmed'):
+    proposal_checklist_title = ['GENERAL']
+
+    # Get system names from the proposal
+    ws = wb.sheets['Technical_Notes']
+    last_row = ws.range('F1048576').end('up').row
+    data = ws.range(f'F4:F{last_row}').options(pd.DataFrame, index=False).value
+    data.columns=['Systems']
+    data = data.dropna()
+    checklists = data.Systems.to_list()
+    for checklist in checklists:
+        proposal_checklist_title.append(checklist)
+
+
+    if proposal_type=='firmed':
+        for checklist in proposal_checklist_title:
+            try:
+                checklist = cc.checklist
+                print(checklist)
+            except Exception as e:
+                print(f'Not found {checklist}')
+        pass
+    else:
+        print('Hit budgetary')
+
+
+def generate_handover_checklist():
     pass
