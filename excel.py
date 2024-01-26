@@ -160,7 +160,7 @@ def download_planner():
     functions.creat_new_planner()
 
 
-def sales_checklist():
+def generate_sales_checklist():
     checklists.generate_sales_checklist()
 
 
@@ -171,4 +171,7 @@ def generate_firmed_proposal_checklist():
 
 def generate_budgetary_proposal_checklist():
     wb = xw.Book.caller()
-    checklists.generate_proposal_checklist(wb, proposal_type='budgetary')
+    checklists.generate_proposal_checklist(wb, proposal_type='budgetary', title='Budgetary Proposal Checklist')
+
+def generate_handover_checklist():
+    pass

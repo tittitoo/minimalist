@@ -9,6 +9,9 @@ textbox: list: Tuple. The number controls the widget's width and height
 
 Checked for type and take necessary action. If needs be, a list can be constructed
 from different checklists.
+
+It is advisable to have checklist only once in particular checklist. The pop() method
+could get in the way otherwise.
 """
 
 YES_NO = "Yes, No, 70"
@@ -109,7 +112,7 @@ sales_checklist = [  # type:ignore
     # },
 ]
 
-general = [   #type:ignore
+general = [  # type:ignore
     "Here",
 ]
 
@@ -119,6 +122,8 @@ paga = [
 
 vhf_am = [
     "Everywhere",
+    "Nowhere",
+    "Anywhere",
 ]
 
 test = []

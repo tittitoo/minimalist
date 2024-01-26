@@ -15,7 +15,7 @@ import pandas as pd
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.colors import black, lightyellow, blue, lightcyan
+from reportlab.lib.colors import black, lightyellow, lightcyan, honeydew, lavender
 
 import checklist_collections as cc
 import hide
@@ -38,6 +38,7 @@ MAX_TEXTBOX_WIDTH = (
     250  # If greater than this number, textbox will flow to next line item
 )
 # MACRO_NB = xw.Book('PERSONAL.XLSB')
+LAST_POSITION = (int, int)
 
 
 def show_checklist(
@@ -180,7 +181,7 @@ def draw_Title(
     step=20,
     initial=0,
     font="Helvetica-Bold",
-    font_size=12,
+    font_size=11,
     color=None,
 ) -> tuple:
     global LAST_POSITION
@@ -377,9 +378,6 @@ def number_page(c: canvas.Canvas, font_size=10):
     c.restoreState()
 
 
-LAST_POSITION = (int, int)
-
-
 def produce_checklist(
     c: canvas.Canvas,
     checklists: list,
@@ -457,10 +455,10 @@ def generate_sales_checklist():
 def generate_proposal_checklist(
     wb,
     proposal_type="firmed",
-    title="Proposal Checklist",
+    title="Firmed Proposal Checklist",
     font="Helvetica",
     font_size=10,
-    color=None,
+    color=lavender,
 ):
     # Create file
     downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
@@ -475,7 +473,7 @@ def generate_proposal_checklist(
     checklist_titles = data.Systems.to_list()
     checklist_titles = ["GENERAL"] + checklist_titles
 
-     # Create canvas and initialize
+    # Create canvas and initialize
     c = canvas.Canvas(str(file_path), pagesize=A4)
     if color:
         page_color(c, color)
@@ -487,20 +485,51 @@ def generate_proposal_checklist(
     c.setFont(font, font_size)
 
     global LAST_POSITION
-    LAST_POSITION = (0 , 700)
+    LAST_POSITION = (0, 700)
     if proposal_type == "firmed":
         for item in checklist_titles:
+            item = item.lower().replace('-', '_')
+            initial=0
             try:
-                checklist = getattr(cc, item.lower().replace("-", "_"))
-                print(checklist)
-                LAST_POSITION = draw_Title(c, item, initial=LAST_POSITION[0], y=LAST_POSITION[1])
-                produce_checklist(c, checklist, initial=LAST_POSITION[0], y=LAST_POSITION[1], font=font, font_size=font_size, color=color)
+                checklist = getattr(cc, item)
+                # print(checklist)
+                LAST_POSITION = draw_Title(
+                    c, item.upper().replace('_', ' '), initial=initial, y=LAST_POSITION[1]   # initial=LAST_POSITION[0] if numbers not to reset
+                )
+                produce_checklist(
+                    c,
+                    checklist,
+                    initial=LAST_POSITION[0],
+                    y=LAST_POSITION[1],
+                    font=font,
+                    font_size=font_size,
+                    color=color,
+                )
+                initial=0
             except Exception as e:
                 print(f"Not found {e}")
         pass
     else:
-        print("Hit budgetary")
-    
+        checklist_titles = ["GENERAL"]
+        for item in checklist_titles:
+            try:
+                checklist = getattr(cc, item.lower().replace("-", "_"))
+                # print(checklist)
+                LAST_POSITION = draw_Title(
+                    c, item, initial=LAST_POSITION[0], y=LAST_POSITION[1]
+                )
+                produce_checklist(
+                    c,
+                    checklist,
+                    initial=LAST_POSITION[0],
+                    y=LAST_POSITION[1],
+                    font=font,
+                    font_size=font_size,
+                    color=color,
+                )
+            except Exception as e:
+                print(f"Not found {e}")
+
     number_page(c)
     c.showPage()
     c.save()
