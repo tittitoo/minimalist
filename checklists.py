@@ -168,7 +168,37 @@ def draw_checkbox(
             c.setFont(font, font_size)
             y = 750
         return (i, y)
+
     return (i, y)
+
+
+def draw_Title(
+    c: canvas.Canvas,
+    text: str,
+    x=70,
+    y=700,
+    step=20,
+    initial=0,
+    font="Helvetica-Bold",
+    font_size=12,
+    color=None,
+) -> tuple:
+    global LAST_POSITION
+    LAST_POSITION = (initial, y)
+    c.saveState()
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(x, y, text)
+    y -= step
+    if y <= 80:
+        number_page(c, font_size)
+        c.showPage()
+        if color:
+            page_color(c, color)
+        put_logo(c)
+        c.setFont(font, font_size)
+        y = 750
+    c.restoreState()
+    return (initial, y)
 
 
 def draw_choice(
@@ -424,30 +454,57 @@ def generate_sales_checklist():
     )
 
 
-def generate_proposal_checklist(wb, proposal_type='firmed'):
-    proposal_checklist_title = ['GENERAL']
-
+def generate_proposal_checklist(
+    wb,
+    proposal_type="firmed",
+    title="Proposal Checklist",
+    font="Helvetica",
+    font_size=10,
+    color=None,
+):
+    # Create file
+    downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+    filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
+    file_path = Path(downloads_folder, filename)
     # Get system names from the proposal
-    ws = wb.sheets['Technical_Notes']
-    last_row = ws.range('F1048576').end('up').row
-    data = ws.range(f'F4:F{last_row}').options(pd.DataFrame, index=False).value
-    data.columns=['Systems']
+    ws = wb.sheets["Technical_Notes"]
+    last_row = ws.range("F1048576").end("up").row
+    data = ws.range(f"F4:F{last_row}").options(pd.DataFrame, index=False).value
+    data.columns = ["Systems"]
     data = data.dropna()
-    checklists = data.Systems.to_list()
-    for checklist in checklists:
-        proposal_checklist_title.append(checklist)
+    checklist_titles = data.Systems.to_list()
+    checklist_titles = ["GENERAL"] + checklist_titles
 
+     # Create canvas and initialize
+    c = canvas.Canvas(str(file_path), pagesize=A4)
+    if color:
+        page_color(c, color)
+    put_logo(c)
+    c.setFont("Helvetica-Bold", 15)
+    c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
+    c.setFont("Helvetica-Oblique", font_size)
+    c.drawRightString(A4[0] - 50, 730, datetime.now().date().strftime("%Y-%m-%d"))
+    c.setFont(font, font_size)
 
-    if proposal_type=='firmed':
-        for checklist in proposal_checklist_title:
+    global LAST_POSITION
+    LAST_POSITION = (0 , 700)
+    if proposal_type == "firmed":
+        for item in checklist_titles:
             try:
-                checklist = cc.checklist
+                checklist = getattr(cc, item.lower().replace("-", "_"))
                 print(checklist)
+                LAST_POSITION = draw_Title(c, item, initial=LAST_POSITION[0], y=LAST_POSITION[1])
+                produce_checklist(c, checklist, initial=LAST_POSITION[0], y=LAST_POSITION[1], font=font, font_size=font_size, color=color)
             except Exception as e:
-                print(f'Not found {checklist}')
+                print(f"Not found {e}")
         pass
     else:
-        print('Hit budgetary')
+        print("Hit budgetary")
+    
+    number_page(c)
+    c.showPage()
+    c.save()
+    open_file(file_path)
 
 
 def generate_handover_checklist():

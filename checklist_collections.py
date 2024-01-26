@@ -41,7 +41,7 @@ leave_application_checklist = [
     },
 ]
 
-ikigai_checklists = [
+ikigai_checklist = [
     "Is it something you are good at?",
     "Is it something you love to do?",
     "Is it something the world needs?",
@@ -115,6 +115,10 @@ general = [   #type:ignore
 
 paga = [
     "There",
+]
+
+vhf_am = [
+    "Everywhere",
 ]
 
 test = []
