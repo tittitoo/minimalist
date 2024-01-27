@@ -116,6 +116,14 @@ general = [  # type:ignore
     "Here",
 ]
 
+
+engineering_services = [   #type:ignore
+    ("Job code", 200, TEXTBOX_HEIGHT),
+    ("Project name", 200, TEXTBOX_HEIGHT),
+    ("Customer name", 200, TEXTBOX_HEIGHT),
+]
+
+
 paga = [
     "There",
 ]
@@ -126,6 +134,4 @@ vhf_am = [
     "Anywhere",
 ]
 
-test = []
-test.append(leave_application_checklist)
-test.append(textbox_checklist_example)  # type:ignore
+

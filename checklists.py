@@ -22,6 +22,7 @@ import hide
 
 
 # Global Variables
+LEFT_MARGIN = 70
 RIGHT_MARGIN = 50
 PAPERWIDTH = A4[0]
 # LOGO = os.path.join(
@@ -187,7 +188,7 @@ def draw_Title(
     global LAST_POSITION
     LAST_POSITION = (initial, y)
     c.saveState()
-    c.setFont("Helvetica-Bold", 12)
+    c.setFont("Helvetica-Bold", font_size)
     c.drawString(x, y, text)
     y -= step
     if y <= 80:
@@ -370,7 +371,7 @@ def draw_textfield(
     return (i, y)
 
 
-def number_page(c: canvas.Canvas, font_size=10):
+def number_page(c: canvas.Canvas, font_size=9):
     c.saveState()
     c.setFont("Helvetica-Oblique", font_size)
     page_number = "Page %s" % c.getPageNumber()
@@ -467,11 +468,14 @@ def generate_proposal_checklist(
     # Get system names from the proposal
     ws = wb.sheets["Technical_Notes"]
     last_row = ws.range("F1048576").end("up").row
+    job_title = ws.range("A1").value
+    pic = wb.sheets['Config'].range('B27').value
     data = ws.range(f"F4:F{last_row}").options(pd.DataFrame, index=False).value
     data.columns = ["Systems"]
     data = data.dropna()
     checklist_titles = data.Systems.to_list()
     checklist_titles = ["GENERAL"] + checklist_titles
+    checklist_titles.append('ENGINEERING-SERVICES')
 
     # Create canvas and initialize
     c = canvas.Canvas(str(file_path), pagesize=A4)
@@ -480,6 +484,9 @@ def generate_proposal_checklist(
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
     c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
+    c.setFont("Helvetica-Oblique", font_size-2)
+    c.drawString(LEFT_MARGIN, 810, job_title.upper())
+    c.drawString(LEFT_MARGIN, 795, f'PREPARED BY: {pic.upper()}')
     c.setFont("Helvetica-Oblique", font_size)
     c.drawRightString(A4[0] - 50, 730, datetime.now().date().strftime("%Y-%m-%d"))
     c.setFont(font, font_size)
@@ -510,7 +517,7 @@ def generate_proposal_checklist(
                 print(f"Not found {e}")
         pass
     else:
-        checklist_titles = ["GENERAL"]
+        checklist_titles = ["GENERAL", "ENGINEERING-SERVICES"]
         for item in checklist_titles:
             try:
                 checklist = getattr(cc, item.lower().replace("-", "_"))
