@@ -1447,3 +1447,17 @@ def creat_new_planner():
     wb = xw.Book.caller()
     wb.app.books.open(file_path.absolute())
 
+
+def update_template_version(wb):
+    latest_wb_version = 'R1'
+    current_wb_revision = wb.sheets['Config'].range('B15').value
+    if current_wb_revision is None or current_wb_revision < latest_wb_version:
+        wb.sheets['Config'].range("D1:I20").clear()
+        wb.sheets['Config'].range("95:105").delete()
+        MACRO_NB.sheets['Design'].range("A28:E36").copy(wb.sheets['Config'].range("D2"))
+        wb.sheets['Config'].range('A15').value = "Template Version"
+        wb.sheets['Config'].range('B15').value = latest_wb_version
+
+        macro_nb_last_row = MACRO_NB.sheets['Data'].range("A1048576").end("up").row
+        MACRO_NB.sheets['Data'].range(f"A1:A{macro_nb_last_row}").copy(wb.sheets['Config'].range("A95"))
+# last_row = ws.range("F1048576").end("up").row

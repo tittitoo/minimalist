@@ -177,7 +177,7 @@ def draw_checkbox(
 def draw_Title(
     c: canvas.Canvas,
     text: str,
-    x=70,
+    x=LEFT_MARGIN,
     y=700,
     step=20,
     initial=0,
@@ -382,7 +382,7 @@ def number_page(c: canvas.Canvas, font_size=9):
 def produce_checklist(
     c: canvas.Canvas,
     checklists: list,
-    x=70,
+    x=LEFT_MARGIN,
     y=700,
     step=20,
     initial=0,

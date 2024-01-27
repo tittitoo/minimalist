@@ -171,7 +171,15 @@ def generate_firmed_proposal_checklist():
 
 def generate_budgetary_proposal_checklist():
     wb = xw.Book.caller()
-    checklists.generate_proposal_checklist(wb, proposal_type='budgetary', title='Budgetary Proposal Checklist')
+    checklists.generate_proposal_checklist(
+        wb, proposal_type="budgetary", title="Budgetary Proposal Checklist"
+    )
+
 
 def generate_handover_checklist():
     pass
+
+
+def update_template_version():
+    wb = xw.Book.caller()
+    functions.update_template_version(wb)
