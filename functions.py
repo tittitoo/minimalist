@@ -1478,4 +1478,7 @@ def update_template_version(wb):
         wb.sheets[current_sheet].activate()
         xw.apps.active.alert(f'The template has been updated to {LATEST_WB_VERSION}.')
     elif current_wb_revision == LATEST_WB_VERSION:
-        xw.apps.active.alert('No update is required.')
+        message = """           
+        No update is required. If you want to force an update, delete "Template Version" in cell "B15" in "Config" sheet.
+        """
+        xw.apps.active.alert(f'{message}')
