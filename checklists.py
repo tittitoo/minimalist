@@ -469,14 +469,14 @@ def generate_proposal_checklist(
     ws = wb.sheets["Technical_Notes"]
     last_row = ws.range("F1048576").end("up").row
     job_title = ws.range("A1").value
-    pic = wb.sheets['Config'].range('B27').value
+    pic = wb.sheets["Config"].range("B27").value
     data = ws.range(f"F4:F{last_row}").options(pd.DataFrame, index=False).value
     data.columns = ["Systems"]
     data = data.dropna()
     checklist_titles = data.Systems.to_list()
     checklist_titles = ["GENERAL"] + checklist_titles
-    checklist_titles.append('ENGINEERING-SERVICES')
-    checklist_titles.append('Confirmation')
+    checklist_titles.append("ENGINEERING-SERVICES")
+    checklist_titles.append("Confirmation")
 
     # Create canvas and initialize
     c = canvas.Canvas(str(file_path), pagesize=A4)
@@ -485,9 +485,9 @@ def generate_proposal_checklist(
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
     c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
-    c.setFont("Helvetica-Oblique", font_size-2)
+    c.setFont("Helvetica-Oblique", font_size - 2)
     c.drawString(LEFT_MARGIN, 810, job_title.upper())
-    c.drawString(LEFT_MARGIN, 795, f'PREPARED BY: {pic.upper()}')
+    c.drawString(LEFT_MARGIN, 795, f"PREPARED BY: {pic.upper()}")
     c.setFont("Helvetica-Oblique", font_size)
     c.drawRightString(A4[0] - 50, 730, datetime.now().date().strftime("%Y-%m-%d"))
     c.setFont(font, font_size)
@@ -496,19 +496,29 @@ def generate_proposal_checklist(
     LAST_POSITION = (0, 700)
     if proposal_type == "firmed":
         for item in checklist_titles:
-            item = item.lower().replace('-', '_')
-            initial=0
+            item = item.lower().replace("-", "_")
+            initial = 0
             try:
                 checklist = getattr(cc, item)
                 # print(checklist)
-                if item == 'confirmation':
-                    item = item + f' BY {pic.upper()}'
+                if item == "confirmation":
+                    item = item + f" BY {pic.upper()}"
                     LAST_POSITION = draw_title(
-                        c, item.upper().replace('_', ' '), initial=initial, y=LAST_POSITION[1]   # initial=LAST_POSITION[0] if numbers not to reset
+                        c,
+                        item.upper().replace("_", " "),
+                        initial=initial,
+                        y=LAST_POSITION[
+                            1
+                        ],  # initial=LAST_POSITION[0] if numbers not to reset
                     )
                 else:
                     LAST_POSITION = draw_title(
-                        c, item.upper().replace('_', ' '), initial=initial, y=LAST_POSITION[1]   # initial=LAST_POSITION[0] if numbers not to reset
+                        c,
+                        item.upper().replace("_", " "),
+                        initial=initial,
+                        y=LAST_POSITION[
+                            1
+                        ],  # initial=LAST_POSITION[0] if numbers not to reset
                     )
                 produce_checklist(
                     c,
@@ -519,7 +529,7 @@ def generate_proposal_checklist(
                     font_size=font_size,
                     color=color,
                 )
-                initial=0
+                initial = 0
             except Exception as e:
                 print(f"Not found {e}")
         pass
