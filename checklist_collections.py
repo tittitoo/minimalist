@@ -117,7 +117,7 @@ general = [  # type:ignore
 ]
 
 
-engineering_services = [   #type:ignore
+engineering_services = [  # type:ignore
     ("Job code", 200, TEXTBOX_HEIGHT),
     ("Project name", 200, TEXTBOX_HEIGHT),
     ("Customer name", 200, TEXTBOX_HEIGHT),
@@ -134,4 +134,13 @@ vhf_am = [
     "Anywhere",
 ]
 
-
+confirmation = [
+    {
+        "This is an important document for quality control. Have you checked all the items carefully?": NIL_YES_NO.split(
+            ","
+        ),
+        "Have you affixed your signature to this affect and printed(virtually)/kept frozen copy of this document for downstreams/audit purpose?": NIL_YES_NO.split(
+            ","
+        ),
+    },
+]

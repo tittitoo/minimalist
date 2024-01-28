@@ -174,7 +174,7 @@ def draw_checkbox(
     return (i, y)
 
 
-def draw_Title(
+def draw_title(
     c: canvas.Canvas,
     text: str,
     x=LEFT_MARGIN,
@@ -476,6 +476,7 @@ def generate_proposal_checklist(
     checklist_titles = data.Systems.to_list()
     checklist_titles = ["GENERAL"] + checklist_titles
     checklist_titles.append('ENGINEERING-SERVICES')
+    checklist_titles.append('Confirmation')
 
     # Create canvas and initialize
     c = canvas.Canvas(str(file_path), pagesize=A4)
@@ -500,9 +501,15 @@ def generate_proposal_checklist(
             try:
                 checklist = getattr(cc, item)
                 # print(checklist)
-                LAST_POSITION = draw_Title(
-                    c, item.upper().replace('_', ' '), initial=initial, y=LAST_POSITION[1]   # initial=LAST_POSITION[0] if numbers not to reset
-                )
+                if item == 'confirmation':
+                    item = item + f' BY {pic.upper()}'
+                    LAST_POSITION = draw_title(
+                        c, item.upper().replace('_', ' '), initial=initial, y=LAST_POSITION[1]   # initial=LAST_POSITION[0] if numbers not to reset
+                    )
+                else:
+                    LAST_POSITION = draw_title(
+                        c, item.upper().replace('_', ' '), initial=initial, y=LAST_POSITION[1]   # initial=LAST_POSITION[0] if numbers not to reset
+                    )
                 produce_checklist(
                     c,
                     checklist,
@@ -522,7 +529,7 @@ def generate_proposal_checklist(
             try:
                 checklist = getattr(cc, item.lower().replace("-", "_"))
                 # print(checklist)
-                LAST_POSITION = draw_Title(
+                LAST_POSITION = draw_title(
                     c, item, initial=LAST_POSITION[0], y=LAST_POSITION[1]
                 )
                 produce_checklist(

@@ -1449,15 +1449,32 @@ def creat_new_planner():
 
 
 def update_template_version(wb):
-    latest_wb_version = 'R1'
-    current_wb_revision = wb.sheets['Config'].range('B15').value
-    if current_wb_revision is None or current_wb_revision < latest_wb_version:
-        wb.sheets['Config'].range("D1:I20").clear()
-        wb.sheets['Config'].range("95:105").delete()
-        MACRO_NB.sheets['Design'].range("A28:E36").copy(wb.sheets['Config'].range("D2"))
-        wb.sheets['Config'].range('A15').value = "Template Version"
-        wb.sheets['Config'].range('B15').value = latest_wb_version
+    # Test if the workbook is the costing sheet
+    cell_value = wb.sheets['Config'].range('A1').value
+    if cell_value.upper() == "EXCHANGE RATES":
+        current_sheet = wb.sheets.active
+        latest_wb_version = 'R1'
+        current_wb_revision = wb.sheets['Config'].range('B15').value
+        if current_wb_revision is None or current_wb_revision < latest_wb_version:
+            wb.sheets['Config'].range("D1:I20").clear()
+            wb.sheets['Config'].range("95:105").delete()
+            MACRO_NB.sheets['Design'].range("A28:E36").copy(wb.sheets['Config'].range("D2"))
+            MACRO_NB.sheets['Data'].range("C1:C2").copy(wb.sheets['Config'].range("B95"))
+            MACRO_NB.sheets['Data'].range("D1:D2").copy(wb.sheets['Config'].range("C95"))
+            wb.sheets['Config'].range('A15').value = "Template Version"
+            wb.sheets['Config'].range('B15').value = latest_wb_version
+            # Put currency and proposal type validation
+            wb.sheets['Config'].activate()
+            MACRO_NB.macro('put_currency_proposal_validation_formula')()
 
-        macro_nb_last_row = MACRO_NB.sheets['Data'].range("A1048576").end("up").row
-        MACRO_NB.sheets['Data'].range(f"A1:A{macro_nb_last_row}").copy(wb.sheets['Config'].range("A95"))
-# last_row = ws.range("F1048576").end("up").row
+            macro_nb_last_row = MACRO_NB.sheets['Data'].range("A1048576").end("up").row
+            MACRO_NB.sheets['Data'].range(f"A1:A{macro_nb_last_row}").copy(wb.sheets['Config'].range("A95"))
+            # Test if value "Systems" is already there
+            cell_value = wb.sheets['Technical_Notes'].range("F3")
+            # if cell_value is None:
+            if cell_value != 'Systems'.upper():
+                MACRO_NB.sheets['Data'].range("B1").copy(wb.sheets['Technical_Notes'].range("F3"))
+                # Call macro to fill in the dropbown formula
+                wb.sheets['Technical_Notes'].activate()
+                MACRO_NB.macro('put_systems_validation_formula')()
+        wb.sheets[current_sheet].activate()
