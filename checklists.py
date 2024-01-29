@@ -560,5 +560,63 @@ def generate_proposal_checklist(
     open_file(file_path)
 
 
-def generate_handover_checklist():
-    pass
+def generate_handover_checklist(
+    wb,
+    title="Handover Checklist",
+    font="Helvetica",
+    font_size=10,
+    color=honeydew,
+):
+    # Create file
+    downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+    filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
+    file_path = Path(downloads_folder, filename)
+    # Get system names from the proposal
+    job_title = wb.sheets["Summary"].range("A1").value
+    pic = wb.sheets["Config"].range("B27").value
+
+    # Create canvas and initialize
+    c = canvas.Canvas(str(file_path), pagesize=A4)
+    if color:
+        page_color(c, color)
+    put_logo(c)
+    c.setFont("Helvetica-Bold", 15)
+    c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
+    c.setFont("Helvetica", font_size)
+    c.drawString(LEFT_MARGIN, 700, job_title.upper())
+    c.drawString(LEFT_MARGIN, 680, f"PREPARED BY: {pic.upper()}")
+    c.setFont("Helvetica-Oblique", font_size)
+    c.drawRightString(A4[0] - 50, 730, datetime.now().date().strftime("%Y-%m-%d"))
+    c.setFont(font, font_size)
+
+    global LAST_POSITION
+    LAST_POSITION = (0, 660)
+    checklist_titles = [
+        "@rfqs",
+        "@handover",
+        "@costing",
+        "@closing",
+    ]
+    for item in checklist_titles:
+        try:
+            checklist = getattr(cc, item.lower().replace("@", ""))
+            # print(checklist)
+            LAST_POSITION = draw_title(
+                c, item, initial=LAST_POSITION[0], y=LAST_POSITION[1]
+            )
+            produce_checklist(
+                c,
+                checklist,
+                initial=LAST_POSITION[0],
+                y=LAST_POSITION[1],
+                font=font,
+                font_size=font_size,
+                color=color,
+            )
+        except Exception as e:
+            print(f"Not found {e}")
+
+    number_page(c)
+    c.showPage()
+    c.save()
+    open_file(file_path)

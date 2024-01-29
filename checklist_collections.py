@@ -26,6 +26,8 @@ CREDIT_TERMS = (
 CLASS_SOCIETY = "NA, DNV, ABS, LR, BV, Others, 70"
 VALIDITY = "30 Days, 45 Days, 60 Days, 90 Days, 120 Days, 7 Days, 15 Days, 70"
 TEXTBOX_HEIGHT = 17
+PIC = " , Lin Zar, Oliver, Sahib, Thiha, 70"
+SALES = " , Shaun, Derick, Thiha, 70"
 
 leave_application_checklist = [
     "Have you marked the leave in the team calendar?",
@@ -41,6 +43,7 @@ leave_application_checklist = [
         "You are responsible for filling out this checklist. Have you answered all the checklist items carefully?": NIL_YES_NO.split(
             ","
         ),
+        "Prepared by:": PIC.split(","),
     },
 ]
 
@@ -107,9 +110,9 @@ sales_checklist = [  # type:ignore
     ("Any known competitor?", 300, TEXTBOX_HEIGHT * 2),
     ("Any known risk that you want to highlight?", 300, TEXTBOX_HEIGHT * 2),
     ("Any remark you want to add?", 300, TEXTBOX_HEIGHT * 2),
-    # {
-    #     "Have you answered all the checklist items carefully?": NIL_YES_NO.split(','),
-    # },
+    {
+        "Prepared by": SALES.split(","),
+    },
 ]
 
 general = [  # type:ignore
@@ -144,3 +147,53 @@ confirmation = [
         ),
     },
 ]
+
+
+# Handover checklist
+rfqs = [  # type:ignore
+    """
+Produce the contract version of the costing sheet by 
+(1) fix unit prices (FUP), 
+(2) update the latest cost (where applicable),
+(3) append "CONTRACT" to the filename.
+(4) Seek manager's approval for the contract file once prepared.
+""",
+    "Organize and clean up '00-ITB' folder. The folders inside are to be named by date and the date format shall be 'yyyy-mm-dd', e.g. '2024-01-29'",
+    "Save the latest CQ in '01-Commercial' folder.",
+    "Organize and clean up '02-Technical' folder. All the technical clarifications are to be organized and included along with project schedule.",
+    "Organize and clean up '03-Supplier' folder. The latest emails from the supplier must be outside and historical reference emails must be in '00-Arc' inside this '03-Supplier' folder.",
+    "Organize and clean up '04-Datasheet' folder.",
+    "Save any relevant drawings (block diagrams, DMD, Rack GA, etc.) inside the '05-Drawing' folder.",
+    "Keep the PO in '06-PO' folder.",
+    "Word out the engineering cost estimater excel and save in '08-Toolkit' folder.",
+]
+
+costing = [  # type:ignore
+    "Create the folder with the same project name in '@costing' folder.",
+    "Put in the latest commercial proposal PDF.",
+    "Put in the contract version of the costing sheet.",
+    "Put in the latest CQ or commercial clarification.",
+]
+
+handover = [  # type:ignore
+    "Create the folder with the same project name in '@handover' folder.",
+    "Crate a folder called '00-MAIN' for main order and '01-VO', '02-VO' for subsequent orders. For VO items, also include description, e.g. '01-VO SET-TOP BOX'",
+    "Copy '00-ITB' folder",
+    "Create a new folder '01-PO' and keep the PO inside.",
+    "Copy '02-Technical'.",
+    "Copy '03-Supplier'.",
+    "Copy '04-Datasheet'.",
+    "Create a folder called '05-Cost'",
+    "Put in internal costing sheet generated from the contract costing sheet in '05-Cost' folder.",
+    "Put in enginnering cost estimator PDF in '05-Cost' folder.",
+    "Put in the latest CQ or commercial clarification if applicable in '05-Cost' folder.",
+    "If drawing exists, create a folder called '06-Drawing and copy the content from '05-Drawing' folder from '@rfqs'",
+
+]
+
+closing =[   #type:ignore
+    "Once all the preparation is done, let the manager review the folder content.",
+    "After approval, send the link for '@handover' folder to project management side.",
+    "Send the link for '@costing' folder to sales support side.",
+    "Keep the signed and prited copy of the handover checklist in '06-PO' folder",
+    ]

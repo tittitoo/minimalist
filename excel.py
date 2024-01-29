@@ -227,5 +227,7 @@ def update_template_version():
     functions.update_template_version(wb)
 
 
+@check_if_template
 def generate_handover_checklist():
-    pass
+    wb = xw.Book.caller()
+    checklists.generate_handover_checklist(wb)
