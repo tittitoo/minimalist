@@ -595,15 +595,21 @@ def generate_handover_checklist(
         "@rfqs",
         "@handover",
         "@costing",
-        "@closing",
+        "closing",
     ]
     for item in checklist_titles:
         try:
-            checklist = getattr(cc, item.lower().replace("@", ""))
+            if '@' in item:
+                checklist = getattr(cc, item.lower().replace("@", ""))
+                LAST_POSITION = draw_title(
+                    c, item, initial=LAST_POSITION[0], y=LAST_POSITION[1]
+                )
+            else:
+                checklist = getattr(cc, item.lower())
             # print(checklist)
-            LAST_POSITION = draw_title(
-                c, item, initial=LAST_POSITION[0], y=LAST_POSITION[1]
-            )
+                LAST_POSITION = draw_title(
+                    c, item.title(), initial=LAST_POSITION[0], y=LAST_POSITION[1]
+                )
             produce_checklist(
                 c,
                 checklist,

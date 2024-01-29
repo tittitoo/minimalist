@@ -195,5 +195,5 @@ closing =[   #type:ignore
     "Once all the preparation is done, let the manager review the folder content.",
     "After approval, send the link for '@handover' folder to project management side.",
     "Send the link for '@costing' folder to sales support side.",
-    "Keep the signed and prited copy of the handover checklist in '06-PO' folder",
+    "Keep the signed and prited copy of the handover checklist in '06-PO' folder.",
     ]
