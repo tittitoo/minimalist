@@ -492,15 +492,18 @@ def generate_proposal_checklist(
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
     c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
-    c.setFont("Helvetica-Oblique", font_size - 2)
-    c.drawString(LEFT_MARGIN, 810, job_title.upper())
-    c.drawString(LEFT_MARGIN, 795, f"PREPARED BY: {pic.upper()}")
+    c.setFont("Helvetica", font_size-1)
+    c.drawString(LEFT_MARGIN, 700, job_title.upper())
+    c.setFont("Helvetica-Bold", font_size)
+    c.setFillColor(blue)
+    c.drawString(LEFT_MARGIN, 680, f"Prepared by: {pic.title()}")
+    c.setFillColor(black)
     c.setFont("Helvetica-Oblique", font_size)
     c.drawRightString(A4[0] - 50, 730, datetime.now().date().strftime("%Y-%m-%d"))
     c.setFont(font, font_size)
 
     global LAST_POSITION
-    LAST_POSITION = (0, 700)
+    LAST_POSITION = (0, 660)
     if proposal_type == "firmed":
         for item in checklist_titles:
             item = item.lower().replace("-", "_")
