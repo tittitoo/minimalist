@@ -546,11 +546,12 @@ def generate_proposal_checklist(
     else:
         checklist_titles = ["GENERAL", "ENGINEERING-SERVICES"]
         for item in checklist_titles:
+            initial = 0
             try:
                 checklist = getattr(cc, item.lower().replace("-", "_"))
                 # print(checklist)
                 LAST_POSITION = draw_title(
-                    c, item, initial=LAST_POSITION[0], y=LAST_POSITION[1]
+                    c, item, initial=initial, y=LAST_POSITION[1]
                 )
                 produce_checklist(
                     c,
@@ -561,6 +562,7 @@ def generate_proposal_checklist(
                     font_size=font_size,
                     color=color,
                 )
+                initial = 0
             except Exception as e:
                 print(f"Not found {e}")
 
