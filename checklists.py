@@ -611,17 +611,18 @@ def generate_handover_checklist(
         "in_closing",
     ]
     for item in checklist_titles:
+        initial = 0
         try:
             if '@' in item:
                 checklist = getattr(cc, item.lower().replace("@", ""))
                 LAST_POSITION = draw_title(
-                    c, (item + " folder"), initial=LAST_POSITION[0], y=LAST_POSITION[1],
+                    c, (item + " folder"), initial=initial, y=LAST_POSITION[1],
                 )
             else:
                 checklist = getattr(cc, item.lower())
             # print(checklist)
                 LAST_POSITION = draw_title(
-                    c, item.title().replace('_', ' '), initial=LAST_POSITION[0], y=LAST_POSITION[1]
+                    c, item.title().replace('_', ' '), initial=initial, y=LAST_POSITION[1]
                 )
             produce_checklist(
                 c,
@@ -632,6 +633,7 @@ def generate_handover_checklist(
                 font_size=font_size,
                 color=color,
             )
+            initial = 0
         except Exception as e:
             print(f"Not found {e}")
 
