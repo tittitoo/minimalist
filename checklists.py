@@ -1,6 +1,6 @@
 """ 
 Creating checklists. This may later be turned into a class.
-
+© Thiha Aung (infowizard@gmail.com)
 """
 import os
 from pathlib import Path
