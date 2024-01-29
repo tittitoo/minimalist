@@ -1,5 +1,6 @@
-""" Created so that python fucntions are available in Excel.
-    © Thiha Aung
+""" 
+Created so that python fucntions are available in Excel.
+© Thiha Aung (infowizard@gmail.com)
 """
 
 import xlwings as xw  # type: ignore

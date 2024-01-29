@@ -1,5 +1,5 @@
 """ Multiple functions to support Excel automation.
-    © Thiha Aung
+    © Thiha Aung (infowizard@gmail.com)
 """
 
 import os

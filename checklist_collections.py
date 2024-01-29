@@ -12,6 +12,7 @@ from different checklists.
 
 It is advisable to have checklist only once in particular checklist. The pop() method
 could get in the way otherwise.
+© Thiha Aung (infowizard@gmail.com)
 """
 
 YES_NO = "Yes, No, 70"
