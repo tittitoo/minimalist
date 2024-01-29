@@ -15,7 +15,7 @@ import pandas as pd
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.colors import black, lightyellow, lightcyan, honeydew, lavender
+from reportlab.lib.colors import black, lightyellow, lightcyan, honeydew, lavender, blue
 
 import checklist_collections as cc
 import hide
@@ -401,6 +401,8 @@ def produce_checklist(
                 x,
                 initial=LAST_POSITION[0],
                 y=LAST_POSITION[1],  # type:ignore
+                font=font,
+                font_size=font_size,
                 color=color,
             )
         if isinstance(checklist, dict):
@@ -411,6 +413,7 @@ def produce_checklist(
                 initial=LAST_POSITION[0],
                 y=LAST_POSITION[1],
                 # width=width,
+                font=font,
                 font_size=font_size,
                 color=color,
             )  # type:ignore
@@ -421,6 +424,7 @@ def produce_checklist(
                 x,
                 initial=LAST_POSITION[0],
                 y=LAST_POSITION[1],
+                font=font,
                 font_size=font_size,
                 color=color,
             )  # type:ignore
@@ -429,8 +433,11 @@ def produce_checklist(
                 c,
                 checklist,
                 x,
-                initial=LAST_POSITION[0],
                 y=LAST_POSITION[1],
+                step=step,
+                initial=LAST_POSITION[0],
+                font=font,
+                font_size=font_size,
                 color=color,
             )
 
@@ -582,9 +589,12 @@ def generate_handover_checklist(
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
     c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
-    c.setFont("Helvetica", font_size)
+    c.setFont("Helvetica", font_size-1)
     c.drawString(LEFT_MARGIN, 700, job_title.upper())
-    c.drawString(LEFT_MARGIN, 680, f"PREPARED BY: {pic.upper()}")
+    c.setFont("Helvetica-Bold", font_size)
+    c.setFillColor(blue)
+    c.drawString(LEFT_MARGIN, 680, f"Prepared by: {pic.title()}")
+    c.setFillColor(black)
     c.setFont("Helvetica-Oblique", font_size)
     c.drawRightString(A4[0] - 50, 730, datetime.now().date().strftime("%Y-%m-%d"))
     c.setFont(font, font_size)
@@ -595,20 +605,20 @@ def generate_handover_checklist(
         "@rfqs",
         "@handover",
         "@costing",
-        "closing",
+        "in_closing",
     ]
     for item in checklist_titles:
         try:
             if '@' in item:
                 checklist = getattr(cc, item.lower().replace("@", ""))
                 LAST_POSITION = draw_title(
-                    c, item, initial=LAST_POSITION[0], y=LAST_POSITION[1]
+                    c, (item + " folder"), initial=LAST_POSITION[0], y=LAST_POSITION[1],
                 )
             else:
                 checklist = getattr(cc, item.lower())
             # print(checklist)
                 LAST_POSITION = draw_title(
-                    c, item.title(), initial=LAST_POSITION[0], y=LAST_POSITION[1]
+                    c, item.title().replace('_', ' '), initial=LAST_POSITION[0], y=LAST_POSITION[1]
                 )
             produce_checklist(
                 c,
