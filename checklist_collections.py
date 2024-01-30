@@ -136,8 +136,23 @@ vhf_am = [
     "Everywhere",
     "Nowhere",
     "Anywhere",
+    "Another item",
+    {
+        "Classification society": CLASS_SOCIETY.split(","),
+        "Is there any NDA in place?": NO_YES.split(","),
+    },
 ]
 
+vhf_fm = [
+    "Everywhere",
+    "Nowhere",
+    "Anywhere",
+    "Another item",
+    {
+        "Classification society": CLASS_SOCIETY.split(","),
+        "Is there any NDA in place?": NO_YES.split(","),
+    },
+]
 confirmation = [
     {
         "This is an important document for quality control. Have you checked all the items carefully?": NIL_YES_NO.split(
@@ -184,17 +199,17 @@ handover = [  # type:ignore
     "Copy '02-Technical' folder in.",
     "Copy '03-Supplier' folder in.",
     "Copy '04-Datasheet' folder in.",
+    "Generate internal costing sheet from the contract version. Make sure to either do 'Summary' or 'Summary Discount' first. The value to give to project management is 'COST', 'MATERIAL'.",
     "Create a folder called '05-Cost.'",
-    "Put in internal costing sheet generated from the contract costing sheet in this folder.",
+    "Put in generated internal costing sheet this folder.",
     "Put in enginnering cost estimator PDF in this folder.",
     "Put in the latest CQ or commercial clarification if applicable in this folder.",
     "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.",
-
 ]
 
-in_closing =[   #type:ignore
+in_closing = [  # type:ignore
     "Once all the preparation is done, let the manager review the folder content.",
     "After approval, send the link for '@handover' folder to project management side.",
     "Send the link for '@costing' folder to sales support side.",
     "Keep the printed copy of the handover checklist in '06-PO' folder.",
-    ]
+]
