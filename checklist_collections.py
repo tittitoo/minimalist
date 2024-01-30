@@ -173,6 +173,7 @@ Produce the contract version of the costing sheet:
 (2) update the latest cost (where applicable),
 (3) append "CONTRACT" to the filename.
 (4) seek manager's approval for the contract file once prepared.
+(5) after approval, do "Summmary' or 'Summary Discount' on the file and remove 'discount simulation' in Summary sheet.
 """,
     "Organize and clean up '00-ITB' folder. The folders inside are to be named by date and the date format shall be 'yyyy-mm-dd', e.g. '2024-01-29'.",
     "Save the latest CQ in '01-Commercial' folder.",
@@ -199,9 +200,8 @@ handover = [  # type:ignore
     "Copy '02-Technical' folder in.",
     "Copy '03-Supplier' folder in.",
     "Copy '04-Datasheet' folder in.",
-    "Generate internal costing sheet from the contract version. Make sure to either do 'Summary' or 'Summary Discount' first. The value to give to project management is 'COST', 'MATERIAL'.",
     "Create a folder called '05-Cost.'",
-    "Put in generated internal costing sheet this folder.",
+    "Generate internal costing sheet from contract file and put in this folder. Make sure 'COST' is passed in summary instead of 'MATERIAL'.",
     "Put in enginnering cost estimator PDF in this folder.",
     "Put in the latest CQ or commercial clarification if applicable in this folder.",
     "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.",
