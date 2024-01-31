@@ -56,15 +56,6 @@ ikigai_checklist = [
 ]
 
 
-textbox_checklist_example = [
-    ("Name let us write something long here so that I know how it will behave.", 120),
-    (
-        "Firstname let us write something long here so that I know how it will behavaviour.",
-        100,
-    ),
-]
-
-
 sales_checklist = [  # type:ignore
     ("Job code (As registered in system)", 200, TEXTBOX_HEIGHT, "J12"),
     ("Project name (As registered in system)", 200, TEXTBOX_HEIGHT, ""),
@@ -85,7 +76,7 @@ sales_checklist = [  # type:ignore
     },
     ("If above is 'Yes', eleborate here.", 300, TEXTBOX_HEIGHT * 2, "NA"),
     {
-        "If new customer, have we done our due deligence?": NA_YES_NO.split(','),
+        "If new customer, have we done our due deligence?": NA_YES_NO.split(","),
     },
     ("Yard name the vessel will be built in", 200, TEXTBOX_HEIGHT, ""),
     ("End user or owner name", 200, TEXTBOX_HEIGHT, ""),
@@ -143,54 +134,6 @@ sales_checklist = [  # type:ignore
     },
 ]
 
-general = [  # type:ignore
-    "Here",
-]
-
-
-engineering_services = [  # type:ignore
-    ("Job code", 200, TEXTBOX_HEIGHT, ""),
-    ("Project name", 200, TEXTBOX_HEIGHT, ""),
-    ("Customer name", 200, TEXTBOX_HEIGHT, ""),
-]
-
-
-paga = [
-    "There",
-]
-
-vhf_am = [
-    "Everywhere",
-    "Nowhere",
-    "Anywhere",
-    "Another item",
-    {
-        "Classification society": CLASS_SOCIETY.split(","),
-        "Is there any NDA in place?": NO_YES.split(","),
-    },
-]
-
-vhf_fm = [
-    "Everywhere",
-    "Nowhere",
-    "Anywhere",
-    "Another item",
-    {
-        "Classification society": CLASS_SOCIETY.split(","),
-        "Is there any NDA in place?": NO_YES.split(","),
-    },
-]
-confirmation = [
-    {
-        "This is an important document for quality control. Have you checked all the items carefully?": NIL_YES_NO.split(
-            ","
-        ),
-        "Have you affixed your signature to this affect and printed(virtually)/kept frozen copy of this document for downstreams/audit purpose?": NIL_YES_NO.split(
-            ","
-        ),
-    },
-]
-
 
 # Handover checklist
 rfqs = [  # type:ignore
@@ -239,4 +182,54 @@ in_closing = [  # type:ignore
     "After approval, send the link for '@handover' folder to project management side.",
     "Send the link for '@costing' folder to sales support side.",
     "Keep the printed copy of the handover checklist in '06-PO' folder.",
+]
+
+
+# Proposal checklist
+general = [  # type:ignore
+    "Here",
+]
+
+
+engineering_services = [  # type:ignore
+    ("Job code", 200, TEXTBOX_HEIGHT, ""),
+    ("Project name", 200, TEXTBOX_HEIGHT, ""),
+    ("Customer name", 200, TEXTBOX_HEIGHT, ""),
+]
+
+
+paga = [
+    "There",
+]
+
+vhf_am = [
+    "Everywhere",
+    "Nowhere",
+    "Anywhere",
+    "Another item",
+    {
+        "Classification society": CLASS_SOCIETY.split(","),
+        "Is there any NDA in place?": NO_YES.split(","),
+    },
+]
+
+vhf_fm = [
+    "Everywhere",
+    "Nowhere",
+    "Anywhere",
+    "Another item",
+    {
+        "Classification society": CLASS_SOCIETY.split(","),
+        "Is there any NDA in place?": NO_YES.split(","),
+    },
+]
+confirmation = [
+    {
+        "This is an important document for quality control. Have you checked all the items carefully?": NIL_YES_NO.split(
+            ","
+        ),
+        "Have you affixed your signature to this affect and printed(virtually)/kept frozen copy of this document for downstreams/audit purpose?": NIL_YES_NO.split(
+            ","
+        ),
+    },
 ]
