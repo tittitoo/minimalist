@@ -25,21 +25,19 @@ import hide
 LEFT_MARGIN = 70
 RIGHT_MARGIN = 50
 PAPERWIDTH = A4[0]
-# LOGO = os.path.join(
-#     os.path.expanduser("~/Documents"), "Bid/Jason_Transparent_Logo_SS.png"
-# )
+LAST_POSITION = (int, int)
+WORD_WRAP = 80
+FIRST_NORMAL_LINE = 750
+LAST_NORMAL_LINE = 80
+
+MAX_TEXTBOX_WIDTH = (
+    250  # If greater than this number, textbox will flow to next line item
+)
 
 LOGO = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     "resources/Jason_Transparent_Logo_SS.png",
 )
-
-
-MAX_TEXTBOX_WIDTH = (
-    250  # If greater than this number, textbox will flow to next line item
-)
-# MACRO_NB = xw.Book('PERSONAL.XLSB')
-LAST_POSITION = (int, int)
 
 
 def show_checklist(
@@ -56,7 +54,7 @@ def show_checklist(
         page_color(c, color)
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
-    c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
+    c.drawCentredString(c._pagesize[0] / 2, FIRST_NORMAL_LINE, title.upper())
     c.setFont("Helvetica-Oblique", font_size)
     c.drawRightString(A4[0] - 50, 730, datetime.now().date().strftime("%Y-%m-%d"))
     c.setFont(font, font_size)
@@ -131,18 +129,18 @@ def draw_title(
     LAST_POSITION = (initial, y)
     c.saveState()
     c.setFont("Helvetica-Bold", font_size)
-    wrap_width = 80
+    wrap_width = WORD_WRAP
     for line in wrap(text, wrap_width):
         c.drawString(x, y, line)
         y -= step
-        if y <= 80:
+        if y <= LAST_NORMAL_LINE:
             number_page(c, font_size)
             c.showPage()
             if color:
                 page_color(c, color)
             put_logo(c)
             c.setFont(font, font_size)
-            y = 750
+            y = FIRST_NORMAL_LINE
     c.restoreState()
     return (initial, y)
 
@@ -163,7 +161,7 @@ def draw_checkbox(
     """
     form = c.acroForm
     offset = 3
-    word_wrap = 80
+    word_wrap = WORD_WRAP
     if isinstance(checklists, str):
         i = initial
         # c.setFont('Helvetica', 12)
@@ -191,24 +189,24 @@ def draw_checkbox(
         for line in wrap(checklists, word_wrap):
             c.drawString(x + skip, y, line)
             y -= step
-            if y <= 80:
+            if y <= LAST_NORMAL_LINE:
                 number_page(c, font_size)
                 c.showPage()
                 if color:
                     page_color(c, color)
                 put_logo(c)
                 c.setFont(font, font_size)
-                y = 750
+                y = FIRST_NORMAL_LINE
         i += 1
         # y -= step
-        if y <= 80:
+        if y <= LAST_NORMAL_LINE:
             number_page(c)
             c.showPage()
             if color:
                 page_color(c, color)
             put_logo(c)
             c.setFont(font, font_size)
-            y = 750
+            y = FIRST_NORMAL_LINE
         return (i, y)
 
     return (i, y)
@@ -242,8 +240,8 @@ def draw_choice(
         # Get width from last item of the options
         width = float(options.pop())
         wrap_width = int((PAPERWIDTH - width - RIGHT_MARGIN) / c.stringWidth("0"))
-        if wrap_width > 80:
-            wrap_width = 80
+        if wrap_width > WORD_WRAP:
+            wrap_width = WORD_WRAP
         for n, line in enumerate(wrap(k, wrap_width)):
             c.drawString(x + skip, y, line)
             if n == 0:
@@ -263,23 +261,23 @@ def draw_choice(
                     # forceBorder=True,
                 )
             y -= step
-            if y <= 80:
+            if y <= LAST_NORMAL_LINE:
                 number_page(c, font_size)
                 c.showPage()
                 if color:
                     page_color(c, color)
                 put_logo(c)
                 c.setFont(font, font_size)
-                y = 750
+                y = FIRST_NORMAL_LINE
         y -= offset
-        if y <= 80:
+        if y <= LAST_NORMAL_LINE:
             number_page(c, font_size)
             c.showPage()
             if color:
                 page_color(c, color)
             put_logo(c)
             c.setFont(font, font_size)
-            y = 750
+            y = FIRST_NORMAL_LINE
         i += 1
     return (i, y)
 
@@ -309,10 +307,10 @@ def draw_textfield(
         skip = c.stringWidth(str(i + 1) + ". ")
     if width <= MAX_TEXTBOX_WIDTH:
         wrap_width = int((PAPERWIDTH - width - RIGHT_MARGIN) / c.stringWidth("0"))
-        if wrap_width > 80:
-            wrap_width = 80
+        if wrap_width > WORD_WRAP:
+            wrap_width = WORD_WRAP
     else:
-        wrap_width = 80
+        wrap_width = WORD_WRAP
     # print(wrap_width)
     for n, line in enumerate(wrap(name, wrap_width)):
         c.drawString(x + skip, y, line)
@@ -334,28 +332,26 @@ def draw_textfield(
                 forceBorder=True,
             )
         y -= step
-        if y <= 80:
+        if y <= LAST_NORMAL_LINE:
             number_page(c, font_size)
             c.showPage()
             if color:
                 page_color(c, color)
             put_logo(c)
             c.setFont(font, font_size)
-            y = 750
+            y = FIRST_NORMAL_LINE
         i += 1
     if width > MAX_TEXTBOX_WIDTH:
         width = PAPERWIDTH - x - RIGHT_MARGIN
         # If the textbox does not fit in the current page, start at next page
-        if y - height <= 80:
+        if y - height <= LAST_NORMAL_LINE:
             number_page(c, font_size)
             c.showPage()
             if color:
                 page_color(c, color)
             put_logo(c)
             c.setFont(font, font_size)
-            y = 750
-        # if y != 750:
-        #     y -= step
+            y = FIRST_NORMAL_LINE
         if height > 17:
             offset = offset + (height - 17)
         form.textfield(
@@ -502,7 +498,7 @@ def generate_proposal_checklist(
         page_color(c, color)
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
-    c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
+    c.drawCentredString(c._pagesize[0] / 2, FIRST_NORMAL_LINE, title.upper())
     c.setFont("Helvetica", font_size - 1)
     c.drawString(LEFT_MARGIN, 700, job_title.upper())
     c.setFont("Helvetica-Bold", font_size)
@@ -602,7 +598,7 @@ def generate_handover_checklist(
         page_color(c, color)
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
-    c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
+    c.drawCentredString(c._pagesize[0] / 2, FIRST_NORMAL_LINE, title.upper())
     c.setFont("Helvetica", font_size - 1)
     c.drawString(LEFT_MARGIN, 700, job_title.upper())
     c.setFont("Helvetica-Bold", font_size)
@@ -637,7 +633,7 @@ def generate_handover_checklist(
                 # print(checklist)
                 LAST_POSITION = draw_title(
                     c,
-                    item.title().replace("_", " "),
+                    item.capitalize().replace("_", " "),
                     initial=initial,
                     y=LAST_POSITION[1],
                 )
