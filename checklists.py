@@ -189,16 +189,18 @@ def draw_title(
     LAST_POSITION = (initial, y)
     c.saveState()
     c.setFont("Helvetica-Bold", font_size)
-    c.drawString(x, y, text)
-    y -= step
-    if y <= 80:
-        number_page(c, font_size)
-        c.showPage()
-        if color:
-            page_color(c, color)
-        put_logo(c)
-        c.setFont(font, font_size)
-        y = 750
+    wrap_width = 80
+    for line in wrap(text, wrap_width):
+        c.drawString(x, y, line)
+        y -= step
+        if y <= 80:
+            number_page(c, font_size)
+            c.showPage()
+            if color:
+                page_color(c, color)
+            put_logo(c)
+            c.setFont(font, font_size)
+            y = 750
     c.restoreState()
     return (initial, y)
 
