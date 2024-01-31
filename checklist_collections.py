@@ -173,7 +173,7 @@ Produce the contract version of the costing sheet:
 (2) update the latest cost (where applicable),
 (3) append "CONTRACT" to the filename.
 (4) seek manager's approval for the contract file once prepared.
-(5) after approval, do "Summmary' or 'Summary Discount' on the file and remove 'discount simulation' in Summary sheet.
+(5) after approval, do "Summary' or 'Summary Discount' on the file and remove 'discount simulation' in Summary sheet.
 """,
     "Organize and clean up '00-ITB' folder. The folders inside are to be named by date and the date format shall be 'yyyy-mm-dd', e.g. '2024-01-29'.",
     "Save the latest CQ in '01-Commercial' folder.",
