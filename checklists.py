@@ -116,64 +116,6 @@ def page_color(c: canvas.Canvas, color=lightyellow):
     c.restoreState()
 
 
-def draw_checkbox(
-    c: canvas.Canvas,
-    checklists: str,
-    x: int,
-    y: int,
-    step=20,
-    initial=0,
-    font="Helvetica",
-    font_size=11,
-    color=None,
-) -> tuple:
-    """
-    Draw checkboxes on the canvas form a list.
-    """
-    form = c.acroForm
-    offset = 3
-    if isinstance(checklists, str):
-        i = initial
-        # c.setFont('Helvetica', 12)
-        if i < 9:
-            spacer = c.stringWidth("0")
-            c.drawString(x + spacer, y, str(i + 1) + ". ")
-            skip = c.stringWidth(str(i + 10) + ". ")
-        else:
-            c.drawString(x, y, str(i + 1) + ". ")
-            skip = c.stringWidth(str(i + 1) + ". ")
-        form.checkbox(
-            name=str(i + 1),
-            tooltip=f"{i+1}",
-            x=PAPERWIDTH - RIGHT_MARGIN - 13,  # Numerical value is the size
-            y=y - offset,
-            buttonStyle="check",
-            size=13,
-            borderColor=black,
-            borderWidth=0.5,
-            borderStyle="solid",
-            fillColor=color,
-            # textColor=black,
-            # forceBorder=False,
-        )
-        for line in wrap(checklists, 80):
-            c.drawString(x + skip, y, line)
-            y -= step
-        i += 1
-        # y -= step
-        if y <= 80:
-            number_page(c)
-            c.showPage()
-            if color:
-                page_color(c, color)
-            put_logo(c)
-            c.setFont(font, font_size)
-            y = 750
-        return (i, y)
-
-    return (i, y)
-
-
 def draw_title(
     c: canvas.Canvas,
     text: str,
@@ -203,6 +145,73 @@ def draw_title(
             y = 750
     c.restoreState()
     return (initial, y)
+
+
+def draw_checkbox(
+    c: canvas.Canvas,
+    checklists: str,
+    x: int,
+    y: int,
+    step=20,
+    initial=0,
+    font="Helvetica",
+    font_size=11,
+    color=None,
+) -> tuple:
+    """
+    Draw checkboxes on the canvas form a list.
+    """
+    form = c.acroForm
+    offset = 3
+    word_wrap = 80
+    if isinstance(checklists, str):
+        i = initial
+        # c.setFont('Helvetica', 12)
+        if i < 9:
+            spacer = c.stringWidth("0")
+            c.drawString(x + spacer, y, str(i + 1) + ". ")
+            skip = c.stringWidth(str(i + 10) + ". ")
+        else:
+            c.drawString(x, y, str(i + 1) + ". ")
+            skip = c.stringWidth(str(i + 1) + ". ")
+        form.checkbox(
+            name=str(i + 1),
+            tooltip=f"{i+1}",
+            x=PAPERWIDTH - RIGHT_MARGIN - 13,  # Numerical value is the size
+            y=y - offset,
+            buttonStyle="check",
+            size=13,
+            borderColor=black,
+            borderWidth=0.5,
+            borderStyle="solid",
+            fillColor=color,
+            # textColor=black,
+            # forceBorder=False,
+        )
+        for line in wrap(checklists, word_wrap):
+            c.drawString(x + skip, y, line)
+            y -= step
+            if y <= 80:
+                number_page(c, font_size)
+                c.showPage()
+                if color:
+                    page_color(c, color)
+                put_logo(c)
+                c.setFont(font, font_size)
+                y = 750
+        i += 1
+        # y -= step
+        if y <= 80:
+            number_page(c)
+            c.showPage()
+            if color:
+                page_color(c, color)
+            put_logo(c)
+            c.setFont(font, font_size)
+            y = 750
+        return (i, y)
+
+    return (i, y)
 
 
 def draw_choice(
@@ -494,7 +503,7 @@ def generate_proposal_checklist(
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
     c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
-    c.setFont("Helvetica", font_size-1)
+    c.setFont("Helvetica", font_size - 1)
     c.drawString(LEFT_MARGIN, 700, job_title.upper())
     c.setFont("Helvetica-Bold", font_size)
     c.setFillColor(blue)
@@ -552,9 +561,7 @@ def generate_proposal_checklist(
             try:
                 checklist = getattr(cc, item.lower().replace("-", "_"))
                 # print(checklist)
-                LAST_POSITION = draw_title(
-                    c, item, initial=initial, y=LAST_POSITION[1]
-                )
+                LAST_POSITION = draw_title(c, item, initial=initial, y=LAST_POSITION[1])
                 produce_checklist(
                     c,
                     checklist,
@@ -596,7 +603,7 @@ def generate_handover_checklist(
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
     c.drawCentredString(c._pagesize[0] / 2, 750, title.upper())
-    c.setFont("Helvetica", font_size-1)
+    c.setFont("Helvetica", font_size - 1)
     c.drawString(LEFT_MARGIN, 700, job_title.upper())
     c.setFont("Helvetica-Bold", font_size)
     c.setFillColor(blue)
@@ -617,16 +624,22 @@ def generate_handover_checklist(
     for item in checklist_titles:
         initial = 0
         try:
-            if '@' in item:
+            if "@" in item:
                 checklist = getattr(cc, item.lower().replace("@", ""))
                 LAST_POSITION = draw_title(
-                    c, (item + " folder"), initial=initial, y=LAST_POSITION[1],
+                    c,
+                    (item + " folder"),
+                    initial=initial,
+                    y=LAST_POSITION[1],
                 )
             else:
                 checklist = getattr(cc, item.lower())
-            # print(checklist)
+                # print(checklist)
                 LAST_POSITION = draw_title(
-                    c, item.title().replace('_', ' '), initial=initial, y=LAST_POSITION[1]
+                    c,
+                    item.title().replace("_", " "),
+                    initial=initial,
+                    y=LAST_POSITION[1],
                 )
             produce_checklist(
                 c,
