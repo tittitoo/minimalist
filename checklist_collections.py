@@ -5,7 +5,7 @@ Checklist: list or dynamically construct a list
 Inside:
 checkbox: str
 choice: dict (item and choices). The last number of the choices list controls widget width
-textbox: list: Tuple. The number controls the widget's width and height
+textbox: tuple The number controls the widget's width and height and the last indiciates default value.
 
 Checked for type and take necessary action. If needs be, a list can be constructed
 from different checklists.
@@ -24,7 +24,7 @@ DELIVERY_TERMS = "EXW, FOB, CIF, CPT, FCA, DAP, DDU, DDP, 70"
 CREDIT_TERMS = (
     "30 Days, 45 Days, Advanced T/T, COD, 7 Days, 10 Days, 14 Days, LC at Sight, 70"
 )
-CLASS_SOCIETY = "NA, DNV, ABS, LR, BV, Others, 70"
+CLASS_SOCIETY = "DNV, ABS, LR, BV, NA, Others, 70"
 VALIDITY = "30 Days, 45 Days, 60 Days, 90 Days, 120 Days, 7 Days, 15 Days, 70"
 TEXTBOX_HEIGHT = 17
 PIC = " , Lin Zar, Oliver, Sahib, Thiha, 70"
@@ -66,23 +66,30 @@ textbox_checklist_example = [
 
 
 sales_checklist = [  # type:ignore
-    ("Job code", 200, TEXTBOX_HEIGHT),
-    ("Project name", 200, TEXTBOX_HEIGHT),
-    ("Customer name", 200, TEXTBOX_HEIGHT),
+    ("Job code (As registered in system)", 200, TEXTBOX_HEIGHT, "J12"),
+    ("Project name (As registered in system)", 200, TEXTBOX_HEIGHT, ""),
+    ("Infrastructure Type (Acronym registered in system)", 200, TEXTBOX_HEIGHT, ""),
+    ("Customer name (Acronym registered in system)", 200, TEXTBOX_HEIGHT, ""),
     {
-        "Customer type": ["Existing", "New", 70],
-        "If 'Existing Customer', do we have any past concerns/issues with the customer we need to be aware of?": [
+        "Customer type": [
+            "Existing",
+            "New",
+            70,
+        ],
+        "If existing customer, do we have anything to be aware of, such as difficulity collecting payment, argument on VO, etc.?": [
             "No",
             "Yes",
             "Unknown",
             70,
         ],
     },
-    ("If above is 'Yes', please state here.", 300, TEXTBOX_HEIGHT * 2),
-    ("Yard name the vessel will be built in", 200, TEXTBOX_HEIGHT),
-    ("End user or owner name", 200, TEXTBOX_HEIGHT),
-    ("Infrastructure Type", 200, TEXTBOX_HEIGHT),
-    ("The operating country/region of the vessel", 200, TEXTBOX_HEIGHT),
+    ("If above is 'Yes', eleborate here.", 300, TEXTBOX_HEIGHT * 2, "NA"),
+    {
+        "If new customer, have we done our due deligence?": NA_YES_NO.split(','),
+    },
+    ("Yard name the vessel will be built in", 200, TEXTBOX_HEIGHT, ""),
+    ("End user or owner name", 200, TEXTBOX_HEIGHT, ""),
+    ("The operating country/region of the vessel", 200, TEXTBOX_HEIGHT, ""),
     {
         "Classification society": CLASS_SOCIETY.split(","),
         "Is there any NDA in place?": NO_YES.split(","),
@@ -93,24 +100,44 @@ sales_checklist = [  # type:ignore
         "Type of quotation": ["Budgetary", "Firmed", 70],
         # "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70],
     },
-    ("Preferred margin to be quoted in percentage", 70, TEXTBOX_HEIGHT),
-    ("Project budget if known", 70, TEXTBOX_HEIGHT),
-    ("Preferred milestone payment terms", 300, TEXTBOX_HEIGHT * 3),
+    ("Preferred margin to be quoted in percentage", 70, TEXTBOX_HEIGHT, r"25%"),
+    ("Project budget if known", 70, TEXTBOX_HEIGHT, "Not known"),
+    (
+        "Preferred milestone payment terms",
+        300,
+        TEXTBOX_HEIGHT * 2,
+        r"30% upon order PO confirmation, 60% before delivery and 10% after commissioning",
+    ),
     {
         "Preferred credit terms": CREDIT_TERMS.split(","),
         "Preferred delivery terms": DELIVERY_TERMS.split(","),
     },
-    ("Delivery location based above delivery terms (to or from)", 150, TEXTBOX_HEIGHT),
+    (
+        "Delivery location based on above delivery terms (from or to)",
+        150,
+        TEXTBOX_HEIGHT,
+        "Jason Premises (Singapore)",
+    ),
     {
         "Quotation validity": VALIDITY.split(","),
     },
-    ("Warranty duration and/or warranty end date", 300, TEXTBOX_HEIGHT * 2),
-    ("Commissioning location", 200, TEXTBOX_HEIGHT),
-    ("Estimated project delivery date", 200, TEXTBOX_HEIGHT),
-    ("Any special requirement?", 300, TEXTBOX_HEIGHT * 2),
-    ("Any known competitor?", 300, TEXTBOX_HEIGHT * 2),
-    ("Any known risk that you want to highlight?", 300, TEXTBOX_HEIGHT * 2),
-    ("Any remark you want to add?", 300, TEXTBOX_HEIGHT * 2),
+    (
+        "Warranty duration and/or warranty end date",
+        300,
+        TEXTBOX_HEIGHT * 2,
+        "Twelve (12) months after commissioning or eighteen (18) months after delivery, whichever is earlier.",
+    ),
+    ("Commissioning location (City or Country)", 200, TEXTBOX_HEIGHT, "Singapore"),
+    ("Estimated project delivery date/quarter", 200, TEXTBOX_HEIGHT, ""),
+    ("Any special requirement?", 300, TEXTBOX_HEIGHT * 2, "NIL"),
+    ("Any known competitor?", 300, TEXTBOX_HEIGHT * 2, "NIL"),
+    (
+        "Any known risk that you want to highlight, such as project being fast track?",
+        300,
+        TEXTBOX_HEIGHT * 2,
+        "NIL",
+    ),
+    ("Any remark you want to add?", 300, TEXTBOX_HEIGHT * 2, "NIL"),
     {
         "Prepared by": SALES.split(","),
     },
@@ -122,9 +149,9 @@ general = [  # type:ignore
 
 
 engineering_services = [  # type:ignore
-    ("Job code", 200, TEXTBOX_HEIGHT),
-    ("Project name", 200, TEXTBOX_HEIGHT),
-    ("Customer name", 200, TEXTBOX_HEIGHT),
+    ("Job code", 200, TEXTBOX_HEIGHT, ""),
+    ("Project name", 200, TEXTBOX_HEIGHT, ""),
+    ("Customer name", 200, TEXTBOX_HEIGHT, ""),
 ]
 
 
@@ -201,7 +228,7 @@ handover = [  # type:ignore
     "Copy '03-Supplier' folder in.",
     "Copy '04-Datasheet' folder in.",
     "Create a folder called '05-Cost.'",
-    "Generate internal costing sheet from contract file and put in this folder. Make sure 'COST' is passed in summary instead of 'MATERIAL'.",
+    "Generate internal costing sheet from contract file and put in this folder. Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.",
     "Put in enginnering cost estimator PDF in this folder.",
     "Put in the latest CQ or commercial clarification if applicable in this folder.",
     "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.",

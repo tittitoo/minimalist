@@ -297,7 +297,7 @@ def draw_textfield(
     form = c.acroForm
     i = initial
     offset = 3
-    name, width, height = checklist
+    name, width, height, value = checklist
     if i < 9:
         spacer = c.stringWidth("0")
         c.drawString(x + spacer, y, str(i + 1) + ". ")
@@ -318,6 +318,7 @@ def draw_textfield(
             form.textfield(
                 # name="fname",
                 # tooltip="First Name",
+                value=value,
                 x=PAPERWIDTH - RIGHT_MARGIN - width,
                 y=y - offset,
                 borderStyle="solid",
@@ -357,6 +358,7 @@ def draw_textfield(
         form.textfield(
             # name="fname",
             # tooltip="First Name",
+            value=value,
             x=PAPERWIDTH - RIGHT_MARGIN - width + skip,
             y=y - offset,
             borderStyle="solid",
