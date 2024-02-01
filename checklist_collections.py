@@ -116,7 +116,7 @@ sales_checklist = [  # type:ignore
         "Warranty duration and/or warranty end date",
         300,
         TEXTBOX_HEIGHT * 2,
-        "Twelve (12) months after commissioning or eighteen (18) months after delivery, whichever is earlier.",
+        "Default: Twelve (12) months after commissioning or eighteen (18) months after delivery, whichever is earlier.",
     ),
     ("Commissioning location (City or Country)", 200, TEXTBOX_HEIGHT, "Singapore"),
     ("Estimated project delivery date/quarter", 200, TEXTBOX_HEIGHT, ""),
