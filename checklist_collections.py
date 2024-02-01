@@ -28,7 +28,7 @@ CLASS_SOCIETY = "DNV, ABS, LR, BV, NA, Others, 70"
 VALIDITY = "30 Days, 45 Days, 60 Days, 90 Days, 120 Days, 7 Days, 15 Days, 70"
 TEXTBOX_HEIGHT = 17
 PIC = " , Lin Zar, Oliver, Sahib, Thiha, 70"
-SALES = " , Shaun, Derick, Thiha, 70"
+SALES = " , Derick, Don, Thiha, Shuan, 70"
 
 leave_application_checklist = [
     "Have you marked the leave in the team calendar?",
@@ -57,10 +57,10 @@ ikigai_checklist = [
 
 
 sales_checklist = [  # type:ignore
-    ("Job code (As registered in system)", 200, TEXTBOX_HEIGHT, "J12"),
-    ("Project name (As registered in system)", 200, TEXTBOX_HEIGHT, ""),
-    ("Infrastructure Type (Acronym registered in system)", 200, TEXTBOX_HEIGHT, ""),
-    ("Customer name (Acronym registered in system)", 200, TEXTBOX_HEIGHT, ""),
+    ("Job code (As registered in system)", 70, TEXTBOX_HEIGHT, "J12"),
+    ("Project name (As registered in system)", 250, TEXTBOX_HEIGHT, ""),
+    ("Infrastructure Type (Acronym registered in system)", 70, TEXTBOX_HEIGHT, ""),
+    ("Customer name (Acronym registered in system)", 70, TEXTBOX_HEIGHT, ""),
     {
         "Customer type": [
             "Existing",
@@ -78,6 +78,7 @@ sales_checklist = [  # type:ignore
     {
         "If new customer, have we done our due deligence?": NA_YES_NO.split(","),
     },
+    ("Remark if any on the new customer", 300, TEXTBOX_HEIGHT * 2, "NA"),
     ("Yard name the vessel will be built in", 200, TEXTBOX_HEIGHT, ""),
     ("End user or owner name", 200, TEXTBOX_HEIGHT, ""),
     ("The operating country/region of the vessel", 200, TEXTBOX_HEIGHT, ""),
@@ -97,7 +98,7 @@ sales_checklist = [  # type:ignore
         "Preferred milestone payment terms",
         300,
         TEXTBOX_HEIGHT * 2,
-        r"30% upon order PO confirmation, 60% before delivery and 10% after commissioning",
+        r"Default: 30% upon order PO confirmation, 60% before delivery and 10% after commissioning",
     ),
     {
         "Preferred credit terms": CREDIT_TERMS.split(","),
@@ -232,4 +233,18 @@ confirmation = [
             ","
         ),
     },
+]
+
+
+# Sales Briefing
+sales_briefing = [
+    "Something",
+]
+
+
+# New Sales Onborading
+sales_onboarding = [
+    "Grant edit access to '@commercial-review' folder",
+    "Grant edit access to Airtable",
+
 ]

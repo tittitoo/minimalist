@@ -469,6 +469,15 @@ def generate_sales_checklist():
     )
 
 
+def generate_sales_onboarding_checklist():
+    show_checklist(
+        cc.sales_onboarding,
+        title="Sales Onboarding Checklist",
+        font_size=10,
+        color="",
+    )
+
+
 def generate_proposal_checklist(
     wb,
     proposal_type="firmed",
@@ -656,3 +665,7 @@ def generate_handover_checklist(
     c.showPage()
     c.save()
     open_file(file_path)
+
+
+if __name__ == "__main__":
+    generate_sales_onboarding_checklist()
