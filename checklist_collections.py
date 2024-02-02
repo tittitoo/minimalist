@@ -184,7 +184,7 @@ in_closing = [  # type:ignore
     "Once all the preparation is done, let the manager review the folder content.",
     "After approval, send the link for '@handover' folder to project management side.",
     "Send the link for '@costing' folder to sales support side.",
-    "Keep the printed copy of the handover checklist in '06-PO' folder.",
+    "Keep the original and printed copy of the handover checklist in '06-PO' folder in '@rfqs'. Append the filename of the printed copy of the file with 'Printed', e.g. 'J12473 Handover Checklist 2024-02-02 Printed.pdf'. Original file is meant to keep tracked of your progress while working, and 'Printed' copy is a frozen information point and for audit purpose.",
 ]
 
 

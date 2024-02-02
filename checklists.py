@@ -596,14 +596,15 @@ def generate_handover_checklist(
     font_size=10,
     color=honeydew,
 ):
-    # Create file
-    downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-    filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
-    file_path = Path(downloads_folder, filename)
     # Get system names from the proposal
     job_title = wb.sheets["Summary"].range("A1").value
+    job_code = wb.sheets["Config"].range("B29").value
     pic = wb.sheets["Config"].range("B27").value
 
+    # Create file
+    downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+    filename = f'{job_code} {title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
+    file_path = Path(downloads_folder, filename)
     # Create canvas and initialize
     c = canvas.Canvas(str(file_path), pagesize=A4)
     if color:
