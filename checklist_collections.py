@@ -245,6 +245,22 @@ sales_briefing = [
 # New Sales Onborading
 sales_onboarding = [
     "Grant edit access to '@commercial-review' folder",
-    "Grant edit access to Airtable",
+    "Grant read only accesss to '@tools' folder",
+    "Grant editor access to Airtable",
+    "Setup python & excel",
+]
 
+# Setting up python and excel
+python_excel_setup = [
+    "Have Anaconda distribution installed.",
+    "Search for 'where python' and if it points to 'Windowsapp', take the location out from the environmental 'Path' variable.",
+    "Put new 'Path' variable pointing to 'anaconda3... python'.",
+    "Put new 'Path' variable pointing to 'anaconda3... Script' folder.",
+    "Make sure @tools folder is set to be 'Always Keep On This Device'.",
+    "Close excel if open and run 'xlwings addin install.'",
+    "Install reportlab by running 'pip install reportlab.'",
+    "In excel xlwings add-in, set the intrepreter path to anaconda python path.",
+    "In excel xlwings add in, set the PYTHONPATH to @tools folder.",
+    "Setup the necessary toolbar.",
+    "Take note or inform that the excel file may need to be local to the machine to run the tools.",
 ]

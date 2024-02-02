@@ -2,6 +2,7 @@
 Creating checklists. This may later be turned into a class.
 © Thiha Aung (infowizard@gmail.com)
 """
+
 import os
 from pathlib import Path
 from datetime import datetime
@@ -40,7 +41,7 @@ LOGO = os.path.join(
 )
 
 
-def show_checklist(
+def generate_checklist(
     checklist: list, title="Checklist", font="Helvetica", font_size=9, color=None
 ):
     """Take checklist and generates pdf in user download folder"""
@@ -452,7 +453,7 @@ def produce_checklist(
 
 
 def leave_application_checklist():
-    show_checklist(
+    generate_checklist(
         cc.leave_application_checklist,
         title="Leave Application Checklist",
         font_size=11,
@@ -461,7 +462,7 @@ def leave_application_checklist():
 
 
 def generate_sales_checklist():
-    show_checklist(
+    generate_checklist(
         cc.sales_checklist,
         title="Sales Checklist",
         font_size=10,
@@ -470,7 +471,7 @@ def generate_sales_checklist():
 
 
 def generate_sales_onboarding_checklist():
-    show_checklist(
+    generate_checklist(
         cc.sales_onboarding,
         title="Sales Onboarding Checklist",
         font_size=10,
@@ -668,4 +669,9 @@ def generate_handover_checklist(
 
 
 if __name__ == "__main__":
-    generate_sales_onboarding_checklist()
+    generate_checklist(
+        cc.python_excel_setup,
+        title="Python Excel Setup",
+        font_size=10,
+        color="",
+    )
