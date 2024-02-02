@@ -487,13 +487,10 @@ def generate_proposal_checklist(
     font_size=10,
     color=lavender,
 ):
-    # Create file
-    downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-    filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
-    file_path = Path(downloads_folder, filename)
     # Get system names from the proposal
     ws = wb.sheets["Technical_Notes"]
     last_row = ws.range("F1048576").end("up").row
+    job_code = wb.sheets["Config"].range("B29").value
     job_title = ws.range("A1").value
     pic = wb.sheets["Config"].range("B27").value
     data = ws.range(f"F4:F{last_row}").options(pd.DataFrame, index=False).value
@@ -503,6 +500,11 @@ def generate_proposal_checklist(
     checklist_titles = ["GENERAL"] + checklist_titles
     checklist_titles.append("ENGINEERING-SERVICES")
     checklist_titles.append("Confirmation")
+
+    # Create file
+    downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+    filename = f'{job_code} {title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
+    file_path = Path(downloads_folder, filename)
 
     # Create canvas and initialize
     c = canvas.Canvas(str(file_path), pagesize=A4)
