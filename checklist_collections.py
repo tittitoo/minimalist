@@ -131,9 +131,9 @@ sales_checklist = [  # type:ignore
     ),
     ("Any remark you want to add?", 300, TEXTBOX_HEIGHT * 2, "NIL"),
     """
-This is an important document that will be kept as part of the ITB and as
-a frozen set of information at the point of submission of/sending out the form. Have you gone through all the above
-points carefully, including the default answers and answered all of them to the best of your ability?
+Have you gone through all the above points carefully, including the default answers
+and answered all of them to the best of your ability? This is an important document that will
+be kept as part of the ITB and as a frozen set of information at the point of submission of/sending out the form.
 Once you are confident you can attach your signiture to this document, choose your name below and submit/send
 the form. As the project progresses and more information is gathered, you may volunteer/be asked to fill up
 the form as many times as necessary throughout the project tendering lifecycle.
