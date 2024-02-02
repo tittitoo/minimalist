@@ -76,7 +76,7 @@ sales_checklist = [  # type:ignore
     },
     ("If above is 'Yes', eleborate here.", 300, TEXTBOX_HEIGHT * 2, "NA"),
     {
-        "If new customer, have we done our due deligence?": NA_YES_NO.split(","),
+        "If new customer, have we done our due deligence (research and analysis of a company or organization done in preparation for a business transaction)?": NA_YES_NO.split(","),
     },
     ("Remark if any on the new customer", 300, TEXTBOX_HEIGHT * 2, "NA"),
     ("Yard name the vessel will be built in", 200, TEXTBOX_HEIGHT, ""),
@@ -119,7 +119,7 @@ sales_checklist = [  # type:ignore
         TEXTBOX_HEIGHT * 2,
         "Default: Twelve (12) months after commissioning or eighteen (18) months after delivery, whichever is earlier.",
     ),
-    ("Commissioning location (City or Country)", 200, TEXTBOX_HEIGHT, "Singapore"),
+    ("Commissioning location(s) (City or Country)", 200, TEXTBOX_HEIGHT, "Singapore"),
     ("Estimated project delivery date/quarter", 200, TEXTBOX_HEIGHT, ""),
     ("Any special requirement?", 300, TEXTBOX_HEIGHT * 2, "NIL"),
     ("Any known competitor?", 300, TEXTBOX_HEIGHT * 2, "NIL"),
@@ -130,8 +130,16 @@ sales_checklist = [  # type:ignore
         "NIL",
     ),
     ("Any remark you want to add?", 300, TEXTBOX_HEIGHT * 2, "NIL"),
+    """
+This is an important document that will be kept as part of the ITB and as
+a frozen set of information at the point of submission of/sending out the form. Have you gone through all the above
+points carefully, including the default answers and answered all of them to the best of your ability?
+Once you are confident you can attach your signiture to this document, choose your name below and submit/send
+the form. As the project progresses and more information is gathered, you may volunteer/be asked to fill up
+the form as many times as necessary throughout the project tendering lifecycle.
+""",
     {
-        "Prepared by": SALES.split(","),
+        "Prepared and confirmed by": SALES.split(","),
     },
 ]
 
@@ -149,7 +157,8 @@ Produce the contract version of the costing sheet:
     "Organize and clean up '00-ITB' folder. The folders inside are to be named by date and the date format shall be 'yyyy-mm-dd', e.g. '2024-01-29'.",
     "Save the latest CQ in '01-Commercial' folder.",
     "Organize and clean up '02-Technical' folder. All the technical clarifications are to be organized and included along with project schedule.",
-    "Organize and clean up '03-Supplier' folder. The latest emails from the supplier must be outside and historical reference emails must be in '00-Arc' inside this folder.",
+    "Organize and clean up '03-Supplier' folder. The latest emails from the supplier \
+must be outside and historical reference emails must be in '00-Arc' inside this folder.",
     "Organize and clean up '04-Datasheet' folder.",
     "Save any relevant drawings (block diagrams, DMD, Rack GA, etc.) inside the '05-Drawing' folder.",
     "Keep the PO in '06-PO' folder.",
@@ -165,18 +174,23 @@ costing = [  # type:ignore
 
 handover = [  # type:ignore
     "Create a folder with the same project name in '@handover' folder.",
-    "Crate a folder called '00-MAIN' for main order and '01-VO', '02-VO' for subsequent orders inside the above created folder. For VO items, also include description, e.g. '01-VO SET-TOP BOX'.",
+    "Crate a folder called '00-MAIN' for main order and '01-VO', '02-VO' for \
+subsequent orders inside the above created folder. For VO items, also include description, \
+e.g. '01-VO SET-TOP BOX'.",
     "Copy '00-ITB' folder in.",
     "Create a new folder '01-PO' and keep the PO inside.",
     "Copy '02-Technical' folder in.",
     "Copy '03-Supplier' folder in.",
     "Copy '04-Datasheet' folder in.",
     "Create a folder called '05-Cost.'",
-    "Generate internal costing sheet from contract file and put in this folder. Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.",
+    "Generate internal costing sheet from contract file and put in this folder. \
+Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.",
     "Put in enginnering cost estimator PDF in this folder.",
     "Put in the latest CQ or commercial clarification if applicable in this folder.",
     {
-    "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.": NA_YES_NO.split(','),
+        "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.": NA_YES_NO.split(
+            ","
+        ),
     },
 ]
 
@@ -184,7 +198,11 @@ in_closing = [  # type:ignore
     "Once all the preparation is done, let the manager review the folder content.",
     "After approval, send the link for '@handover' folder to project management side.",
     "Send the link for '@costing' folder to sales support side.",
-    "Keep the original and printed copy of the handover checklist in '06-PO' folder in '@rfqs'. Append the filename of the printed copy of the file with 'Printed', e.g. 'J12473 Handover Checklist 2024-02-02 Printed.pdf'. Original file is meant to keep tracked of your progress while working, and 'Printed' copy is a frozen information point and for audit purpose.",
+    """Keep the original and printed copy of the handover checklist in '06-PO' folder in '@rfqs'.
+Append the filename of the printed copy of the file with 'Printed', e.g. 'J12473 Handover
+Checklist 2024-02-02 Printed.pdf'. Original file is meant to keep tracked of your progress 
+while working, and 'Printed' copy is a frozen information point, which serves audit purpose.
+""",
 ]
 
 
@@ -255,14 +273,16 @@ sales_onboarding = [
 # Setting up python and excel
 python_excel_setup = [
     "Have Anaconda distribution installed.",
-    "Search for 'where python' and if it points to 'Windowsapp', take the location out from the environmental 'Path' variable.",
+    "Search for 'where python' and if it points to 'Windowsapp', take the location of \
+'Windowsapp' out from the environmental 'Path' variable. We don't need Windows interfering.",
     "Put new 'Path' variable pointing to 'anaconda3... python'.",
     "Put new 'Path' variable pointing to 'anaconda3... Script' folder.",
-    "Make sure @tools folder is set to be 'Always Keep On This Device'.",
+    "Make sure @tools folder is set to 'Always Keep On This Device'.",
     "Close excel if open and run 'xlwings addin install.'",
     "Install reportlab by running 'pip install reportlab.'",
     "In excel xlwings add-in, set the intrepreter path to anaconda python path.",
-    "In excel xlwings add in, set the PYTHONPATH to @tools folder.",
+    "In excel xlwings add-in, set the PYTHONPATH to @tools folder.",
     "Setup the necessary toolbar.",
+    "Ask IT to allow the scripts if necessary.",
     "Take note or inform that the excel file may need to be local to the machine to run the tools.",
 ]
