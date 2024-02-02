@@ -175,7 +175,9 @@ handover = [  # type:ignore
     "Generate internal costing sheet from contract file and put in this folder. Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.",
     "Put in enginnering cost estimator PDF in this folder.",
     "Put in the latest CQ or commercial clarification if applicable in this folder.",
-    "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.",
+    {
+    "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.": NA_YES_NO.split(','),
+    },
 ]
 
 in_closing = [  # type:ignore
