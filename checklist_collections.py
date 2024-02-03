@@ -15,6 +15,7 @@ could get in the way otherwise.
 © Thiha Aung (infowizard@gmail.com)
 """
 
+# The last number is meant for choice box size
 YES_NO = "Yes, No, 70"
 NO_YES = "No, Yes, 70"
 NIL_YES_NO = " , Yes, No, 70"
@@ -76,7 +77,9 @@ sales_checklist = [  # type:ignore
     },
     ("If above is 'Yes', eleborate here.", 300, TEXTBOX_HEIGHT * 2, "NA"),
     {
-        "If new customer, have we done our due deligence (research and analysis of a company or organization done in preparation for a business transaction)?": NA_YES_NO.split(","),
+        "If new customer, have we done our due deligence (research and analysis of a company or organization done in preparation for a business transaction)?": NA_YES_NO.split(
+            ","
+        ),
     },
     ("Remark if any on the new customer", 300, TEXTBOX_HEIGHT * 2, "NA"),
     ("Yard name the vessel will be built in", 200, TEXTBOX_HEIGHT, ""),
@@ -174,17 +177,21 @@ costing = [  # type:ignore
 
 handover = [  # type:ignore
     "Create a folder with the same project name in '@handover' folder.",
-    "Crate a folder called '00-MAIN' for main order and '01-VO', '02-VO' for \
-subsequent orders inside the above created folder. For VO items, also include description, \
-e.g. '01-VO SET-TOP BOX'.",
+    """
+Crate a folder called '00-MAIN' for main order and '01-VO', '02-VO' for
+subsequent orders inside the above created folder. For VO items, also include description,
+e.g. '01-VO SET-TOP BOX'.
+""",
     "Copy '00-ITB' folder in.",
     "Create a new folder '01-PO' and keep the PO inside.",
     "Copy '02-Technical' folder in.",
     "Copy '03-Supplier' folder in.",
     "Copy '04-Datasheet' folder in.",
     "Create a folder called '05-Cost.'",
-    "Generate internal costing sheet from contract file and put in this folder. \
-Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.",
+    """
+Generate internal costing sheet from contract file and put in this folder.
+Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.
+""",
     "Put in enginnering cost estimator PDF in this folder.",
     "Put in the latest CQ or commercial clarification if applicable in this folder.",
     {
@@ -198,7 +205,8 @@ in_closing = [  # type:ignore
     "Once all the preparation is done, let the manager review the folder content.",
     "After approval, send the link for '@handover' folder to project management side.",
     "Send the link for '@costing' folder to sales support side.",
-    """Keep the original and printed copy of the handover checklist in '06-PO' folder in '@rfqs'.
+    """
+Keep the original and printed copy of the handover checklist in '06-PO' folder in '@rfqs'.
 Append the filename of the printed copy of the file with 'Printed', e.g. 'J12473 Handover
 Checklist 2024-02-02 Printed.pdf'. Original file is meant to keep tracked of your progress 
 while working, and 'Printed' copy is a frozen information point, which serves audit purpose.
@@ -249,7 +257,8 @@ confirmation = [
         "This is an important document for quality control. Have you checked all the items carefully?": NIL_YES_NO.split(
             ","
         ),
-        "Have you affixed your signature to this affect and printed(virtually)/kept frozen copy of this document for downstreams/audit purpose?": NIL_YES_NO.split(
+        "Have you affixed your signature to this affect and printed(virtually)/kept\
+        frozen/printed copy of this document for downstreams/audit purpose?": NIL_YES_NO.split(
             ","
         ),
     },
@@ -273,8 +282,10 @@ sales_onboarding = [
 # Setting up python and excel
 python_excel_setup = [
     "Have Anaconda distribution installed.",
-    "Search for 'where python' and if it points to 'Windowsapp', take the location of \
-'Windowsapp' out from the environmental 'Path' variable. We don't need Windows interfering.",
+    """
+Search for 'where python' and if it points to 'Windowsapp', take the location of
+'Windowsapp' out from the environmental 'Path' variable. We don't need Windows interfering.
+""",
     "Put new 'Path' variable pointing to 'anaconda3... python'.",
     "Put new 'Path' variable pointing to 'anaconda3... Script' folder.",
     "Make sure @tools folder is set to 'Always Keep On This Device'.",

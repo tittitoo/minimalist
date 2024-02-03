@@ -28,7 +28,8 @@ RIGHT_MARGIN = 50
 PAPERWIDTH = A4[0]
 LAST_POSITION = (int, int)
 WORD_WRAP = 80
-FIRST_NORMAL_LINE = 750
+TITLE_LINE = 750
+FIRST_NORMAL_LINE = 700
 LAST_NORMAL_LINE = 80
 
 MAX_TEXTBOX_WIDTH = (
@@ -41,10 +42,10 @@ LOGO = os.path.join(
 )
 
 
-def generate_checklist(
+def generate_single_checklist(
     checklist: list, title="Checklist", font="Helvetica", font_size=9, color=None
 ):
-    """Take checklist and generates pdf in user download folder"""
+    """Take checklist and generates pdf in user download folder."""
     downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
     filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
     file_path = Path(downloads_folder, filename)
@@ -55,12 +56,65 @@ def generate_checklist(
         page_color(c, color)
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
-    c.drawCentredString(c._pagesize[0] / 2, FIRST_NORMAL_LINE, title.upper())
+    c.drawCentredString(c._pagesize[0] / 2, TITLE_LINE, title.upper())
     c.setFont("Helvetica-Oblique", font_size)
     c.drawRightString(A4[0] - 50, 730, datetime.now().date().strftime("%Y-%m-%d"))
     c.setFont(font, font_size)
 
     produce_checklist(c, checklist, font=font, font_size=font_size, color=color)
+    number_page(c)
+
+    c.showPage()
+    c.save()
+    open_file(file_path)
+
+
+def generate_combined_checklist(
+    checklists: list, title="Checklist", font="Helvetica", font_size=9, color=None
+):
+    """
+    Take combined checklists and generates pdf in user download folder.
+    Checklist names are printed as titles.
+    """
+    downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+    filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
+    file_path = Path(downloads_folder, filename)
+
+    # Create canvas and initialize
+    c = canvas.Canvas(str(file_path), pagesize=A4)
+    if color:
+        page_color(c, color)
+    put_logo(c)
+    c.setFont("Helvetica-Bold", 15)
+    c.drawCentredString(c._pagesize[0] / 2, TITLE_LINE, title.upper())
+    c.setFont("Helvetica-Oblique", font_size)
+    c.drawRightString(A4[0] - 50, 730, datetime.now().date().strftime("%Y-%m-%d"))
+    c.setFont(font, font_size)
+
+    global LAST_POSITION
+    LAST_POSITION = (0, FIRST_NORMAL_LINE)  # type:ignore
+    for item in checklists:
+        item = item.lower().replace("-", "_")
+        initial = 0
+        try:
+            checklist = getattr(cc, item)
+            LAST_POSITION = draw_title(  # type:ignore
+                c,
+                item.upper().replace("_", " "),
+                initial=initial,  # initial=LAST_POSITION[0] if numbers not to reset
+                y=LAST_POSITION[1],
+            )
+            produce_checklist(
+                c,
+                checklist,
+                initial=LAST_POSITION[0],
+                y=LAST_POSITION[1],
+                font=font,
+                font_size=font_size,
+                color=color,
+            )
+        except Exception as e:
+            print(f"Not found {e}")
     number_page(c)
 
     c.showPage()
@@ -76,7 +130,7 @@ def open_file(file_path):
         elif os.name == "nt":
             # subprocess.call(["start", str(file_path)], shell=True)
             # subprocess.Popen(["explorer", str(file_path)],
-            #  creationflags=subprocess.DETACHED_PROCESS)
+            # creationflags=subprocess.DETACHED_PROCESS)
             os.startfile(file_path)
     except Exception as e:
         print(f"Unsupported os {e}.")
@@ -141,7 +195,7 @@ def draw_title(
                 page_color(c, color)
             put_logo(c)
             c.setFont(font, font_size)
-            y = FIRST_NORMAL_LINE
+            y = TITLE_LINE
     c.restoreState()
     return (initial, y)
 
@@ -197,7 +251,7 @@ def draw_checkbox(
                     page_color(c, color)
                 put_logo(c)
                 c.setFont(font, font_size)
-                y = FIRST_NORMAL_LINE
+                y = TITLE_LINE
         i += 1
         # y -= step
         if y <= LAST_NORMAL_LINE:
@@ -207,7 +261,7 @@ def draw_checkbox(
                 page_color(c, color)
             put_logo(c)
             c.setFont(font, font_size)
-            y = FIRST_NORMAL_LINE
+            y = TITLE_LINE
         return (i, y)
 
     return (i, y)
@@ -269,7 +323,7 @@ def draw_choice(
                     page_color(c, color)
                 put_logo(c)
                 c.setFont(font, font_size)
-                y = FIRST_NORMAL_LINE
+                y = TITLE_LINE
         y -= offset
         if y <= LAST_NORMAL_LINE:
             number_page(c, font_size)
@@ -278,7 +332,7 @@ def draw_choice(
                 page_color(c, color)
             put_logo(c)
             c.setFont(font, font_size)
-            y = FIRST_NORMAL_LINE
+            y = TITLE_LINE
         i += 1
     return (i, y)
 
@@ -341,7 +395,7 @@ def draw_textfield(
                 page_color(c, color)
             put_logo(c)
             c.setFont(font, font_size)
-            y = FIRST_NORMAL_LINE
+            y = TITLE_LINE
         i += 1
     if width > MAX_TEXTBOX_WIDTH:
         width = PAPERWIDTH - x - RIGHT_MARGIN
@@ -353,7 +407,7 @@ def draw_textfield(
                 page_color(c, color)
             put_logo(c)
             c.setFont(font, font_size)
-            y = FIRST_NORMAL_LINE
+            y = TITLE_LINE
         if height > 17:
             offset = offset + (height - 17)
         form.textfield(
@@ -453,7 +507,7 @@ def produce_checklist(
 
 
 def leave_application_checklist():
-    generate_checklist(
+    generate_single_checklist(
         cc.leave_application_checklist,
         title="Leave Application Checklist",
         font_size=11,
@@ -462,7 +516,7 @@ def leave_application_checklist():
 
 
 def generate_sales_checklist():
-    generate_checklist(
+    generate_single_checklist(
         cc.sales_checklist,
         title="Sales Checklist",
         font_size=10,
@@ -471,7 +525,7 @@ def generate_sales_checklist():
 
 
 def generate_sales_onboarding_checklist():
-    generate_checklist(
+    generate_single_checklist(
         cc.sales_onboarding,
         title="Sales Onboarding Checklist",
         font_size=10,
@@ -497,13 +551,15 @@ def generate_proposal_checklist(
     data.columns = ["Systems"]
     data = data.dropna()
     checklist_titles = data.Systems.to_list()
-    checklist_titles = ["GENERAL"] + checklist_titles
-    checklist_titles.append("ENGINEERING-SERVICES")
+    checklist_titles = ["general"] + checklist_titles
+    checklist_titles.append("engineering-services")
     checklist_titles.append("Confirmation")
 
     # Create file
     downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-    filename = f'{job_code} {title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
+    filename = (
+        f'{job_code} {title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
+    )
     file_path = Path(downloads_folder, filename)
 
     # Create canvas and initialize
@@ -512,7 +568,7 @@ def generate_proposal_checklist(
         page_color(c, color)
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
-    c.drawCentredString(c._pagesize[0] / 2, FIRST_NORMAL_LINE, title.upper())
+    c.drawCentredString(c._pagesize[0] / 2, TITLE_LINE, title.upper())
     c.setFont("Helvetica", font_size - 1)
     c.drawString(LEFT_MARGIN, 700, job_title.upper())
     c.setFont("Helvetica-Bold", font_size)
@@ -537,19 +593,15 @@ def generate_proposal_checklist(
                     LAST_POSITION = draw_title(
                         c,
                         item.upper().replace("_", " "),
-                        initial=initial,
-                        y=LAST_POSITION[
-                            1
-                        ],  # initial=LAST_POSITION[0] if numbers not to reset
+                        initial=initial,  # initial=LAST_POSITION[0] if numbers not to reset
+                        y=LAST_POSITION[1],
                     )
                 else:
                     LAST_POSITION = draw_title(
                         c,
                         item.upper().replace("_", " "),
-                        initial=initial,
-                        y=LAST_POSITION[
-                            1
-                        ],  # initial=LAST_POSITION[0] if numbers not to reset
+                        initial=initial,  # initial=LAST_POSITION[0] if numbers not to reset
+                        y=LAST_POSITION[1],
                     )
                 produce_checklist(
                     c,
@@ -605,7 +657,9 @@ def generate_handover_checklist(
 
     # Create file
     downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-    filename = f'{job_code} {title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
+    filename = (
+        f'{job_code} {title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
+    )
     file_path = Path(downloads_folder, filename)
     # Create canvas and initialize
     c = canvas.Canvas(str(file_path), pagesize=A4)
@@ -613,7 +667,7 @@ def generate_handover_checklist(
         page_color(c, color)
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
-    c.drawCentredString(c._pagesize[0] / 2, FIRST_NORMAL_LINE, title.upper())
+    c.drawCentredString(c._pagesize[0] / 2, TITLE_LINE, title.upper())
     c.setFont("Helvetica", font_size - 1)
     c.drawString(LEFT_MARGIN, 700, job_title.upper())
     c.setFont("Helvetica-Bold", font_size)
@@ -672,9 +726,24 @@ def generate_handover_checklist(
 
 
 if __name__ == "__main__":
-    generate_checklist(
-        cc.python_excel_setup,
-        title="Python Excel Setup",
+    # generate_checklist(
+    #     cc.python_excel_setup,
+    #     title="Python Excel Setup",
+    #     font_size=10,
+    #     color="",
+    # )
+
+    checklists = [
+        "vhf-fm",
+        "engineering_services",
+        "none",
+        "sales_onboarding",
+        "ikigai_checklist",
+        "sales_checklist",
+    ]
+    generate_combined_checklist(
+        checklists=checklists,
+        title="Test",
         font_size=10,
-        color="",
+        color=lavender,
     )
