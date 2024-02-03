@@ -214,6 +214,14 @@ while working, and 'Printed' copy is a frozen information point, which serves au
 
 
 # Proposal checklist
+# Register system here will be availble in drop_down list in excel 'Technical_Notes'
+available_system_checklist_register = [
+    "vhf-am",
+    "vhf-fm",
+    "paga",
+]
+
+
 general = [  # type:ignore
     "Here",
 ]
@@ -225,6 +233,17 @@ engineering_services = [  # type:ignore
     ("Customer name", 200, TEXTBOX_HEIGHT, ""),
 ]
 
+confirmation = [
+    {
+        "This is an important document for quality control. Have you checked all the items carefully?": NIL_YES_NO.split(
+            ","
+        ),
+        "Have you affixed your signature to this affect and printed(virtually)/kept\
+        flatten copy of this document for downstreams/audit purpose?": NIL_YES_NO.split(
+            ","
+        ),
+    },
+]
 
 paga = [
     "There",
@@ -251,17 +270,7 @@ vhf_fm = [
         "Is there any NDA in place?": NO_YES.split(","),
     },
 ]
-confirmation = [
-    {
-        "This is an important document for quality control. Have you checked all the items carefully?": NIL_YES_NO.split(
-            ","
-        ),
-        "Have you affixed your signature to this affect and printed(virtually)/kept\
-        frozen/printed copy of this document for downstreams/audit purpose?": NIL_YES_NO.split(
-            ","
-        ),
-    },
-]
+
 
 
 # Sales Briefing
