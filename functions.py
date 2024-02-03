@@ -1821,12 +1821,12 @@ def convert_legacy(wb):
             sheet.page_setup.print_area = "A1:H" + str(last_row)
 
         fill_formula_wb(nb)
-        fill_lastrow(nb)
         nb.sheets["Summary"].activate()
         format_text(nb, title_lineitem_or_description=True, upper_system=True)
         format_text(nb, indent_description=True, bullet_description=True)
         unhide_columns_wb(nb)
         conditional_format_wb(nb)
+        fill_lastrow(nb)
         summary(nb)
         page_setup(nb)
 
