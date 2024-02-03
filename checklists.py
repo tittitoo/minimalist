@@ -101,7 +101,8 @@ def generate_combined_checklist(
             LAST_POSITION = draw_title(  # type:ignore
                 c,
                 item.upper().replace("_", " "),
-                initial=initial,  # initial=LAST_POSITION[0] if numbers not to reset
+                initial=initial,
+                # initial=LAST_POSITION[0]  # If numbers not to reset
                 y=LAST_POSITION[1],
             )
             produce_checklist(
@@ -726,7 +727,7 @@ def generate_handover_checklist(
 
 
 if __name__ == "__main__":
-    # generate_checklist(
+    # generate_single_checklist(
     #     cc.python_excel_setup,
     #     title="Python Excel Setup",
     #     font_size=10,
@@ -740,6 +741,8 @@ if __name__ == "__main__":
         "sales_onboarding",
         "ikigai_checklist",
         "sales_checklist",
+        "handover",
+        "costing",
     ]
     generate_combined_checklist(
         checklists=checklists,
