@@ -1702,7 +1702,10 @@ def convert_legacy(wb):
             ):
                 systems.at[idx, "Model"] = np.nan
 
-        url = "https://filedn.com/liTeg81ShEXugARC7cg981h/Proposal_Template.xlsx"
+        # Previoulsy using Proposal_Template.xlsx 
+        # url = "https://filedn.com/liTeg81ShEXugARC7cg981h/Proposal_Template.xlsx"
+        # Now using Template.xlsx
+        url = "https://filedn.com/liTeg81ShEXugARC7cg981h/Template.xlsx"
         resp = requests.get(url)
 
         with open(Path(directory, "Template.xlsx"), "wb") as fd:
