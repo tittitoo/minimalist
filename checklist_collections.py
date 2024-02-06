@@ -163,7 +163,10 @@ Produce the contract version of the costing sheet:
     "Organize and clean up '03-Supplier' folder. The latest emails from the supplier \
 must be outside and historical reference emails must be in '00-Arc' inside this folder.",
     "Organize and clean up '04-Datasheet' folder.",
-    "Save any relevant drawings (block diagrams, DMD, Rack GA, etc.) inside the '05-Drawing' folder.",
+    {
+    "Save any relevant drawings (block diagrams, DMD, Rack GA, etc.) inside the '05-Drawing' folder, if it exists.": 
+    ['NA', "Done", 40],
+    },
     "Keep the PO in '06-PO' folder.",
     "Work out the engineering cost estimater excel and save in '08-Toolkit' folder.",
 ]
