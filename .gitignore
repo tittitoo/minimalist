@@ -11,3 +11,5 @@ projects.txt
 test.ipynb
 *.pyc
 .vscode
+resources/Planner.xltx
+resources/Template.xltx
