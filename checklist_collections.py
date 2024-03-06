@@ -82,7 +82,7 @@ sales_checklist = [  # type:ignore
         ),
     },
     ("Remark if any on the new customer", 300, TEXTBOX_HEIGHT * 2, "NA"),
-    ("Yard name the vessel will be built in", 200, TEXTBOX_HEIGHT, ""),
+    ("Yard name the vessel will be built in (for new-bulit) or the location the project will be carried out", 200, TEXTBOX_HEIGHT, ""),
     ("End user or owner name", 200, TEXTBOX_HEIGHT, ""),
     ("The operating country/region of the vessel", 200, TEXTBOX_HEIGHT, ""),
     {
