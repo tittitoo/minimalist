@@ -158,7 +158,9 @@ Produce the contract version of the costing sheet:
 (5) after approval, do "Summary' or 'Summary Discount' on the file and remove 'discount simulation' in Summary sheet.
 """,
     "Organize and clean up '00-ITB' folder. The folders inside are to be named by date and the date format shall be 'yyyy-mm-dd', e.g. '2024-01-29'.",
-    "Save the latest CQ in '01-Commercial' folder.",
+    {
+    "Save the latest CQ or Commercial Clarification in '01-Commercial' folder.": ["", 'NA', "Done", 40],
+    },  
     "Organize and clean up '02-Technical' folder. All the technical clarifications are to be organized and included along with project schedule.",
     "Organize and clean up '03-Supplier' folder. The latest emails from the supplier \
 must be outside and historical reference emails must be in '00-Arc' inside this folder.",
@@ -196,8 +198,8 @@ Generate internal costing sheet from contract file and put in this folder.
 Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.
 """,
     "Put in enginnering cost estimator PDF in this folder.",
-    "Put in the latest CQ or commercial clarification if applicable in this folder.",
     {
+    "Put in the latest CQ or commercial clarification if applicable in this folder.": ["", 'NA', "Done", 40],
         "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.": 
 ['NA', "Done", 40],
     },
