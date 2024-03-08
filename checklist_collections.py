@@ -175,6 +175,11 @@ must be outside and historical reference emails must be in '00-Arc' inside this 
 
 costing = [  # type:ignore
     "Create the folder with the same project name in '@costing' folder.",
+    """
+Crate a folder called '00-MAIN' for main order and '01-VO', '02-VO' for
+subsequent orders inside the above created folder. For VO items, also include description,
+e.g. '01-VO SET-TOP BOX'.
+""",
     "Put in the latest commercial proposal PDF.",
     "Put in the contract version of the costing sheet.",
     "Put in the latest CQ or commercial clarification.",
