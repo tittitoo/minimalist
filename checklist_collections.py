@@ -33,8 +33,8 @@ SALES = " , Derick, Don, Thiha, Shuan, 70"
 
 leave_application_checklist = [
     "Have you marked the leave in the team calendar?",
-    "For AM or PM leave, have you marked the exact time in the calendar?",
     {
+        "For AM or PM leave, have you marked the exact time in the calendar?": NA_YES_NO.split(","),
         "Is the leave longer than 10 days duration including weekends and holidays?": NO_YES.split(
             ","
         ),
