@@ -20,6 +20,7 @@ YES_NO = "Yes, No, 70"
 NO_YES = "No, Yes, 70"
 NIL_YES_NO = " , Yes, No, 70"
 NA_YES_NO = "NA, Yes, No, 70"
+NA_YES_NO_PROGRESS = "NA, Yes, No, In Progress, 70"
 NIL_YES_NO_NA = " , Yes, No, NA, 70"
 DELIVERY_TERMS = "EXW, FOB, CIF, CPT, FCA, DAP, DDU, DDP, 70"
 CREDIT_TERMS = (
@@ -77,7 +78,7 @@ sales_checklist = [  # type:ignore
     },
     ("If above is 'Yes', eleborate here.", 300, TEXTBOX_HEIGHT * 2, "NA"),
     {
-        "If new customer, have we done our due deligence (research and analysis of a company or organization done in preparation for a business transaction)?": NA_YES_NO.split(
+        "If new customer, have we done our due deligence (research and analysis of a company or organization done in preparation for a business transaction)?": NA_YES_NO_PROGRESS.split(
             ","
         ),
     },
