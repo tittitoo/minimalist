@@ -213,7 +213,7 @@ Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.
 
 in_closing = [  # type:ignore
     "Once all the preparation is done, let the manager review the folder content.",
-    "After approval, send the link for '@handover' folder to project management side.",
+    "After approval, send the link for '@handover' folder to project management side. Attention to project management head and cc 'Email Group - Project Energy <project@jason.com.sg>'.",
     "Send the link for '@costing' folder to sales support side.",
     """
 Keep the original and printed copy of the handover checklist in '06-PO' folder in '@rfqs'.
