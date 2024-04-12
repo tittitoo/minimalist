@@ -167,7 +167,7 @@ def fill_formula(sheet):
         # Exchange rates
         sheet.range(
             "Q3:Q" + str(last_row)
-        ).formula = '=IF(Config!B12="SGD",IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE),""),IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE)/VLOOKUP(Config!$B$12,Config!$A$2:$B$10,2,FALSE),""))'
+        ).formula = '=IF(Config!$B$12="SGD",IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE),""),IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE)/VLOOKUP(Config!$B$12,Config!$A$2:$B$10,2,FALSE),""))'
         sheet.range(
             "R3:R" + str(last_row)
         ).formula = '=IF(AND(D3<>"",K3<>"") ,N3*Q3,"")'
