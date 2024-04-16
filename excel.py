@@ -11,9 +11,10 @@ import checklist_collections as cc
 # from reportlab.lib.colors import lightcyan, black, white, lightyellow, blue
 
 
-class IsNotTemplateException(BaseException):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
+class IsNotTemplateException(Exception):
+    """ Raise if the excel file is not recognized as a template. """
+    # def __init__(self, *args: object) -> None:
+    #     super().__init__(*args)
 
 
 # My first use of decotator

@@ -727,26 +727,26 @@ def generate_handover_checklist(
 
 
 if __name__ == "__main__":
-    # generate_single_checklist(
-    #     cc.python_excel_setup,
-    #     title="Python Excel Setup",
-    #     font_size=10,
-    #     color="",
-    # )
-
-    checklists = [
-        "vhf-fm",
-        "engineering_services",
-        "none",
-        "sales_onboarding",
-        "ikigai_checklist",
-        "sales_checklist",
-        "handover",
-        "costing",
-    ]
-    generate_combined_checklist(
-        checklists=checklists,
-        title="Test",
+    generate_single_checklist(
+        cc.available_system_checklist_register,
+        title="Sales Onboarding",
         font_size=10,
-        color=lavender,
+        color="",
     )
+
+    # checklists = [
+    #     "vhf-fm",
+    #     "engineering_services",
+    #     "none",
+    #     "sales_onboarding",
+    #     "ikigai_checklist",
+    #     "sales_checklist",
+    #     "handover",
+    #     "costing",
+    # ]
+    # generate_combined_checklist(
+    #     checklists=checklists,
+    #     title="Test",
+    #     font_size=10,
+    #     color=lavender,
+    # )
