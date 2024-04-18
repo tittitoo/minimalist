@@ -1228,6 +1228,9 @@ def fix_unit_price(wb):
             data["System"] = str.upper(sheet.name)
             systems = pd.concat([systems, data], join="outer")
 
+            # Set font color for FUP column AB2
+            sheet.range(f"AB3:AB{str(last_row)}").font.color = (4, 50, 255)
+
     systems = systems.reset_index(
         drop=True
     )  # Otherwise separate sheet will have own index.
