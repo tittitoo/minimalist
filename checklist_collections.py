@@ -101,7 +101,7 @@ sales_checklist = [  # type:ignore
     (
         "Preferred milestone payment terms",
         300,
-        TEXTBOX_HEIGHT * 2,
+        TEXTBOX_HEIGHT * 3,
         r"Default: 30% upon order PO confirmation, 60% before delivery and 10% after commissioning",
     ),
     {
@@ -315,4 +315,13 @@ Search for 'where python' and if it points to 'Windowsapp', take the location of
     "Setup the necessary toolbar.",
     "Ask IT to allow the scripts if necessary.",
     "Take note or inform that the excel file may need to be local to the machine to run the tools.",
+]
+
+cisco_rfq_checklist = [
+    ("End User Full Company Name:", 250, TEXTBOX_HEIGHT, ""),
+    ("End User Personnel Name:", 250, TEXTBOX_HEIGHT, ""),
+    ("End User Email Address:", 250, TEXTBOX_HEIGHT, ""),
+    ("End User Contact Number:", 250, TEXTBOX_HEIGHT, ""),
+    ("End User Address:", 300, TEXTBOX_HEIGHT, ""),
+    ("Timeline to Award:", 250, TEXTBOX_HEIGHT, ""),
 ]

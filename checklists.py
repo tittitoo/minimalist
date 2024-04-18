@@ -428,6 +428,7 @@ def draw_textfield(
             fontSize=font_size,
             forceBorder=True,
             fieldFlags="multiline",
+            maxlen=500,
         )
         if height > 17:
             y -= step + (height - 17)
@@ -728,8 +729,8 @@ def generate_handover_checklist(
 
 if __name__ == "__main__":
     generate_single_checklist(
-        cc.available_system_checklist_register,
-        title="Sales Onboarding",
+        cc.sales_checklist,
+        title="Sales Checklist",
         font_size=10,
         color="",
     )
