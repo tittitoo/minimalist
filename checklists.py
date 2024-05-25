@@ -16,7 +16,7 @@ import pandas as pd
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.colors import black, lightyellow, lightcyan, honeydew, lavender, blue
+from reportlab.lib.colors import black, lightyellow, lightcyan, honeydew, lavender, blue, mintcream, ivory, azure
 
 import checklist_collections as cc
 import hide
@@ -726,6 +726,7 @@ def generate_handover_checklist(
     c.save()
     open_file(file_path)
 
+
 def generate_general_checklist(
     wb,
 ):
@@ -744,7 +745,7 @@ def generate_general_checklist(
                 checklist,
                 title=item.upper().replace("_", " "),
                 font_size=11,
-                # color=lightyellow,
+                color=ivory,
             )
         except Exception as e:
             print(f"Checklist not found {e}")
