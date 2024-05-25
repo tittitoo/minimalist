@@ -35,7 +35,7 @@ RESOURCES = os.path.join(
 )
 
 # To update the value upon updating of the template.
-LATEST_WB_VERSION = "R1"
+LATEST_WB_VERSION = "R2"
 
 
 def set_nitty_gritty(text):
@@ -2084,6 +2084,31 @@ def update_template_version(wb):
             # Call macro to fill in the dropbown formula
             wb.sheets["Technical_Notes"].activate()
             MACRO_NB.macro("put_systems_validation_formula")()
+
+        # For general checklist
+        # Clear previous data if any
+        last_row = wb.sheets["Config"].range("E1048576").end("up").row
+        if last_row > 95:
+            wb.sheets["Config"].range(f"E95:E{last_row}").clear()
+        wb.sheets["Config"].range("E95").value = "CHECKLISTS"
+        # Write data from list
+        wb.sheets["Config"].range("E96").options(transpose=True).value = [
+            system.upper() for system in cc.available_checklist_register
+        ]
+
+        # Test if value "Systems" is already there
+        cell_value = wb.sheets["Technical_Notes"].range("G3")
+        # if cell_value is None:
+        if cell_value != "Checklists".upper():
+            MACRO_NB.sheets["Data"].range("E1").copy(
+                wb.sheets["Technical_Notes"].range("G3")
+            )
+            # Call macro to fill in the dropbown formula
+            wb.sheets["Technical_Notes"].activate()
+            MACRO_NB.macro("put_checklists_validation_formula")()
+
+            wb.sheets["Technical_Notes"].range("F:G").autofit()
+
         wb.sheets[current_sheet].activate()
         xw.apps.active.alert(f"The template has been updated to {LATEST_WB_VERSION}.")
     elif current_wb_revision == LATEST_WB_VERSION:

@@ -32,6 +32,21 @@ TEXTBOX_HEIGHT = 17
 PIC = " , Lin Zar, Oliver, Sahib, Thiha, 70"
 SALES = " , Derick, Don, Thiha, Shuan, 70"
 
+# Proposal checklist
+# Register system here will be availble in drop_down list in excel 'Technical_Notes'
+available_system_checklist_register = [
+    "vhf-am",
+    "vhf-fm",
+    "paga",
+]
+
+# This is for generating dynamic checklist
+available_checklist_register=[
+    "cisco_rfq_checklist",
+    "ikigai_checklist",
+    "python_excel_setup",
+]
+
 leave_application_checklist = [
     "Have you marked the leave in the team calendar?",
     {
@@ -222,16 +237,6 @@ Checklist 2024-02-02 Printed.pdf'. Original file is meant to keep tracked of you
 while working, and 'Printed' copy is a frozen information point, which serves audit purpose.
 """,
 ]
-
-
-# Proposal checklist
-# Register system here will be availble in drop_down list in excel 'Technical_Notes'
-available_system_checklist_register = [
-    "vhf-am",
-    "vhf-fm",
-    "paga",
-]
-
 
 general = [  # type:ignore
     "Here",

@@ -47,7 +47,7 @@ def generate_single_checklist(
 ):
     """Take checklist and generates pdf in user download folder."""
     downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
-    filename = f'{title.title()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
+    filename = f'{title.upper()} {datetime.now().date().strftime("%Y-%m-%d")}.pdf'
     file_path = Path(downloads_folder, filename)
 
     # Create canvas and initialize
@@ -725,6 +725,29 @@ def generate_handover_checklist(
     c.showPage()
     c.save()
     open_file(file_path)
+
+def generate_general_checklist(
+    wb,
+):
+    # Get system names from the proposal
+    ws = wb.sheets["Technical_Notes"]
+    last_row = ws.range("G1048576").end("up").row
+    data = ws.range(f"G4:G{last_row}").options(pd.DataFrame, index=False).value
+    data.columns = ["Checklists"]
+    data = data.dropna()
+    checklist_titles = data.Checklists.to_list()
+    for item in checklist_titles:
+        item = item.lower().replace("-", "_")
+        try:
+            checklist = getattr(cc, item)
+            generate_single_checklist(
+                checklist,
+                title=item.upper().replace("_", " "),
+                font_size=11,
+                # color=lightyellow,
+            )
+        except Exception as e:
+            print(f"Checklist not found {e}")
 
 
 if __name__ == "__main__":

@@ -233,3 +233,9 @@ def update_template_version():
 def generate_handover_checklist():
     wb = xw.Book.caller()
     checklists.generate_handover_checklist(wb)
+
+
+@check_if_template
+def generate_general_checklist():
+    wb = xw.Book.caller()
+    checklists.generate_general_checklist(wb)
