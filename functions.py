@@ -2070,6 +2070,7 @@ def update_template_version(wb):
             wb.sheets["Config"].range(f"A95:A{last_row}").clear()
         wb.sheets["Config"].range("A95").value = "SYSTEMS"
         # Write data from list
+        # cc.available_system_checklist_register.sort()
         wb.sheets["Config"].range("A96").options(transpose=True).value = [
             system.upper() for system in cc.available_system_checklist_register
         ]
@@ -2092,6 +2093,7 @@ def update_template_version(wb):
             wb.sheets["Config"].range(f"E95:E{last_row}").clear()
         wb.sheets["Config"].range("E95").value = "CHECKLISTS"
         # Write data from list
+        cc.available_checklist_register.sort()
         wb.sheets["Config"].range("E96").options(transpose=True).value = [
             system.upper() for system in cc.available_checklist_register
         ]

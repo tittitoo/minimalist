@@ -42,9 +42,9 @@ available_system_checklist_register = [
 
 # This is for generating dynamic checklist
 available_checklist_register=[
-    "cisco_rfq_checklist",
     "ikigai_checklist",
     "python_excel_setup",
+    "cisco_rfq_checklist",
 ]
 
 leave_application_checklist = [
