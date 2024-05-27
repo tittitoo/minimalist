@@ -41,16 +41,18 @@ available_system_checklist_register = [
 ]
 
 # This is for generating dynamic checklist
-available_checklist_register=[
+available_checklist_register = [
     "ikigai_checklist",
-    "python_excel_setup",
     "cisco_rfq_checklist",
+    "rfq_checklist",
 ]
 
 leave_application_checklist = [
     "Have you marked the leave in the team calendar?",
     {
-        "For AM or PM leave, have you marked the exact time in the calendar?": NA_YES_NO.split(","),
+        "For AM or PM leave, have you marked the exact time in the calendar?": NA_YES_NO.split(
+            ","
+        ),
         "Is the leave longer than 10 days duration including weekends and holidays?": NO_YES.split(
             ","
         ),
@@ -98,7 +100,12 @@ sales_checklist = [  # type:ignore
         ),
     },
     ("Remark if any on the new customer", 300, TEXTBOX_HEIGHT * 2, "NA"),
-    ("Yard name the vessel will be built in (for new-bulit) or the location the project will be carried out", 200, TEXTBOX_HEIGHT, ""),
+    (
+        "Yard name the vessel will be built in (for new-bulit) or the location the project will be carried out",
+        200,
+        TEXTBOX_HEIGHT,
+        "",
+    ),
     ("End user or owner name", 200, TEXTBOX_HEIGHT, ""),
     ("The operating country/region of the vessel", 200, TEXTBOX_HEIGHT, ""),
     {
@@ -175,15 +182,23 @@ Produce the contract version of the costing sheet:
 """,
     "Organize and clean up '00-ITB' folder. The folders inside are to be named by date and the date format shall be 'yyyy-mm-dd', e.g. '2024-01-29'.",
     {
-    "Save the latest CQ or Commercial Clarification in '01-Commercial' folder.": ["", 'NA', "Done", 40],
-    },  
+        "Save the latest CQ or Commercial Clarification in '01-Commercial' folder.": [
+            "",
+            "NA",
+            "Done",
+            40,
+        ],
+    },
     "Organize and clean up '02-Technical' folder. All the technical clarifications are to be organized and included along with project schedule.",
     "Organize and clean up '03-Supplier' folder. The latest emails from the supplier \
 must be outside and historical reference emails must be in '00-Arc' inside this folder.",
     "Organize and clean up '04-Datasheet' folder.",
     {
-    "Save any relevant drawings (block diagrams, DMD, Rack GA, etc.) inside the '05-Drawing' folder, if it exists.": 
-    ['NA', "Done", 40],
+        "Save any relevant drawings (block diagrams, DMD, Rack GA, etc.) inside the '05-Drawing' folder, if it exists.": [
+            "NA",
+            "Done",
+            40,
+        ],
     },
     "Keep the PO in '06-PO' folder.",
     "Work out the engineering cost estimater excel and save in '08-Toolkit' folder.",
@@ -220,9 +235,17 @@ Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.
 """,
     "Put in enginnering cost estimator PDF in this folder.",
     {
-    "Put in the latest CQ or commercial clarification if applicable in this folder.": ["", 'NA', "Done", 40],
-        "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.": 
-['NA', "Done", 40],
+        "Put in the latest CQ or commercial clarification if applicable in this folder.": [
+            "",
+            "NA",
+            "Done",
+            40,
+        ],
+        "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.": [
+            "NA",
+            "Done",
+            40,
+        ],
     },
 ]
 
@@ -238,10 +261,25 @@ while working, and 'Printed' copy is a frozen information point, which serves au
 """,
 ]
 
-general = [  # type:ignore
-    "Here",
+rfq_checklist = [ # type:ignore
+    "Is there any AVL?",
 ]
 
+general = [  # type:ignore
+    "Have you updated the date and revision number?",
+    "Have you done final common sense check of all the numbers? Do they make sense?",
+    {
+        "Have you checked the cabinet size requirement and quantity? Would all the equipment fit inside the provided cabinet(s)?": 
+        NIL_YES_NO_NA.split(","),
+        "Have you checked the sever specification requirement, e.g memory and SSD sizes?": NIL_YES_NO_NA.split(","),
+        "Have you clarified on the cable gland requirement? Have you put the note to this effect?": NIL_YES_NO_NA.split(","),
+        "Is there any AVL? Have you followed as per requirement, such as JB?": NIL_YES_NO_NA.split(","),
+        "Have you checked all the IP ratings requirment?": NIL_YES_NO_NA.split(","),
+        "Have you checked the material requirement, e.g. SS316?": NIL_YES_NO_NA.split(","),
+
+    },
+    "Have you adjusted all the T&C's as per the sales checklist?",
+]
 
 engineering_services = [  # type:ignore
     ("Job code", 200, TEXTBOX_HEIGHT, ""),
@@ -288,7 +326,6 @@ vhf_fm = [
 ]
 
 
-
 # Sales Briefing
 sales_briefing = [
     "Something",
@@ -327,6 +364,6 @@ cisco_rfq_checklist = [
     ("End User Personnel Name:", 250, TEXTBOX_HEIGHT, ""),
     ("End User Email Address:", 250, TEXTBOX_HEIGHT, ""),
     ("End User Contact Number:", 250, TEXTBOX_HEIGHT, ""),
-    ("End User Address:", 300, TEXTBOX_HEIGHT, ""),
+    ("End User Address:", 300, TEXTBOX_HEIGHT * 2, ""),
     ("Timeline to Award:", 250, TEXTBOX_HEIGHT, ""),
 ]
