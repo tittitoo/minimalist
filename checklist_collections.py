@@ -45,6 +45,7 @@ available_checklist_register = [
     "ikigai_checklist",
     "cisco_rfq_checklist",
     "rfq_checklist",
+    "ndb_checklist",
 ]
 
 leave_application_checklist = [
@@ -366,4 +367,16 @@ cisco_rfq_checklist = [
     ("End User Contact Number:", 250, TEXTBOX_HEIGHT, ""),
     ("End User Address:", 300, TEXTBOX_HEIGHT * 2, ""),
     ("Timeline to Award:", 250, TEXTBOX_HEIGHT, ""),
+]
+
+ndb_checklist = [
+{"Transmitter Configuration": ["Dual", "Single", 70]},
+{"Transmitter Mounting Type": ["Wall/Bulkhead", "Inside Separate Cabinet", 150]},
+{"Surge Protection For Transmitter Required?": NO_YES.split(",")},
+{"Transmitter Power": ["125W", "250W", 70]},
+{"Operating Frequency": ["190kHz - 530kHz", "536kHz - 1250kHz", "1600kHz - 1800kHz", 120]},
+{"Antenna Type": ["Whip", "Helideck", 70]},
+{"Remote Control At Site (With Serial Connection) Required?": NO_YES.split(",")},
+{"Status Monitoring Beacon Receiver (Off-Air Monitoring) Required?": NO_YES.split(",")},
+{"Remote Connection (Ethernet) Required?": NO_YES.split(",")},
 ]

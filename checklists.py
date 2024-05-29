@@ -16,7 +16,17 @@ import pandas as pd
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.colors import black, lightyellow, lightcyan, honeydew, lavender, blue, mintcream, ivory, azure
+from reportlab.lib.colors import (
+    black,
+    lightyellow,
+    lightcyan,
+    honeydew,
+    lavender,
+    blue,
+    mintcream,
+    ivory,
+    azure,
+)
 
 import checklist_collections as cc
 import hide
