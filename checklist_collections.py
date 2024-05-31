@@ -280,6 +280,8 @@ general = [  # type:ignore
 
     },
     "Have you adjusted all the T&C's as per the sales checklist?",
+    "Is the class submission required?",
+    ("What is the warranty period catered?", 300, TEXTBOX_HEIGHT, "")
 ]
 
 engineering_services = [  # type:ignore
@@ -301,7 +303,8 @@ confirmation = [
 ]
 
 paga = [
-    "There",
+    {"Loudspeaker required to be fused?": NO_YES.split(",")},
+    {"JB required for Loudspeaker": NO_YES.split(",")},
 ]
 
 vhf_am = [
@@ -324,6 +327,10 @@ vhf_fm = [
         "Classification society": CLASS_SOCIETY.split(","),
         "Is there any NDA in place?": NO_YES.split(","),
     },
+]
+
+lan = [
+    {"Redundancy required?": YES_NO.split(",")}
 ]
 
 
