@@ -32,15 +32,17 @@ TEXTBOX_HEIGHT = 17
 PIC = " , Lin Zar, Oliver, Sahib, Thiha, 70"
 SALES = " , Derick, Don, Thiha, Shuan, 70"
 
+LATEST_MINOR_REVISION = "M1"
+
 # Proposal checklist
 # Register system here will be availble in drop_down list in excel 'Technical_Notes'
-# Need to update the template minor revision number after register update.
+# Need to update the LATEST_MINOR_REVISION number after register update.
 available_system_checklist_register = [
     "paga",
 ]
 
 # This is for generating dynamic checklist
-# Need to update the template minor revision number after register update.
+# Need to update the LATEST_MINOR_REVISION number after register update.
 available_checklist_register = [
     "ikigai_checklist",
     "cisco_rfq_checklist",

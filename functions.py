@@ -36,7 +36,6 @@ RESOURCES = os.path.join(
 
 # To update the value upon updating of the template.
 LATEST_WB_VERSION = "R2"
-LATEST_MINOR_REVISION = "M1"
 
 
 def set_nitty_gritty(text):
@@ -2066,8 +2065,8 @@ def update_template_version(wb):
         # # Copying to Template
         # MACRO_NB.sheets['Data'].range(f"A1:A{macro_nb_last_row}").copy(wb.sheets['Config'].range("A95"))
 
-    if current_minor_revision is None or current_minor_revision < LATEST_MINOR_REVISION:
-        wb.sheets["Config"].range("C15").value = LATEST_MINOR_REVISION
+    if current_minor_revision is None or current_minor_revision < cc.LATEST_MINOR_REVISION:
+        wb.sheets["Config"].range("C15").value = cc.LATEST_MINOR_REVISION
         # Clear previous data if any
         last_row = wb.sheets["Config"].range("A1048576").end("up").row
         if last_row > 95:
@@ -2116,7 +2115,7 @@ def update_template_version(wb):
             wb.sheets["Technical_Notes"].range("F:G").autofit()
 
         wb.sheets[current_sheet].activate()
-        xw.apps.active.alert(f"The template has been updated to {LATEST_WB_VERSION}.{LATEST_MINOR_REVISION}")
+        xw.apps.active.alert(f"The template has been updated to {LATEST_WB_VERSION}.{cc.LATEST_MINOR_REVISION}")
 
     else:
         message = """           
