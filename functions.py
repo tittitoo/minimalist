@@ -36,6 +36,7 @@ RESOURCES = os.path.join(
 
 # To update the value upon updating of the template.
 LATEST_WB_VERSION = "R2"
+LATEST_MINOR_REVISION = "M1"
 
 
 def set_nitty_gritty(text):
@@ -2045,6 +2046,7 @@ def creat_new_planner():
 def update_template_version(wb):
     current_sheet = wb.sheets.active
     current_wb_revision = wb.sheets["Config"].range("B15").value
+    current_minor_revision = wb.sheets["Config"].range("C15").value
     if current_wb_revision is None or current_wb_revision < LATEST_WB_VERSION:
         wb.sheets["Config"].range("D1:I20").clear()
         wb.sheets["Config"].range("95:106").delete()
@@ -2064,6 +2066,8 @@ def update_template_version(wb):
         # # Copying to Template
         # MACRO_NB.sheets['Data'].range(f"A1:A{macro_nb_last_row}").copy(wb.sheets['Config'].range("A95"))
 
+    if current_minor_revision is None or current_minor_revision < LATEST_MINOR_REVISION:
+        wb.sheets["Config"].range("C15").value = LATEST_MINOR_REVISION
         # Clear previous data if any
         last_row = wb.sheets["Config"].range("A1048576").end("up").row
         if last_row > 95:
@@ -2112,11 +2116,12 @@ def update_template_version(wb):
             wb.sheets["Technical_Notes"].range("F:G").autofit()
 
         wb.sheets[current_sheet].activate()
-        xw.apps.active.alert(f"The template has been updated to {LATEST_WB_VERSION}.")
-    elif current_wb_revision == LATEST_WB_VERSION:
+        xw.apps.active.alert(f"The template has been updated to {LATEST_WB_VERSION}.{LATEST_MINOR_REVISION}")
+
+    else:
         message = """           
-        No update is required. If you want to force an update, delete "Template Version" in cell "B15" in "Config" sheet.
-        Advisable to force an update if system is not available in dropdown list in "Technical_Notes".
-        If system is not available in dropdown after forced update, there is no checklist or checklist is not ready.
+        No update is required. If you want to force an update, delete "Template Version" in cell "B15" & "C15" in "Config" sheet.
+        Advisable to force an update if system or checklist is not available in dropdown list in "Technical_Notes".
+        If item is not available in dropdown after forced update, there is no checklist or checklist is not ready.
         """
         xw.apps.active.alert(f"{message}")

@@ -13,7 +13,7 @@ from different checklists.
 It is advisable to have checklist only once in particular checklist. The pop() method
 could get in the way otherwise.
 © Thiha Aung (infowizard@gmail.com)
-"""
+"""     
 
 # The last number is meant for choice box size
 YES_NO = "Yes, No, 70"
@@ -34,13 +34,13 @@ SALES = " , Derick, Don, Thiha, Shuan, 70"
 
 # Proposal checklist
 # Register system here will be availble in drop_down list in excel 'Technical_Notes'
+# Need to update the template minor revision number after register update.
 available_system_checklist_register = [
-    "vhf-am",
-    "vhf-fm",
     "paga",
 ]
 
 # This is for generating dynamic checklist
+# Need to update the template minor revision number after register update.
 available_checklist_register = [
     "ikigai_checklist",
     "cisco_rfq_checklist",
