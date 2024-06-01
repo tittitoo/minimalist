@@ -2044,9 +2044,14 @@ def creat_new_planner():
 
 def update_template_version(wb):
     current_sheet = wb.sheets.active
-    current_wb_revision = wb.sheets["Config"].range("B15").value
-    current_minor_revision = wb.sheets["Config"].range("C15").value
-    if current_wb_revision is None or current_wb_revision < LATEST_WB_VERSION:
+    flag = 0
+    try:
+        current_wb_revision = int(wb.sheets["Config"].range("B15").value[1:])
+        current_minor_revision = int(wb.sheets["Config"].range("C15").value[1:])
+    except:
+        current_wb_revision = None
+        current_minor_revision = None
+    if current_wb_revision is None or current_wb_revision < int(LATEST_WB_VERSION[1:]):
         wb.sheets["Config"].range("D1:I20").clear()
         wb.sheets["Config"].range("95:106").delete()
         MACRO_NB.sheets["Design"].range("A28:E36").copy(wb.sheets["Config"].range("D2"))
@@ -2057,15 +2062,9 @@ def update_template_version(wb):
         # Put currency and proposal type validation
         wb.sheets["Config"].activate()
         MACRO_NB.macro("put_currency_proposal_validation_formula")()
+        flag += 1
 
-        # Previously copying from MACRO.NB, rewrite to include from checklist_collecstions
-        # to avoid having to update PERSONAL.XLSB
-
-        # macro_nb_last_row = MACRO_NB.sheets['Data'].range("A1048576").end("up").row
-        # # Copying to Template
-        # MACRO_NB.sheets['Data'].range(f"A1:A{macro_nb_last_row}").copy(wb.sheets['Config'].range("A95"))
-
-    if current_minor_revision is None or current_minor_revision < cc.LATEST_MINOR_REVISION:
+    if current_minor_revision is None or current_minor_revision < int(cc.LATEST_MINOR_REVISION[1:]):
         wb.sheets["Config"].range("C15").value = cc.LATEST_MINOR_REVISION
         # Clear previous data if any
         last_row = wb.sheets["Config"].range("A1048576").end("up").row
@@ -2113,10 +2112,11 @@ def update_template_version(wb):
             MACRO_NB.macro("put_checklists_validation_formula")()
 
             wb.sheets["Technical_Notes"].range("F:G").autofit()
+        flag += 1
 
+    if flag:
         wb.sheets[current_sheet].activate()
         xw.apps.active.alert(f"The template has been updated to {LATEST_WB_VERSION}.{cc.LATEST_MINOR_REVISION}")
-
     else:
         message = """           
         No update is required. If you want to force an update, delete "Template Version" in cell "B15" & "C15" in "Config" sheet.
