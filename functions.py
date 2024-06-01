@@ -1079,6 +1079,7 @@ def technical(wb):
                 ws.range("G:G").delete()
                 ws.range("AL:AL").column_width = 0
         wb.sheets["Config"].delete()
+        wb.sheets["Technical_Notes"].range("F:I").delete()
 
         # If T&C does not exist, do nothing.
         try:
@@ -1147,6 +1148,7 @@ def commercial(wb):
 
     wb.sheets["Summary"].range("G:X").delete()
     wb.sheets["Config"].delete()
+    wb.sheets["Technical_Notes"].range("F:I").delete()
     wb.sheets["Summary"].activate()
     file_name = "Commercial " + wb.name[:-4] + "xlsx"
     wb.save(Path(directory, file_name), password="")
