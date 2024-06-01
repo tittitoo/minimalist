@@ -1011,6 +1011,14 @@ def prepare_to_print_technical(wb):
 
 def technical(wb):
     directory = os.path.dirname(wb.fullname)
+    # Check if Technical PDF already exist
+    temp_file_name = Path(directory, "Technical " + wb.name[:-4] + "pdf")
+    if temp_file_name.is_file():
+        xw.apps.active.alert(
+            "The Technical PDF file already exists!\n Please delete the file and try again."
+        )
+        return
+        
     wb.sheets["Cover"].range("D39").value = "TECHNICAL PROPOSAL"
     wb.sheets["Summary"].range("D20:D100").value = ""
     wb.sheets["Summary"].range("C20:C100").value = (
@@ -1021,7 +1029,7 @@ def technical(wb):
         xw.apps.active.alert("The file already seems to be technical.")
         return
 
-    elif wb.name[:10] == "Commercial":
+    if wb.name[:10] == "Commercial":
         for sheet in wb.sheet_names:
             ws = wb.sheets[sheet]
             skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
@@ -1096,6 +1104,14 @@ def technical(wb):
 
 def commercial(wb):
     directory = os.path.dirname(wb.fullname)
+    # Check if Commercial PDF already exists
+    temp_file_name = Path(directory, "Commercial " + wb.name[:-4] + "pdf")
+    if temp_file_name.is_file():
+        xw.apps.active.alert(
+            "The Commercial PDF file already exists!\n Please delete the file and try again."
+        )
+        return
+        
     """Takes a work book, set horizantal borders at pagebreaks."""
     # macro_nb = xw.Book('PERSONAL.XLSB')
     # current_sheet = wb.sheets.active
@@ -2050,7 +2066,7 @@ def update_template_version(wb):
     try:
         current_wb_revision = int(wb.sheets["Config"].range("B15").value[1:])
         current_minor_revision = int(wb.sheets["Config"].range("C15").value[1:])
-    except:
+    except Exception:
         current_wb_revision = None
         current_minor_revision = None
     if current_wb_revision is None or current_wb_revision < int(LATEST_WB_VERSION[1:]):
