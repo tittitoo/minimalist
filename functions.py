@@ -47,7 +47,7 @@ def set_nitty_gritty(text):
     # Put bullet point for Sub-subitem preceded by '-' or '~'.
     text = re.sub("^(-|~)", "•", text)
     # Put bullet point for Sub-subitem preceded by a single * followed by space.
-    text = re.sub("^[*?]\s", " • ", text)
+    text = re.sub(r"^[*?]\s", " • ", text)
     # Instead of ';' at the end of line, use ':' instead.
     text = re.sub(";$", ":", text)
     text = set_comma_space(text)
@@ -58,17 +58,17 @@ def set_nitty_gritty(text):
 def set_comma_space(text):
     """Fix having space before comma and not having space after comma"""
     # fix word+space+, to word+,
-    x = re.compile("\w+\s,")
+    x = re.compile(r"\w+\s,")
     if x.search(text):
-        substring = re.findall("\w+\s,", text)
+        substring = re.findall(r"\w+\s,", text)
         for word in substring:
             text = re.sub(word, word[:-2] + ",", text)
 
     # Fix word+,+no-space to word+,+space
-    x = re.compile(",\d?\w+")
+    x = re.compile(r",\d?\w+")
     if x.search(text):
         # Ignores format like 1,200 but matches 1,w
-        substring = re.findall("(?<![0-9]),\w+", text)
+        substring = re.findall(r"(?<![0-9]),\w+", text)
         for word in substring:
             text = re.sub(word, ", " + word[1:], text)
     return text
@@ -121,27 +121,27 @@ def set_x(text):
     """Function to replace description such as 1x, 20x, 10X ,
     x1, x20, X20 into 1 x, 20 x, 10 x, x 1, x 20, X 10 etc."""
     # For cases such as 20x, 30X. Allows if followed by -
-    x = re.compile("\d+x(?!-)|\d+X(?!-)")
+    x = re.compile(r"\d+x(?!-)|\d+X(?!-)")
     if x.search(text):
-        substring = re.findall("(\d+x|\d+X)", text)
+        substring = re.findall(r"(\d+x|\d+X)", text)
         for word in substring:
             text = re.sub(word, (word[:-1] + " x"), text)
     # For cases such as x20, X30
-    x = re.compile("(x\d+|X\d+)")
+    x = re.compile(r"(x\d+|X\d+)")
     if x.search(text):
-        substring = re.findall("(x\d+|X\d+)", text)
+        substring = re.findall(r"(x\d+|X\d+)", text)
         for word in substring:
             text = re.sub(word, ("x " + word[1:]), text)
     # For cases such as 20 X, 30 X
-    x = re.compile("(\d+ X)")
+    x = re.compile(r"(\d+ X)")
     if x.search(text):
-        substring = re.findall("(\d+ X)", text)
+        substring = re.findall(r"(\d+ X)", text)
         for word in substring:
             text = re.sub(word, (word[:-1] + "x"), text)
     # For cases such as X 20, X 30
-    x = re.compile("(X \d+)")
+    x = re.compile(r"(X \d+)")
     if x.search(text):
-        substring = re.findall("(X \d+)", text)
+        substring = re.findall(r"(X \d+)", text)
         for word in substring:
             text = re.sub(word, ("x" + word[1:]), text)
     return text
@@ -153,115 +153,111 @@ def fill_formula(sheet):
         # Formula to cells
         # Increase the last row by 1 so that the cells are not left empty
         last_row = sheet.range("C1048576").end("up").row + 1
-        sheet.range(
-            "A1"
-        ).formula = '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
+        sheet.range("A1").formula = (
+            '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
+        )
         # Serail Numbering (SN)
-        sheet.range(
-            "B3:B" + str(last_row)
-        ).formula = '=IF(AND(ISNUMBER(D3), ISNUMBER(K3), XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)), COUNT(INDIRECT(CONCAT("B",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1),":B",ROW()-1))) + 1, "")'
+        sheet.range("B3:B" + str(last_row)).formula = (
+            '=IF(AND(ISNUMBER(D3), ISNUMBER(K3), XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)), COUNT(INDIRECT(CONCAT("B",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1),":B",ROW()-1))) + 1, "")'
+        )
         sheet.range("N3:N" + str(last_row)).formula = '=IF(K3<>"",K3*(1-M3),"")'
-        sheet.range(
-            "O3:O" + str(last_row)
-        ).formula = '=IF(AND(D3<>"", K3<>"",H3<>"OPTION"),D3*N3,"")'
+        sheet.range("O3:O" + str(last_row)).formula = (
+            '=IF(AND(D3<>"", K3<>"",H3<>"OPTION"),D3*N3,"")'
+        )
         # Exchange rates
-        sheet.range(
-            "Q3:Q" + str(last_row)
-        ).formula = '=IF(Config!$B$12="SGD",IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE),""),IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE)/VLOOKUP(Config!$B$12,Config!$A$2:$B$10,2,FALSE),""))'
-        sheet.range(
-            "R3:R" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"") ,N3*Q3,"")'
+        sheet.range("Q3:Q" + str(last_row)).formula = (
+            '=IF(Config!$B$12="SGD",IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE),""),IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE)/VLOOKUP(Config!$B$12,Config!$A$2:$B$10,2,FALSE),""))'
+        )
+        sheet.range("R3:R" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"") ,N3*Q3,"")'
+        )
         # sheet.range('S3:S' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION") ,D3*R3,"")'
-        sheet.range(
-            "S3:S" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*R3,"")'
-        sheet.range(
-            "T3:T" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")'
-        sheet.range(
-            "U3:U" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*T3,"")'
+        sheet.range("S3:S" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*R3,"")'
+        )
+        sheet.range("T3:T" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")'
+        )
+        sheet.range("U3:U" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*T3,"")'
+        )
         # Default
-        sheet.range(
-            "V3:V" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$L$1,"")'
+        sheet.range("V3:V" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$L$1,"")'
+        )
         # Warranty
-        sheet.range(
-            "W3:W" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$N$1,"")'
+        sheet.range("W3:W" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$N$1,"")'
+        )
         # Freight (Inbound)
-        sheet.range(
-            "X3:X" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$P$1,"")'
+        sheet.range("X3:X" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$P$1,"")'
+        )
         # Special (Condition)
-        sheet.range(
-            "Y3:Y" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$R$1,"")'
+        sheet.range("Y3:Y" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$R$1,"")'
+        )
         # Risk
-        sheet.range(
-            "Z3:Z" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"",U3<>""),U3-(S3+V3+W3+X3+Y3),"")'
-        sheet.range(
-            "AA3:AA" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>""),$J$1,"")'
-        sheet.range(
-            "AC3:AC" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")'
+        sheet.range("Z3:Z" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"",U3<>""),U3-(S3+V3+W3+X3+Y3),"")'
+        )
+        sheet.range("AA3:AA" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>""),$J$1,"")'
+        )
+        sheet.range("AC3:AC" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")'
+        )
         # sheet.range('AD3:AD' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED"),D3*AC3,"")'
-        sheet.range(
-            "AD3:AD" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AC3,"")'
-        sheet.range(
-            "AE3:AE" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>""),IF(AB3<>"",AB3,AC3),"")'
+        sheet.range("AD3:AD" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AC3,"")'
+        )
+        sheet.range("AE3:AE" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>""),IF(AB3<>"",AB3,AC3),"")'
+        )
         # sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED"),D3*AE3,"")'
-        sheet.range(
-            "AF3:AF" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AE3,"")'
+        sheet.range("AF3:AF" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AE3,"")'
+        )
         # sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),D3*AE3,"")'
-        sheet.range(
-            "AG3:AG" + str(last_row)
-        ).formula = (
+        sheet.range("AG3:AG" + str(last_row)).formula = (
             '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")'
         )
-        sheet.range(
-            "AH3:AH" + str(last_row)
-        ).formula = '=IF(AND(AG3<>"",AG3<>0),AG3/AF3,"")'
-        sheet.range(
-            "AI3:AI" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"),D3*AE3,"")'
+        sheet.range("AH3:AH" + str(last_row)).formula = (
+            '=IF(AND(AG3<>"",AG3<>0),AG3/AF3,"")'
+        )
+        sheet.range("AI3:AI" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"),D3*AE3,"")'
+        )
         # sheet.range('AL3:AL' + str(last_row)).formula = '=IF(A3<>"","Title",IF(B3<>"","Lineitem",IF(LEFT(C3,3)="***","Comment",IF(AND(A3="",B3="",C2="", C4<>"",D4<>""), "Subtitle",""))))'
         # Unit Price
-        sheet.range(
-            "F3:F" + str(last_row)
-        ).formula = '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))'
+        sheet.range("F3:F" + str(last_row)).formula = (
+            '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))'
+        )
         # sheet.range('F3:F' + str(last_row)).formula = '=IF(AE3<>"", AE3,"")'
-        sheet.range(
-            "G3:G" + str(last_row)
-        ).formula = (
+        sheet.range("G3:G" + str(last_row)).formula = (
             '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
         )
-        sheet.range(
-            "L3:L" + str(last_row)
-        ).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION"),D3*K3,"")'
+        sheet.range("L3:L" + str(last_row)).formula = (
+            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION"),D3*K3,"")'
+        )
         # For Format field
         sheet.range("AL1").value = "Title"
         sheet.range("AL3").value = "System"
         # sheet.range('AL4:AL' + str(last_row)).formula = '=IF(C4<>"",IF(AND(A4<>"",C4<>""),"Title", IF(B4<>"","Lineitem", IF(LEFT(C4,3)="***","Comment", IF(AND(A4="",B4="",C3="", C5<>"",D5<>""), "Subtitle","Description")))),"")'
         # Implement "Subsystem"
-        sheet.range(
-            "AL4:AL" + str(last_row)
-        ).formula = '=IF(C4<>"",IF(AND(A4<>"",C4<>""),"Title", IF(B4<>"","Lineitem", IF(LEFT(C4,3)="***","Comment", IF(AND(A4="",B4="",C3="", C5<>"",D5<>""), "Subtitle", IF(AND(A4="",B4="",C3="", C5=""), "Subsystem", "Description"))))),"")'
+        sheet.range("AL4:AL" + str(last_row)).formula = (
+            '=IF(C4<>"",IF(AND(A4<>"",C4<>""),"Title", IF(B4<>"","Lineitem", IF(LEFT(C4,3)="***","Comment", IF(AND(A4="",B4="",C3="", C5<>"",D5<>""), "Subtitle", IF(AND(A4="",B4="",C3="", C5=""), "Subsystem", "Description"))))),"")'
+        )
         sheet.range("AL" + str(last_row + 1)).value = "Title"
 
         # For Lumpsum
         # sheet.range('AJ3:AJ' + str(last_row)).formula = '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AF", ROW()+1, ":AF",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
-        sheet.range(
-            "AJ3:AJ" + str(last_row)
-        ).formula = '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AI", ROW()+1, ":AI",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
-        sheet.range(
-            "AK3:AK" + str(last_row)
-        ).formula = '=IF(AL3="Lineitem", IF(ISNUMBER(INDIRECT(CONCAT("AJ",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))), "Lumpsum", "Unit Price"), "")'
+        sheet.range("AJ3:AJ" + str(last_row)).formula = (
+            '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AI", ROW()+1, ":AI",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
+        )
+        sheet.range("AK3:AK" + str(last_row)).formula = (
+            '=IF(AL3="Lineitem", IF(ISNUMBER(INDIRECT(CONCAT("AJ",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))), "Lumpsum", "Unit Price"), "")'
+        )
 
 
 def fill_formula_wb(wb):
@@ -484,9 +480,9 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 sheet.range("B" + str(offset)).value = str(count) + " ‣ "
                 sheet.range("C" + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range("D" + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range(
-                    f"G{offset}"
-                ).formula = f'=IF(E{offset}<>"OPTION", IF(D{start_row+system_count+2}>0.00001, D{offset}/D{start_row+system_count+2}, ""), "")'  # For scope percentage
+                sheet.range(f"G{offset}").formula = (
+                    f'=IF(E{offset}<>"OPTION", IF(D{start_row+system_count+2}>0.00001, D{offset}/D{start_row+system_count+2}, ""), "")'  # For scope percentage
+                )
                 sheet.range("H" + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range("I" + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range("J" + str(offset)).formula = odered_summary_formula.pop()
@@ -529,9 +525,9 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
         )
 
         # sheet = wb.sheets['Summary']
-        sheet.range(
-            "C" + str(offset + 1)
-        ).value = '="TOTAL PROJECT (" & Config!B12 & ")"'
+        sheet.range("C" + str(offset + 1)).value = (
+            '="TOTAL PROJECT (" & Config!B12 & ")"'
+        )
         sheet.range("D" + str(offset + 1)).formula = (
             "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ")"
         )
@@ -602,9 +598,9 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
             (pwb.sheets["Design"].range("19:19")).copy(
                 sheet.range(str(offset + 3) + ":" + str(offset + 3))
             )
-            sheet.range(
-                "C" + str(offset + 3)
-            ).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
+            sheet.range("C" + str(offset + 3)).formula = (
+                '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
+            )
             sheet.range("D" + str(offset + 3)).formula = (
                 "=SUM(D" + str(offset + 1) + ":D" + str(offset + 2) + ")"
             )
@@ -635,15 +631,15 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 + ", 0)"
             )
             sheet.range("P" + str(offset + 3)).number_format = "0.00%"
-            sheet.range(
-                "C" + str(offset + 5)
-            ).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
-            sheet.range(
-                "C" + str(offset + 6)
-            ).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."
-            sheet.range(
-                "C" + str(offset + 7)
-            ).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+            sheet.range("C" + str(offset + 5)).formula = (
+                '="• All the prices are in " & Config!B12 & " excluding GST."'
+            )
+            sheet.range("C" + str(offset + 6)).value = (
+                "• Total project price does not include prices for optional items set out in the detailed bill of material."
+            )
+            sheet.range("C" + str(offset + 7)).value = (
+                "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+            )
 
             # Write back the discount
             if sheet.range(f"C{system_count+start_row+3}").value in [
@@ -667,43 +663,43 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 for i in range(discount_level):
                     sheet.range(f"H{offset+7+i}").formula = f"=D{offset+1}"
                     sheet.range(f"I{offset+7+i}").value = (i + 1) / 100
-                    sheet.range(
-                        f"J{offset+7+i}"
-                    ).formula = f"=CEILING(H{offset+7+i}*I{offset+7+i},1)"
-                    sheet.range(
-                        f"K{offset+7+i}"
-                    ).formula = f"=H{offset+7+i}-J{offset+7+i}"
+                    sheet.range(f"J{offset+7+i}").formula = (
+                        f"=CEILING(H{offset+7+i}*I{offset+7+i},1)"
+                    )
+                    sheet.range(f"K{offset+7+i}").formula = (
+                        f"=H{offset+7+i}-J{offset+7+i}"
+                    )
                     sheet.range(f"L{offset+7+i}").formula = f"=N{offset+1}"
-                    sheet.range(
-                        f"M{offset+7+i}"
-                    ).formula = f"=K{offset+7+i}-L{offset+7+i}"
-                    sheet.range(
-                        f"N{offset+7+i}"
-                    ).formula = f"=M{offset+7+i}/K{offset+7+i}"
+                    sheet.range(f"M{offset+7+i}").formula = (
+                        f"=K{offset+7+i}-L{offset+7+i}"
+                    )
+                    sheet.range(f"N{offset+7+i}").formula = (
+                        f"=M{offset+7+i}/K{offset+7+i}"
+                    )
                 # Format
-                sheet.range(
-                    f"H{offset+7}:H{offset+7+discount_level}"
-                ).number_format = ACCOUNTING
-                sheet.range(
-                    f"I{offset+7}:I{offset+7+discount_level}"
-                ).number_format = "0.00%"
-                sheet.range(
-                    f"J{offset+7}:M{offset+7+discount_level}"
-                ).number_format = ACCOUNTING
-                sheet.range(
-                    f"N{offset+7}:N{offset+7+discount_level}"
-                ).number_format = "0.00%"
+                sheet.range(f"H{offset+7}:H{offset+7+discount_level}").number_format = (
+                    ACCOUNTING
+                )
+                sheet.range(f"I{offset+7}:I{offset+7+discount_level}").number_format = (
+                    "0.00%"
+                )
+                sheet.range(f"J{offset+7}:M{offset+7+discount_level}").number_format = (
+                    ACCOUNTING
+                )
+                sheet.range(f"N{offset+7}:N{offset+7+discount_level}").number_format = (
+                    "0.00%"
+                )
 
         else:
-            sheet.range(
-                "C" + str(offset + 3)
-            ).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
-            sheet.range(
-                "C" + str(offset + 4)
-            ).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
-            sheet.range(
-                "C" + str(offset + 5)
-            ).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+            sheet.range("C" + str(offset + 3)).formula = (
+                '="• All the prices are in " & Config!B12 & " excluding GST."'
+            )
+            sheet.range("C" + str(offset + 4)).value = (
+                "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
+            )
+            sheet.range("C" + str(offset + 5)).value = (
+                "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+            )
 
     else:
         for sheet in wb.sheet_names:
@@ -738,9 +734,9 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 sheet.range("B" + str(offset)).value = str(count) + " ‣ "
                 sheet.range("C" + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range("D" + str(offset)).formula = odered_summary_formula.pop()
-                sheet.range(
-                    f"G{offset}"
-                ).formula = f'=IF(E{offset}<>"OPTION", IF(D{start_row+system_count+2}>0.00001, D{offset}/D{start_row+system_count+2}, ""), "")'  # For scope percentage
+                sheet.range(f"G{offset}").formula = (
+                    f'=IF(E{offset}<>"OPTION", IF(D{start_row+system_count+2}>0.00001, D{offset}/D{start_row+system_count+2}, ""), "")'  # For scope percentage
+                )
                 sheet.range("H" + str(offset)).formula = odered_summary_formula.pop()
                 sheet.range("I" + str(offset)).formula = (
                     "=IF(H"
@@ -777,9 +773,9 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
         )
 
         # sheet = wb.sheets['Summary']
-        sheet.range(
-            "C" + str(offset + 1)
-        ).value = '="TOTAL PROJECT (" & Config!B12 & ")"'
+        sheet.range("C" + str(offset + 1)).value = (
+            '="TOTAL PROJECT (" & Config!B12 & ")"'
+        )
         sheet.range("D" + str(offset + 1)).formula = (
             "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ")"
         )
@@ -830,9 +826,9 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
             (pwb.sheets["Design"].range("9:9")).copy(
                 sheet.range(str(offset + 3) + ":" + str(offset + 3))
             )
-            sheet.range(
-                "C" + str(offset + 3)
-            ).formula = '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
+            sheet.range("C" + str(offset + 3)).formula = (
+                '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
+            )
             sheet.range("D" + str(offset + 3)).formula = (
                 "=SUM(D" + str(offset + 1) + ":D" + str(offset + 2) + ")"
             )
@@ -864,15 +860,15 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 + ", 0)"
             )
             sheet.range("J" + str(offset + 3)).number_format = "0.00%"
-            sheet.range(
-                "C" + str(offset + 5)
-            ).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
-            sheet.range(
-                "C" + str(offset + 6)
-            ).value = "• Total project price does not include prices for optional items set out in the detailed bill of material."
-            sheet.range(
-                "C" + str(offset + 7)
-            ).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+            sheet.range("C" + str(offset + 5)).formula = (
+                '="• All the prices are in " & Config!B12 & " excluding GST."'
+            )
+            sheet.range("C" + str(offset + 6)).value = (
+                "• Total project price does not include prices for optional items set out in the detailed bill of material."
+            )
+            sheet.range("C" + str(offset + 7)).value = (
+                "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+            )
 
             # Write back the discount
             if sheet.range(f"C{system_count+start_row+3}").value in [
@@ -897,43 +893,43 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 for i in range(discount_level):
                     sheet.range(f"H{offset+7+i}").formula = f"=D{offset+1}"
                     sheet.range(f"I{offset+7+i}").value = (i + 1) / 100
-                    sheet.range(
-                        f"J{offset+7+i}"
-                    ).formula = f"=CEILING(H{offset+7+i}*I{offset+7+i},1)"
-                    sheet.range(
-                        f"K{offset+7+i}"
-                    ).formula = f"=H{offset+7+i}-J{offset+7+i}"
+                    sheet.range(f"J{offset+7+i}").formula = (
+                        f"=CEILING(H{offset+7+i}*I{offset+7+i},1)"
+                    )
+                    sheet.range(f"K{offset+7+i}").formula = (
+                        f"=H{offset+7+i}-J{offset+7+i}"
+                    )
                     sheet.range(f"L{offset+7+i}").formula = f"=H{offset+1}"
-                    sheet.range(
-                        f"M{offset+7+i}"
-                    ).formula = f"=K{offset+7+i}-L{offset+7+i}"
-                    sheet.range(
-                        f"N{offset+7+i}"
-                    ).formula = f"=M{offset+7+i}/K{offset+7+i}"
+                    sheet.range(f"M{offset+7+i}").formula = (
+                        f"=K{offset+7+i}-L{offset+7+i}"
+                    )
+                    sheet.range(f"N{offset+7+i}").formula = (
+                        f"=M{offset+7+i}/K{offset+7+i}"
+                    )
                 # Format
-                sheet.range(
-                    f"H{offset+7}:H{offset+7+discount_level}"
-                ).number_format = ACCOUNTING
-                sheet.range(
-                    f"I{offset+7}:I{offset+7+discount_level}"
-                ).number_format = "0.00%"
-                sheet.range(
-                    f"J{offset+7}:M{offset+7+discount_level}"
-                ).number_format = ACCOUNTING
-                sheet.range(
-                    f"N{offset+7}:N{offset+7+discount_level}"
-                ).number_format = "0.00%"
+                sheet.range(f"H{offset+7}:H{offset+7+discount_level}").number_format = (
+                    ACCOUNTING
+                )
+                sheet.range(f"I{offset+7}:I{offset+7+discount_level}").number_format = (
+                    "0.00%"
+                )
+                sheet.range(f"J{offset+7}:M{offset+7+discount_level}").number_format = (
+                    ACCOUNTING
+                )
+                sheet.range(f"N{offset+7}:N{offset+7+discount_level}").number_format = (
+                    "0.00%"
+                )
 
         else:
-            sheet.range(
-                "C" + str(offset + 3)
-            ).formula = '="• All the prices are in " & Config!B12 & " excluding GST."'
-            sheet.range(
-                "C" + str(offset + 4)
-            ).value = "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
-            sheet.range(
-                "C" + str(offset + 5)
-            ).value = "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+            sheet.range("C" + str(offset + 3)).formula = (
+                '="• All the prices are in " & Config!B12 & " excluding GST."'
+            )
+            sheet.range("C" + str(offset + 4)).value = (
+                "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
+            )
+            sheet.range("C" + str(offset + 5)).value = (
+                "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+            )
 
     sheet.range("D:D").autofit()
     sheet.range("E:E").autofit()
@@ -1018,7 +1014,7 @@ def technical(wb):
             "The Technical PDF file already exists!\n Please delete the file and try again."
         )
         return
-        
+
     wb.sheets["Cover"].range("D39").value = "TECHNICAL PROPOSAL"
     wb.sheets["Summary"].range("D20:D100").value = ""
     wb.sheets["Summary"].range("C20:C100").value = (
@@ -1111,7 +1107,7 @@ def commercial(wb):
             "The Commercial PDF file already exists!\n Please delete the file and try again."
         )
         return
-        
+
     """Takes a work book, set horizantal borders at pagebreaks."""
     # macro_nb = xw.Book('PERSONAL.XLSB')
     # current_sheet = wb.sheets.active
@@ -1145,9 +1141,7 @@ def commercial(wb):
             ws.range("C:C").autofit()
             ws.range("C:C").column_width = 55
             # wb.sheets[sheet].range('C:C').wrap_text =
-            ws.range(
-                f"G3:G{last_row-1}"
-            ).formula = (
+            ws.range(f"G3:G{last_row-1}").formula = (
                 '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
             )
             ws.range(f"G{last_row}").formula = "=SUM(G3:G" + str(last_row - 1) + ")"
@@ -1483,9 +1477,9 @@ def internal_costing(wb):
             # Insert Escalation column
             ws.range("S:S").insert("right")
             ws.range("S2").value = "Escalation"
-            ws.range(
-                "S3:S" + str(last_row)
-            ).formula = '=IF(AND(D3<>"", J3<>"",K3<>""), $Y$7, "")'
+            ws.range("S3:S" + str(last_row)).formula = (
+                '=IF(AND(D3<>"", J3<>"",K3<>""), $Y$7, "")'
+            )
             ws.range("S3:S" + str(last_row)).number_format = "0.00%"
 
             # To reduce visual clutter
@@ -1723,7 +1717,7 @@ def convert_legacy(wb):
             ):
                 systems.at[idx, "Model"] = np.nan
 
-        # Previoulsy using Proposal_Template.xlsx 
+        # Previoulsy using Proposal_Template.xlsx
         # url = "https://filedn.com/liTeg81ShEXugARC7cg981h/Proposal_Template.xlsx"
         # Now using Template.xlsx
         url = "https://filedn.com/liTeg81ShEXugARC7cg981h/Template.xlsx"
@@ -2082,7 +2076,9 @@ def update_template_version(wb):
         MACRO_NB.macro("put_currency_proposal_validation_formula")()
         flag += 1
 
-    if current_minor_revision is None or current_minor_revision < int(cc.LATEST_MINOR_REVISION[1:]):
+    if current_minor_revision is None or current_minor_revision < int(
+        cc.LATEST_MINOR_REVISION[1:]
+    ):
         wb.sheets["Config"].range("C15").value = cc.LATEST_MINOR_REVISION
         # Clear previous data if any
         last_row = wb.sheets["Config"].range("A1048576").end("up").row
@@ -2134,7 +2130,9 @@ def update_template_version(wb):
 
     if flag:
         wb.sheets[current_sheet].activate()
-        xw.apps.active.alert(f"The template has been updated to {LATEST_WB_VERSION}.{cc.LATEST_MINOR_REVISION}")
+        xw.apps.active.alert(
+            f"The template has been updated to {LATEST_WB_VERSION}.{cc.LATEST_MINOR_REVISION}"
+        )
     else:
         message = """           
         No update is required. If you want to force an update, delete "Template Version" in cell "B15" & "C15" in "Config" sheet.
