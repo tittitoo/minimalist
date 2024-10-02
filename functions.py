@@ -97,9 +97,11 @@ def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
 
     if title:
         text = title_case_ignore_double_char(text)
-        # Restore acronyms
+        # Improved function to restore acronyms
         for acronym in acronyms:
-            text = text.replace(acronym.title(), acronym)
+            acronym_regex = acronym.title()
+            pattern = rf"\b{acronym_regex}\b"
+            text = re.sub(pattern, acronym, text)
         return text
 
     elif capitalize:
@@ -1340,12 +1342,12 @@ def format_text(
                         title=True,
                     )
 
-            if systems.at[idx, "Format"] == "Description":
-                if len(str(systems.loc[idx, "Description"])) <= 60:
-                    systems.at[idx, "Description"] = set_case_preserve_acronym(
-                        (str(systems.loc[idx, "Description"]).strip()).lstrip("• "),
-                        title=True,
-                    )
+            # if systems.at[idx, "Format"] == "Description":
+            #     if len(str(systems.loc[idx, "Description"])) <= 60:
+            #         systems.at[idx, "Description"] = set_case_preserve_acronym(
+            #             (str(systems.loc[idx, "Description"]).strip()).lstrip("• "),
+            #             title=True,
+            #         )
 
         if upper_title:
             if systems.at[idx, "Format"] == "Title":
