@@ -13,7 +13,7 @@ from different checklists.
 It is advisable to have checklist only once in particular checklist. The pop() method
 could get in the way otherwise.
 © Thiha Aung (infowizard@gmail.com)
-"""     
+"""
 
 # The last number is meant for choice box size
 YES_NO = "Yes, No, 70"
@@ -92,6 +92,7 @@ sales_checklist = [  # type:ignore
         "If existing customer, do we have anything to be aware of, such as difficulity collecting payment, argument on VO, etc.?": [
             "No",
             "Yes",
+            "NA",
             "Unknown",
             70,
         ],
@@ -264,7 +265,7 @@ while working, and 'Printed' copy is a frozen information point, which serves au
 """,
 ]
 
-rfq_checklist = [ # type:ignore
+rfq_checklist = [  # type:ignore
     "Is there any AVL?",
 ]
 
@@ -272,18 +273,26 @@ general = [  # type:ignore
     "Have you updated the date and revision number?",
     "Have you done final common sense check of all the numbers? Do they make sense?",
     {
-        "Have you checked the cabinet size requirement and quantity? Would all the equipment fit inside the provided cabinet(s)?": 
-        NIL_YES_NO_NA.split(","),
-        "Have you checked the sever specification requirement, e.g memory and SSD sizes?": NIL_YES_NO_NA.split(","),
-        "Have you clarified on the cable gland requirement? Have you put the note to this effect?": NIL_YES_NO_NA.split(","),
-        "Is there any AVL? Have you followed as per requirement, such as JB?": NIL_YES_NO_NA.split(","),
+        "Have you checked the cabinet size requirement and quantity? Would all the equipment fit inside the provided cabinet(s)?": NIL_YES_NO_NA.split(
+            ","
+        ),
+        "Have you checked the sever specification requirement, e.g memory and SSD sizes?": NIL_YES_NO_NA.split(
+            ","
+        ),
+        "Have you clarified on the cable gland requirement? Have you put the note to this effect?": NIL_YES_NO_NA.split(
+            ","
+        ),
+        "Is there any AVL? Have you followed as per requirement, such as JB?": NIL_YES_NO_NA.split(
+            ","
+        ),
         "Have you checked all the IP ratings requirment?": NIL_YES_NO_NA.split(","),
-        "Have you checked the material requirement, e.g. SS316?": NIL_YES_NO_NA.split(","),
-
+        "Have you checked the material requirement, e.g. SS316?": NIL_YES_NO_NA.split(
+            ","
+        ),
     },
     "Have you adjusted all the T&C's as per the sales checklist?",
     "Is the class submission required?",
-    ("What is the warranty period catered?", 300, TEXTBOX_HEIGHT, "")
+    ("What is the warranty period catered?", 300, TEXTBOX_HEIGHT, ""),
 ]
 
 engineering_services = [  # type:ignore
@@ -331,9 +340,7 @@ vhf_fm = [
     },
 ]
 
-lan = [
-    {"Redundancy required?": YES_NO.split(",")}
-]
+lan = [{"Redundancy required?": YES_NO.split(",")}]
 
 
 # Sales Briefing
@@ -379,13 +386,24 @@ cisco_rfq_checklist = [
 ]
 
 ndb_checklist = [
-{"Transmitter Configuration": ["Dual", "Single", 70]},
-{"Transmitter Mounting Type": ["Wall/Bulkhead", "Inside Separate Cabinet", 150]},
-{"Surge Protection For Transmitter Required?": NO_YES.split(",")},
-{"Transmitter Power": ["125W", "250W", 70]},
-{"Operating Frequency": ["190kHz - 530kHz", "536kHz - 1250kHz", "1600kHz - 1800kHz", 120]},
-{"Antenna Type": ["Whip", "Helideck", 70]},
-{"Remote Control At Site (With Serial Connection) Required?": NO_YES.split(",")},
-{"Status Monitoring Beacon Receiver (Off-Air Monitoring) Required?": NO_YES.split(",")},
-{"Remote Connection (Ethernet) Required?": NO_YES.split(",")},
+    {"Transmitter Configuration": ["Dual", "Single", 70]},
+    {"Transmitter Mounting Type": ["Wall/Bulkhead", "Inside Separate Cabinet", 150]},
+    {"Surge Protection For Transmitter Required?": NO_YES.split(",")},
+    {"Transmitter Power": ["125W", "250W", 70]},
+    {
+        "Operating Frequency": [
+            "190kHz - 530kHz",
+            "536kHz - 1250kHz",
+            "1600kHz - 1800kHz",
+            120,
+        ]
+    },
+    {"Antenna Type": ["Whip", "Helideck", 70]},
+    {"Remote Control At Site (With Serial Connection) Required?": NO_YES.split(",")},
+    {
+        "Status Monitoring Beacon Receiver (Off-Air Monitoring) Required?": NO_YES.split(
+            ","
+        )
+    },
+    {"Remote Connection (Ethernet) Required?": NO_YES.split(",")},
 ]
