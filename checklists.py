@@ -4,35 +4,28 @@ Creating checklists. This may later be turned into a class.
 """
 
 import os
-from pathlib import Path
-from datetime import datetime
-from textwrap import wrap
 import subprocess
+from datetime import datetime
+from pathlib import Path
+from textwrap import wrap
 
-# import requests
-# import xlwings as xw  # type:ignore
-# import numpy as np
 import pandas as pd
-
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import inch
-from reportlab.lib.pagesizes import A4
 from reportlab.lib.colors import (
     black,
-    lightyellow,
-    lightcyan,
-    honeydew,
-    lavender,
     blue,
+    honeydew,
     # mintcream,
     ivory,
     # azure,
+    lavender,
+    lightcyan,
+    lightyellow,
 )
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
 
 import checklist_collections as cc
-
-# import hide
-
 
 # Global Variables
 LEFT_MARGIN = 70
