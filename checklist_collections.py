@@ -187,7 +187,6 @@ Produce the contract version of the costing sheet:
     "Organize and clean up '00-ITB' folder. The folders inside are to be named by date and the date format shall be 'yyyy-mm-dd', e.g. '2024-01-29'.",
     {
         "Save the latest CQ or Commercial Clarification in '01-Commercial' folder.": [
-            "",
             "NA",
             "Done",
             40,
@@ -198,32 +197,36 @@ Produce the contract version of the costing sheet:
 must be outside and historical reference emails must be in '00-Arc' inside this folder.",
     "Organize and clean up '04-Datasheet' folder.",
     {
-        "Save any relevant drawings (block diagrams, DMD, Rack GA, etc.) inside the '05-Drawing' folder, if it exists.": [
+        "Save any relevant drawings (block diagrams, DMD, Rack GA, etc.) inside the '05-Drawing' folder.": [
             "NA",
             "Done",
             40,
         ],
     },
     "Keep the PO in '06-PO' folder.",
-    "Work out the engineering cost estimater excel and save in '08-Toolkit' folder.",
+    {
+        "Work out the engineering cost estimater excel and save in '08-Toolkit' folder.": [
+            "NA",
+            "Done",
+            40,
+        ]
+    },
 ]
 
 costing = [  # type:ignore
     "Create the folder with the same project name in '@costing' folder.",
-    """
-Crate a folder called '00-MAIN' for main order and '01-VO', '02-VO' for
+    """Create a folder called '00-MAIN' for main order and '01-VO', '02-VO' for
 subsequent orders inside the above created folder. For VO items, also include description,
 e.g. '01-VO SET-TOP BOX'.
 """,
     "Put in the latest commercial proposal PDF.",
     "Put in the contract version of the costing sheet.",
-    "Put in the latest CQ or commercial clarification.",
+    {"Put in the latest CQ or commercial clarification.": ["NA", "Done", 40]},
 ]
 
 handover = [  # type:ignore
     "Create a folder with the same project name in '@handover' folder.",
-    """
-Crate a folder called '00-MAIN' for main order and '01-VO', '02-VO' for
+    """Create a folder called '00-MAIN' for main order and '01-VO', '02-VO' for
 subsequent orders inside the above created folder. For VO items, also include description,
 e.g. '01-VO SET-TOP BOX'.
 """,
@@ -233,14 +236,18 @@ e.g. '01-VO SET-TOP BOX'.
     "Copy '03-Supplier' folder in.",
     "Copy '04-Datasheet' folder in.",
     "Create a folder called '05-Cost.'",
-    """
-Generate internal costing sheet from contract file and put in this folder.
+    """Generate internal costing sheet from contract file and put in this folder.
 Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.
 """,
-    "Put in enginnering cost estimator PDF in this folder.",
     {
-        "Put in the latest CQ or commercial clarification if applicable in this folder.": [
-            "",
+        "Put in enginnering cost estimator PDF in this folder.": [
+            "NA",
+            "Done",
+            40,
+        ]
+    },
+    {
+        "Put in the latest CQ or commercial clarification in this folder.": [
             "NA",
             "Done",
             40,
@@ -257,10 +264,9 @@ in_closing = [  # type:ignore
     "Once all the preparation is done, let the manager review the folder content.",
     "After approval, send the link for '@handover' folder to project management side. Attention to project management head and cc 'Email Group - Project Energy <project@jason.com.sg>'.",
     "Send the link for '@costing' folder to sales support side.",
-    """
-Keep the original and printed copy of the handover checklist in '06-PO' folder in '@rfqs'.
+    """Keep the original and printed copy of the handover checklist in '06-PO' folder in '@rfqs'.
 Append the filename of the printed copy of the file with 'Printed', e.g. 'J12473 Handover
-Checklist 2024-02-02 Printed.pdf'. Original file is meant to keep tracked of your progress 
+Checklist 2024-02-02 Printed.pdf'. Original file is meant to keep track of your progress 
 while working, and 'Printed' copy is a frozen information point, which serves audit purpose.
 """,
 ]
