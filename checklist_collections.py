@@ -176,8 +176,7 @@ the form as many times as necessary throughout the project tendering lifecycle.
 
 # Handover checklist
 rfqs = [  # type:ignore
-    """
-Produce the contract version of the costing sheet:
+    """Produce the contract version of the costing sheet:
 (1) fix unit prices (FUP), 
 (2) update the latest cost (where applicable),
 (3) append "CONTRACT" to the filename.
