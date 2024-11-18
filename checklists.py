@@ -8,9 +8,10 @@ from pathlib import Path
 from datetime import datetime
 from textwrap import wrap
 import subprocess
-import requests
-import xlwings as xw  # type:ignore
-import numpy as np
+
+# import requests
+# import xlwings as xw  # type:ignore
+# import numpy as np
 import pandas as pd
 
 from reportlab.pdfgen import canvas
@@ -23,13 +24,14 @@ from reportlab.lib.colors import (
     honeydew,
     lavender,
     blue,
-    mintcream,
+    # mintcream,
     ivory,
-    azure,
+    # azure,
 )
 
 import checklist_collections as cc
-import hide
+
+# import hide
 
 
 # Global Variables
