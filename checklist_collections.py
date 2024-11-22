@@ -1,4 +1,4 @@
-""" Checklist Collections
+"""Checklist Collections
 
 Idea
 Checklist: list or dynamically construct a list
@@ -394,6 +394,7 @@ ndb_checklist = [
     {"Transmitter Configuration": ["Dual", "Single", 70]},
     {"Transmitter Mounting Type": ["Wall/Bulkhead", "Inside Separate Cabinet", 150]},
     {"Surge Protection For Transmitter Required?": NO_YES.split(",")},
+    {"Sunshield for Transmitter Required?": NO_YES.split(",")},
     {"Transmitter Power": ["125W", "250W", 70]},
     {
         "Operating Frequency": [
