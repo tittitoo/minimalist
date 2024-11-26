@@ -30,7 +30,7 @@ CLASS_SOCIETY = "DNV, ABS, LR, BV, NA, Others, 70"
 VALIDITY = "30 Days, 45 Days, 60 Days, 90 Days, 120 Days, 7 Days, 15 Days, 70"
 TEXTBOX_HEIGHT = 17
 PIC = " , Lin Zar, Oliver, Sahib, Thiha, 70"
-SALES = " , Derick, Don, Thiha, Shuan, 70"
+SALES = " , Derick, Don, Thiha, Shuan, Ooi, 70"
 
 LATEST_MINOR_REVISION = "M1"
 
