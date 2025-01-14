@@ -6,13 +6,15 @@ Created so that python fucntions are available in Excel.
 import xlwings as xw  # type: ignore
 import functions
 import checklists
-import checklist_collections as cc
+
+# import checklist_collections as cc
 
 # from reportlab.lib.colors import lightcyan, black, white, lightyellow, blue
 
 
 class IsNotTemplateException(Exception):
-    """ Raise if the excel file is not recognized as a template. """
+    """Raise if the excel file is not recognized as a template."""
+
     # def __init__(self, *args: object) -> None:
     #     super().__init__(*args)
 
@@ -33,7 +35,24 @@ def check_if_template(func):
     return wrapper
 
 
+def disable_screen_updating(func):
+    "Disable excel screen updating to improve performance"
+
+    def wrapper(*args, **kwargs):
+        try:
+            xw.Book.caller().app.screen_updating = False
+            xw.Book.caller().app.status_bar = "Running please wait ..."
+            func(*args, **kwargs)
+            xw.Book.caller().app.screen_updating = True
+            # xw.Book.caller().app.status_bar = "Done"
+        except Exception as e:
+            print(f"Failed to make the app invisible -> {e}")
+
+    return wrapper
+
+
 @check_if_template
+@disable_screen_updating
 def fill_formula():
     wb = xw.Book.caller()
     ws = wb.sheets.active
@@ -43,6 +62,7 @@ def fill_formula():
 # Fix the whole workbook. The function name will later change to fix_workbook
 # Now is tied ot Fix Wrokbook in Excel
 @check_if_template
+@disable_screen_updating
 def fill_formula_wb():
     wb = xw.Book.caller()
     functions.delete_extra_empty_row_wb(wb)
@@ -59,6 +79,7 @@ def fill_formula_wb():
 
 
 @check_if_template
+@disable_screen_updating
 def subtotal():
     wb = xw.Book.caller()
     ws = wb.sheets.active
@@ -66,12 +87,14 @@ def subtotal():
 
 
 @check_if_template
+@disable_screen_updating
 def subtotal_wb():
     wb = xw.Book.caller()
     functions.fill_lastrow(wb)
 
 
 @check_if_template
+@disable_screen_updating
 def unhide_columns():
     wb = xw.Book.caller()
     ws = wb.sheets.active
@@ -79,96 +102,112 @@ def unhide_columns():
 
 
 @check_if_template
+@disable_screen_updating
 def summary():
     wb = xw.Book.caller()
     functions.summary(wb, discount=False)
 
 
 @check_if_template
+@disable_screen_updating
 def summary_discount():
     wb = xw.Book.caller()
     functions.summary(wb, discount=True)
 
 
 @check_if_template
+@disable_screen_updating
 def summary_detail():
     wb = xw.Book.caller()
     functions.summary(wb, discount=False, detail=True)
 
 
 @check_if_template
+@disable_screen_updating
 def summary_detail_discount():
     wb = xw.Book.caller()
     functions.summary(wb, discount=True, detail=True)
 
 
 @check_if_template
+@disable_screen_updating
 def number_title():
     wb = xw.Book.caller()
     functions.number_title(wb)
 
 
 @check_if_template
+@disable_screen_updating
 def hide_columns():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.hide_columns(ws)
 
 
+@disable_screen_updating
 def technical():
     wb = xw.Book.caller()
     functions.technical(wb)
 
 
 @check_if_template
+@disable_screen_updating
 def prepare_to_print_commercial():
     wb = xw.Book.caller()
     functions.prepare_for_print_commercial(wb)
 
 
 @check_if_template
+@disable_screen_updating
 def print_commercial():
     wb = xw.Book.caller()
     functions.commercial(wb)
 
 
 @check_if_template
+@disable_screen_updating
 def conditional_format_wb():
     wb = xw.Book.caller()
     functions.conditional_format_wb(wb)
 
 
 @check_if_template
+@disable_screen_updating
 def fix_unit_price():
     wb = xw.Book.caller()
     functions.fix_unit_price(wb)
 
 
 @check_if_template
+@disable_screen_updating
 def format_text():
     wb = xw.Book.caller()
     functions.format_text(wb, title_lineitem_or_description=True)
 
 
 @check_if_template
+@disable_screen_updating
 def indent_description():
     wb = xw.Book.caller()
     functions.format_text(wb, indent_description=True, bullet_description=True)
 
 
 @check_if_template
+@disable_screen_updating
 def shaded():
     wb = xw.Book.caller()
     functions.shaded(wb, shaded=True)
 
 
 @check_if_template
+@disable_screen_updating
 def unshaded():
     wb = xw.Book.caller()
     functions.shaded(wb, shaded=False)
 
 
 @check_if_template
+@disable_screen_updating
 def internal_costing():
     wb = xw.Book.caller()
     functions.internal_costing(wb)
@@ -180,6 +219,7 @@ def convert_legacy():
 
 
 @check_if_template
+@disable_screen_updating
 def fill_formula_active_row():
     wb = xw.Book.caller()
     ws = wb.sheets.active
@@ -187,6 +227,7 @@ def fill_formula_active_row():
 
 
 @check_if_template
+@disable_screen_updating
 def delete_extra_empty_row():
     wb = xw.Book.caller()
     ws = wb.sheets.active
@@ -210,12 +251,14 @@ def generate_sales_checklist():
 
 
 @check_if_template
+@disable_screen_updating
 def generate_firmed_proposal_checklist():
     wb = xw.Book.caller()
     checklists.generate_proposal_checklist(wb)
 
 
 @check_if_template
+@disable_screen_updating
 def generate_budgetary_proposal_checklist():
     wb = xw.Book.caller()
     checklists.generate_proposal_checklist(
@@ -224,18 +267,21 @@ def generate_budgetary_proposal_checklist():
 
 
 @check_if_template
+@disable_screen_updating
 def update_template_version():
     wb = xw.Book.caller()
     functions.update_template_version(wb)
 
 
 @check_if_template
+@disable_screen_updating
 def generate_handover_checklist():
     wb = xw.Book.caller()
     checklists.generate_handover_checklist(wb)
 
 
 @check_if_template
+@disable_screen_updating
 def generate_general_checklist():
     wb = xw.Book.caller()
     checklists.generate_general_checklist(wb)
