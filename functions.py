@@ -1212,13 +1212,13 @@ def conditional_format_wb(wb):
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
-            # wb.sheets[sheet].activate()
+            wb.sheets[sheet].activate()
             MACRO_NB.macro("conditional_format")()
             # Remove H borders in original excel
             MACRO_NB.macro("remove_h_borders")()
             # Fix the columns border
             MACRO_NB.macro("format_column_border")()
-    # wb.sheets[current_sheet].activate()
+    wb.sheets[current_sheet].activate()
 
 
 def fix_unit_price(wb):
@@ -1409,11 +1409,12 @@ def shaded(wb, shaded=True):
     # current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
-            # wb.sheets[sheet].activate()
+            wb.sheets[sheet].ativate()
             if shaded:
                 MACRO_NB.macro("shaded")()
             else:
                 MACRO_NB.macro("unshaded")()
+                # pass
     # wb.sheets[current_sheet].activate()
 
 
