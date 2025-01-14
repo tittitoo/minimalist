@@ -275,7 +275,7 @@ def fill_lastrow(wb):
             fill_lastrow_sheet(wb, sheet)
 
 
-def fill_lastrow_sheet(wb, sheet):
+def fill_lastrow_sheet(wb, sheet):  # type: ignore
     pwb = xw.books("PERSONAL.XLSB")
     skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     if sheet.name not in skip_sheets:
@@ -1012,7 +1012,7 @@ def technical(wb):
     # Check if Technical PDF already exist
     temp_file_name = Path(directory, "Technical " + wb.name[:-4] + "pdf")
     if temp_file_name.is_file():
-        xw.apps.active.alert(
+        xw.apps.active.alert(  # type: ignore
             "The Technical PDF file already exists!\n Please delete the file and try again."
         )
         return
@@ -1024,7 +1024,7 @@ def technical(wb):
     )
 
     if wb.name[:9] == "Technical":
-        xw.apps.active.alert("The file already seems to be technical.")
+        xw.apps.active.alert("The file already seems to be technical.")  # type: ignore
         return
 
     if wb.name[:10] == "Commercial":
@@ -1090,7 +1090,7 @@ def technical(wb):
         # If T&C does not exist, do nothing.
         try:
             wb.sheets["T&C"].delete()
-        except Exception as e:
+        except Exception:
             pass
         prepare_to_print_technical(wb)
         wb.sheets["Summary"].activate()
@@ -1105,7 +1105,7 @@ def commercial(wb):
     # Check if Commercial PDF already exists
     temp_file_name = Path(directory, "Commercial " + wb.name[:-4] + "pdf")
     if temp_file_name.is_file():
-        xw.apps.active.alert(
+        xw.apps.active.alert(  # type: ignore
             "The Commercial PDF file already exists!\n Please delete the file and try again."
         )
         return
@@ -1170,7 +1170,7 @@ def commercial(wb):
     except Exception as e:
         # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
         # xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
-        xw.apps.active.alert(
+        xw.apps.active.alert(  # type: ignore
             f"This error is encountered {e}. The PDF file already exists?"
         )
 
@@ -1197,7 +1197,7 @@ def print_technical(wb):
         wb.to_pdf(show=True)
     except Exception:
         # The program does not override the existing file. The file needs to be removed if it exists.
-        xw.apps.active.alert(
+        xw.apps.active.alert(  # type: ignore
             "The PDF file already exists!\n Please delete the file and try again."
         )
 
@@ -1575,8 +1575,8 @@ def convert_legacy(wb):
             "ES",
             "T&C",
         ]
-        df = pd.DataFrame(columns=full_column_list)
-        risk = 0.05
+        df = pd.DataFrame(columns=full_column_list)  # type: ignore
+        # risk = 0.05
         # Read and set currency from FX sheet
         fx = wb.sheets["FX"]
         exchange_rates = dict(fx.range("A2:B9").value)
@@ -1584,8 +1584,8 @@ def convert_legacy(wb):
         project_info = dict(fx.range("A36:B46").value)
         try:
             project_info = {key: value.upper() for key, value in project_info.items()}
-        except:
-            xw.apps.active.alert("Project Info items cannot be empty value.")
+        except Exception:
+            xw.apps.active.alert("Project Info items cannot be empty value.")  # type: ignore
             return
         # Read system sheets
         cols = [
@@ -1850,11 +1850,11 @@ def convert_legacy(wb):
         file_name = wb.name[:-4] + "xlsx"
         try:
             nb.save(Path(directory, file_name), password=hide.legacy)
-        except:
-            xw.apps.active.alert("The file already exists. Please save manually.")
+        except Exception:
+            xw.apps.active.alert("The file already exists. Please save manually.")  # type: ignore
 
     else:
-        xw.apps.active.alert("The excel file does not seem to be legacy template.")
+        xw.apps.active.alert("The excel file does not seem to be legacy template.")  # type: ignore
 
 
 def page_setup(wb):
@@ -2132,7 +2132,7 @@ def update_template_version(wb):
 
     if flag:
         wb.sheets[current_sheet].activate()
-        xw.apps.active.alert(
+        xw.apps.active.alert(  # type: ignore
             f"The template has been updated to {LATEST_WB_VERSION}.{cc.LATEST_MINOR_REVISION}"
         )
     else:
@@ -2141,4 +2141,4 @@ def update_template_version(wb):
         Advisable to force an update if system or checklist is not available in dropdown list in "Technical_Notes".
         If item is not available in dropdown after forced update, there is no checklist or checklist is not ready.
         """
-        xw.apps.active.alert(f"{message}")
+        xw.apps.active.alert(f"{message}")  # type: ignore

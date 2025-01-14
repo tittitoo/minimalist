@@ -30,7 +30,7 @@ def check_if_template(func):
                 )
             func(*args, **kwargs)
         except IsNotTemplateException as e:
-            xw.apps.active.alert(f"{e}")
+            xw.apps.active.alert(f"{e}")  # type: ignore
 
     return wrapper
 
@@ -148,13 +148,6 @@ def hide_columns():
 def technical():
     wb = xw.Book.caller()
     functions.technical(wb)
-
-
-@check_if_template
-@disable_screen_updating
-def prepare_to_print_commercial():
-    wb = xw.Book.caller()
-    functions.prepare_for_print_commercial(wb)
 
 
 @check_if_template
