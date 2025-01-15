@@ -37,6 +37,9 @@ RESOURCES = os.path.join(
 # To update the value upon updating of the template.
 LATEST_WB_VERSION = "R2"
 
+# Skipped sheets
+SKIP_SHEETS = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
+
 
 def set_nitty_gritty(text):
     """Fix annoying text"""
@@ -150,8 +153,7 @@ def set_x(text):
 
 
 def fill_formula(sheet):
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
-    if sheet.name not in skip_sheets:
+    if sheet.name not in SKIP_SHEETS:
         # Formula to cells
         # Increase the last row by 1 so that the cells are not left empty
         last_row = sheet.range("C1048576").end("up").row + 1
@@ -268,17 +270,14 @@ def fill_formula_wb(wb):
 
 
 def fill_lastrow(wb):
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
-
     for sheet in wb.sheets:
-        if sheet.name not in skip_sheets:
+        if sheet.name not in SKIP_SHEETS:
             fill_lastrow_sheet(wb, sheet)
 
 
 def fill_lastrow_sheet(wb, sheet):  # type: ignore
     pwb = xw.books("PERSONAL.XLSB")
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
-    if sheet.name not in skip_sheets:
+    if sheet.name not in SKIP_SHEETS:
         last_row = sheet.range("C1048576").end("up").row
         (pwb.sheets["Design"].range("5:5")).copy(
             sheet.range(str(last_row + 2) + ":" + str(last_row + 2))
@@ -338,8 +337,7 @@ def fill_lastrow_sheet(wb, sheet):  # type: ignore
 
 def unhide_columns(sheet):
     """Unhide all columns while setting the width for selected columns"""
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
-    if sheet.name not in skip_sheets:
+    if sheet.name not in SKIP_SHEETS:
         sheet.range("A:A").column_width = 5
         sheet.range("B:B").autofit()
         sheet.range("C:C").column_width = 55
@@ -362,8 +360,7 @@ def unhide_columns_wb(wb):
 
 def adjust_columns(sheet):
     """Unhide all columns while setting the width for selected columns"""
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
-    if sheet.name not in skip_sheets:
+    if sheet.name not in SKIP_SHEETS:
         sheet.range("A:A").column_width = 5
         sheet.range("B:B").autofit()
         sheet.range("C:C").column_width = 55
@@ -378,8 +375,7 @@ def adjust_columns_wb(wb):
 
 
 def hide_columns(sheet):
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
-    if sheet.name not in skip_sheets:
+    if sheet.name not in SKIP_SHEETS:
         sheet.range("AI:AL").column_width = 0
         sheet.range("AC:AD").column_width = 0
         sheet.range("AF:AF").column_width = 0
@@ -411,7 +407,6 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
     summary_formula = []
     collect = []  # Collect formula to be put in summary page.
     # formula_fragment = '=IF(OR(Config!B13="COMMERCIAL PROPOSAL", Config!B13="BUDGETARY PROPOSAL"),'
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     # The design will now be taken from PERSONAL.XLSB
     pwb = xw.books("PERSONAL.XLSB")
 
@@ -422,9 +417,8 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
     sheet = wb.sheets["Summary"]
 
     # Need to collect information if already exists so that it can be repopulated
-    system_count = wb.sheets.count - len(
-        skip_sheets
-    )  # Previously hard-coded to 5,number of default skip_sheets
+    # Previously hard-coded to 5,number of default SKIP_SHEETS
+    system_count = wb.sheets.count - len(SKIP_SHEETS)
     remarks = {}
     discount_price = 0
 
@@ -445,7 +439,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
     if detail:
         # Collect formula
         for sheet in wb.sheet_names:
-            if sheet not in skip_sheets:
+            if sheet not in SKIP_SHEETS:
                 sheet = wb.sheets[sheet]
                 last_row = sheet.range("G1048576").end("up").row
                 collect = [
@@ -475,7 +469,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
         # sheet.range('E20:E1000').horizontal_alignment = 'center'
 
         for system in wb.sheet_names:
-            if system not in skip_sheets:
+            if system not in SKIP_SHEETS:
                 (pwb.sheets["Design"].range("21:21")).copy(
                     sheet.range(str(offset) + ":" + str(offset))
                 )
@@ -705,7 +699,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
 
     else:
         for sheet in wb.sheet_names:
-            if sheet not in skip_sheets:
+            if sheet not in SKIP_SHEETS:
                 sheet = wb.sheets[sheet]
                 last_row = sheet.range("G1048576").end("up").row
                 collect = [
@@ -729,7 +723,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
         # sheet.range('E20:E1000').horizontal_alignment = 'center'
 
         for system in wb.sheet_names:
-            if system not in skip_sheets:
+            if system not in SKIP_SHEETS:
                 (pwb.sheets["Design"].range("21:21")).copy(
                     sheet.range(str(offset) + ":" + str(offset))
                 )
@@ -945,12 +939,11 @@ def number_title(wb, count=10, step=10):
     For the main numbering. It will fix as long as it is a number.
     Need to look for only the systems and engineering services.
     Takes a work book, then start number and step."""
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     # Collect system_names and data
     systems = pd.DataFrame()
     system_names = []
     for sheet in wb.sheets:
-        if sheet.name not in skip_sheets:
+        if sheet.name not in SKIP_SHEETS:
             system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
             last_row = ws.range("C1048576").end("up").row
@@ -986,12 +979,11 @@ def number_title(wb, count=10, step=10):
 
 def prepare_to_print_technical(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     page_setup(wb)
     for sheet in wb.sheet_names:
-        if sheet not in skip_sheets:
+        if sheet not in SKIP_SHEETS:
             last_row = wb.sheets[sheet].range("C1048576").end("up").row
             wb.sheets[sheet].activate()
             wb.sheets[sheet].range("C:C").autofit()
@@ -1030,9 +1022,8 @@ def technical(wb):
     if wb.name[:10] == "Commercial":
         for sheet in wb.sheet_names:
             ws = wb.sheets[sheet]
-            skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
             wb.sheets[2].activate()
-            if sheet not in skip_sheets:
+            if sheet not in SKIP_SHEETS:
                 # Require to remove h_borders as these willl not be detected
                 # when columns are removed and page setup changed.
                 MACRO_NB.macro("remove_h_borders")()
@@ -1066,8 +1057,7 @@ def technical(wb):
             ws = wb.sheets[sheet]
             ws.range("A1").value = ws.range("A1").raw_value  # Remove formula
             ws.range("A1").wrap_text = False
-            skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
-            if sheet not in skip_sheets:
+            if sheet not in SKIP_SHEETS:
                 last_row = ws.range("C1048576").end("up").row
                 ws.range("B3:B" + str(last_row)).value = ws.range(
                     "B3:B" + str(last_row)
@@ -1127,13 +1117,12 @@ def commercial(wb):
     wb.sheets["Summary"].range("C20:C100").value = (
         wb.sheets["Summary"].range("C20:C100").raw_value
     )
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     page_setup(wb)
     for sheet in wb.sheet_names:
         ws = wb.sheets[sheet]
         ws.range("A1").value = ws.range("A1").raw_value  # Remove formula
         ws.range("A1").wrap_text = False
-        if sheet not in skip_sheets:
+        if sheet not in SKIP_SHEETS:
             last_row = ws.range("G1048576").end("up").row
             ws.activate()
             # Adjust column width as sometimes, the long value does not show.
@@ -1161,7 +1150,7 @@ def commercial(wb):
     wb.sheets["Summary"].range("G:X").delete()
     wb.sheets["Config"].delete()
     wb.sheets["Technical_Notes"].range("F:I").delete()
-    # wb.sheets["Summary"].activate()
+    wb.sheets["Summary"].activate()
     file_name = "Commercial " + wb.name[:-4] + "xlsx"
     wb.save(Path(directory, file_name), password="")
     commercial_wb = xw.Book(file_name)
@@ -1177,12 +1166,11 @@ def commercial(wb):
 
 def prepare_to_print_internal(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     page_setup(wb)
     for sheet in wb.sheet_names:
-        if sheet not in skip_sheets:
+        if sheet not in SKIP_SHEETS:
             wb.sheets[sheet].activate()
             MACRO_NB.macro("conditional_format_internal_costing")()
             MACRO_NB.macro("remove_h_borders")()
@@ -1207,11 +1195,10 @@ def conditional_format_wb(wb):
     Takes a workbook, and do conditional formatting.
     Rely on excel macro for conditional format.
     """
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
-        if sheet not in skip_sheets:
+        if sheet not in SKIP_SHEETS:
             wb.sheets[sheet].activate()
             MACRO_NB.macro("conditional_format")()
             # Remove H borders in original excel
@@ -1225,12 +1212,11 @@ def fix_unit_price(wb):
     """
     Fix unit prices, normally done for subsequent revisions.
     """
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     # Collect system_names and data
     systems = pd.DataFrame()
     system_names = []
     for sheet in wb.sheets:
-        if sheet.name not in skip_sheets:
+        if sheet.name not in SKIP_SHEETS:
             system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
             last_row = ws.range("C1048576").end("up").row
@@ -1268,12 +1254,11 @@ def format_text(
     """
     Format text in the workbook to remove inconsistencies.
     """
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     # Collect system_names and data
     systems = pd.DataFrame()
     system_names = []
     for sheet in wb.sheets:
-        if sheet.name not in skip_sheets:
+        if sheet.name not in SKIP_SHEETS:
             system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
             last_row = ws.range("C1048576").end("up").row
@@ -1294,7 +1279,7 @@ def format_text(
         columns=["Description", "Unit", "Scope", "Format", "System"]
     )
 
-    for idx, item in systems["Description"].items():
+    for idx, _ in systems["Description"].items():
         systems.at[idx, "Description"] = set_nitty_gritty(
             str(systems.loc[idx, "Description"]).strip().lstrip("• ")
         )
@@ -1377,9 +1362,8 @@ def indent_description(wb):
     Indent description
     This function works but slow. Replaced with 'format_text' function
     """
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     for sheet in wb.sheets:
-        if sheet.name not in skip_sheets:
+        if sheet.name not in SKIP_SHEETS:
             ws = wb.sheets[sheet]
             last_row = ws.range("C1048576").end("up").row
             for format in ws.range("AL3:AL" + str(last_row)):
@@ -1404,11 +1388,10 @@ def indent_description(wb):
 
 def shaded(wb, shaded=True):
     """Added Shaded region"""
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     # macro_nb = xw.Book('PERSONAL.XLSB')
     # current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
-        if sheet not in skip_sheets:
+        if sheet not in SKIP_SHEETS:
             wb.sheets[sheet].ativate()
             if shaded:
                 MACRO_NB.macro("shaded")()
@@ -1450,11 +1433,10 @@ def internal_costing(wb):
     wb.sheets["Summary"].range("K7").value = "Legend"
     wb.sheets["Summary"].range("K9").value = LEGEND
 
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     for sheet in wb.sheet_names:
         ws = wb.sheets[sheet]
         ws.range("A1").value = ws.range("A1").raw_value  # Remove formula
-        if sheet not in skip_sheets:
+        if sheet not in SKIP_SHEETS:
             # Collect escalation
             escalation = ws.range("K1:R1").value
             ws.range("I1:R1").value = ""
@@ -1548,8 +1530,8 @@ def convert_legacy(wb):
             "Category",
             "System",
         ]
-        # skip_sheets = ['FX', 'Cover', 'Intro', 'ES', 'T&C']
-        skip_sheets = [
+        # skip_sheets_lg = ['FX', 'Cover', 'Intro', 'ES', 'T&C']
+        skip_sheets_lg = [
             "A1",
             "A2",
             "A3",
@@ -1606,7 +1588,7 @@ def convert_legacy(wb):
         defaults = {}
         system_names = []
         for sheet in wb.sheet_names:
-            if sheet not in skip_sheets:
+            if sheet not in skip_sheets_lg:
                 system_names.append(sheet.upper())
                 ws = wb.sheets[sheet]
                 escalation = dict(ws.range("K2:L5").value)
@@ -1878,8 +1860,7 @@ def page_setup(wb):
 
 
 def fill_formula_active_row(wb, ws):
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
-    if ws.name not in skip_sheets:
+    if ws.name not in SKIP_SHEETS:
         active_row = wb.app.selection.row
         ws.range("B4").copy(ws.range("B" + str(active_row)))
         ws.range("F4:G4").copy(ws.range("F" + str(active_row) + ":G" + str(active_row)))
@@ -1925,10 +1906,9 @@ def delete_extra_empty_row(ws):
 
 
 def delete_extra_empty_row_wb(wb):
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
 
     for sheet in wb.sheets:
-        if sheet.name not in skip_sheets:
+        if sheet.name not in SKIP_SHEETS:
             delete_extra_empty_row(sheet)
 
 
@@ -1938,9 +1918,8 @@ def format_cell_data(wb):
     Format the cell data to correct number or text representation.
     E.g. 1,000.00 or 1.00%
     """
-    skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     for sheet in wb.sheets:
-        if sheet.name not in skip_sheets:
+        if sheet.name not in SKIP_SHEETS:
             last_row = sheet.range("C1048576").end("up").row + 1
             # Set cell font and size
             sheet.range(f"A3:BD{last_row}").font.name = "Arial"
