@@ -979,7 +979,6 @@ def number_title(wb, count=10, step=10):
 
 def prepare_to_print_technical(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
-    # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     page_setup(wb)
     for sheet in wb.sheet_names:
@@ -1101,7 +1100,6 @@ def commercial(wb):
         return
 
     """Takes a work book, set horizantal borders at pagebreaks."""
-    # macro_nb = xw.Book('PERSONAL.XLSB')
     # current_sheet = wb.sheets.active
     wb.sheets["Cover"].range("D6:D8").value = (
         wb.sheets["Cover"].range("D6:D8").raw_value
@@ -1166,7 +1164,6 @@ def commercial(wb):
 
 def prepare_to_print_internal(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
-    # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     page_setup(wb)
     for sheet in wb.sheet_names:
@@ -1195,7 +1192,6 @@ def conditional_format_wb(wb):
     Takes a workbook, and do conditional formatting.
     Rely on excel macro for conditional format.
     """
-    # macro_nb = xw.Book('PERSONAL.XLSB')
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in SKIP_SHEETS:
@@ -1388,7 +1384,6 @@ def indent_description(wb):
 
 def shaded(wb, shaded=True):
     """Added Shaded region"""
-    # macro_nb = xw.Book('PERSONAL.XLSB')
     # current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in SKIP_SHEETS:
