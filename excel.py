@@ -145,6 +145,7 @@ def hide_columns():
 
 
 @disable_screen_updating
+# TODO: does not work on Sharepoint
 def technical():
     wb = xw.Book.caller()
     functions.technical(wb)
@@ -152,6 +153,7 @@ def technical():
 
 @check_if_template
 @disable_screen_updating
+# TODO: does not work on Sharepoint
 def print_commercial():
     wb = xw.Book.caller()
     functions.commercial(wb)
@@ -201,6 +203,7 @@ def unshaded():
 
 @check_if_template
 @disable_screen_updating
+# TODO: does not work on Sharepoint
 def internal_costing():
     wb = xw.Book.caller()
     functions.internal_costing(wb)
