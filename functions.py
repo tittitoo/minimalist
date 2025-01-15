@@ -988,12 +988,12 @@ def prepare_to_print_technical(wb):
     """Takes a work book, set horizantal borders at pagebreaks."""
     skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
     # macro_nb = xw.Book('PERSONAL.XLSB')
-    # current_sheet = wb.sheets.active
+    current_sheet = wb.sheets.active
     page_setup(wb)
     for sheet in wb.sheet_names:
         if sheet not in skip_sheets:
             last_row = wb.sheets[sheet].range("C1048576").end("up").row
-            # wb.sheets[sheet].activate()
+            wb.sheets[sheet].activate()
             wb.sheets[sheet].range("C:C").autofit()
             wb.sheets[sheet].range("C:C").column_width = 60
             wb.sheets[sheet].range("C:C").wrap_text = True
@@ -1004,7 +1004,7 @@ def prepare_to_print_technical(wb):
             MACRO_NB.macro("conditional_format")()
             MACRO_NB.macro("remove_h_borders")()
             MACRO_NB.macro("pagebreak_borders")()
-    # wb.sheets[current_sheet].activate()
+    wb.sheets[current_sheet].activate()
 
 
 def technical(wb):
@@ -1031,7 +1031,7 @@ def technical(wb):
         for sheet in wb.sheet_names:
             ws = wb.sheets[sheet]
             skip_sheets = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
-            # wb.sheets[2].activate()
+            wb.sheets[2].activate()
             if sheet not in skip_sheets:
                 # Require to remove h_borders as these willl not be detected
                 # when columns are removed and page setup changed.
@@ -1049,7 +1049,7 @@ def technical(wb):
                 ws.range("AL:AL").column_width = 0
         wb.sheets["T&C"].delete()
         prepare_to_print_technical(wb)
-        # wb.sheets["Summary"].activate()
+        wb.sheets["Summary"].activate()
         file_name = "Technical " + wb.name[11:-4] + "xlsx"
         wb.save(Path(directory, file_name), password="")
         technical_wb = xw.Book(file_name)
@@ -1135,7 +1135,7 @@ def commercial(wb):
         ws.range("A1").wrap_text = False
         if sheet not in skip_sheets:
             last_row = ws.range("G1048576").end("up").row
-            # ws.activate()
+            ws.activate()
             # Adjust column width as sometimes, the long value does not show.
             ws.range(f"A3:AL{last_row}").value = ws.range(f"A3:AL{last_row}").raw_value
             ws.range("A:A").column_width = 4
