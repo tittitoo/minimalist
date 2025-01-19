@@ -108,14 +108,14 @@ def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
         return text
 
     elif capitalize:
+        # First change all to lower case
         text = text.lower()
         for acronym in acronyms:
-            print(acronym)
-            print(acronym.lower())
-            text = text.replace(acronym.lower(), acronym)
-        # text = text.capitalize()
+            acronym_regex = acronym.lower()
+            pattern = rf"\b{acronym_regex}\b"
+            text = re.sub(pattern, acronym, text)
+        text = text.capitalize()  # Has not handle the first word
         return text
-        # return acronyms
 
     elif upper:
         text = text.upper()
@@ -161,9 +161,16 @@ def fill_formula(sheet):
             '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
         )
         # Serail Numbering (SN)
+        # sheet.range("B3:B" + str(last_row)).formula = (
+        #     '=IF(AND(ISNUMBER(D3), ISNUMBER(K3), XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)), COUNT(INDIRECT(CONCAT("B",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1),":B",ROW()-1))) + 1, "")'
+        # )
+        # sheet.range("B3:B" + str(last_row)).formula = (
+        #     '=IF(AND(ISNUMBER(D3), ISNUMBER(K3)), COUNT(INDIRECT(CONCAT("B",XMATCH("Title", $AL$1:AL2, 0, -1),":B",ROW()-1))) + 1 , "")'
+        # )
         sheet.range("B3:B" + str(last_row)).formula = (
-            '=IF(AND(ISNUMBER(D3), ISNUMBER(K3), XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)), COUNT(INDIRECT(CONCAT("B",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1),":B",ROW()-1))) + 1, "")'
+            '=IF(AND(ISNUMBER(D3), ISNUMBER(K3)), COUNT(B2:INDEX($B$1:B2, XMATCH("Title", $AL$1:AL2, 0, -1))) + 1 , "")'
         )
+
         sheet.range("N3:N" + str(last_row)).formula = '=IF(K3<>"",K3*(1-M3),"")'
         sheet.range("O3:O" + str(last_row)).formula = (
             '=IF(AND(D3<>"", K3<>"",H3<>"OPTION"),D3*N3,"")'
@@ -176,14 +183,24 @@ def fill_formula(sheet):
             '=IF(AND(D3<>"",K3<>"") ,N3*Q3,"")'
         )
         # sheet.range('S3:S' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION") ,D3*R3,"")'
+
+        # Formula for SCDQ
+        # sheet.range("S3:S" + str(last_row)).formula = (
+        #     '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*R3,"")'
+        # )
         sheet.range("S3:S" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*R3,"")'
+            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")'
         )
+
         sheet.range("T3:T" + str(last_row)).formula = (
             '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")'
         )
+        # Formula for BSCQ
+        # sheet.range("U3:U" + str(last_row)).formula = (
+        #     '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*T3,"")'
+        # )
         sheet.range("U3:U" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*T3,"")'
+            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")'
         )
         # Default
         sheet.range("V3:V" + str(last_row)).formula = (
@@ -211,26 +228,37 @@ def fill_formula(sheet):
         sheet.range("AC3:AC" + str(last_row)).formula = (
             '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")'
         )
+        # For RSPQ
         # sheet.range('AD3:AD' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED"),D3*AC3,"")'
+        # sheet.range("AD3:AD" + str(last_row)).formula = (
+        #     '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AC3,"")'
+        # )
         sheet.range("AD3:AD" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AC3,"")'
+            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")'
         )
+        # UPLS
         sheet.range("AE3:AE" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>""),IF(AB3<>"",AB3,AC3),"")'
+            '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")'
         )
+
+        # for SPLS
         # sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED"),D3*AE3,"")'
+        # sheet.range("AF3:AF" + str(last_row)).formula = (
+        #     '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AE3,"")'
+        # )
         sheet.range("AF3:AF" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AE3,"")'
+            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")'
         )
+
         # sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),D3*AE3,"")'
         sheet.range("AG3:AG" + str(last_row)).formula = (
             '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")'
         )
         sheet.range("AH3:AH" + str(last_row)).formula = (
-            '=IF(AND(AG3<>"",AG3<>0),AG3/AF3,"")'
+            '=IF(AND(AG3<>"", AG3<>0), AG3/AF3, "")'
         )
         sheet.range("AI3:AI" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"),D3*AE3,"")'
+            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"), D3*AE3, "")'
         )
         # sheet.range('AL3:AL' + str(last_row)).formula = '=IF(A3<>"","Title",IF(B3<>"","Lineitem",IF(LEFT(C3,3)="***","Comment",IF(AND(A3="",B3="",C2="", C4<>"",D4<>""), "Subtitle",""))))'
         # Unit Price
@@ -256,11 +284,20 @@ def fill_formula(sheet):
 
         # For Lumpsum
         # sheet.range('AJ3:AJ' + str(last_row)).formula = '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AF", ROW()+1, ":AF",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
+        # sheet.range("AJ3:AJ" + str(last_row)).formula = (
+        #     '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AI", ROW()+1, ":AI",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
+        # )
+        # Improved formula for Lumpsum
+        # In XMATCH, I substract one so that it references the row above Title
         sheet.range("AJ3:AJ" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AI", ROW()+1, ":AI",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
+            '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(AI4:INDEX(AI4:$AI$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
         )
+        # Flag to determine if it is lumpsum or Unit Price
+        # sheet.range("AK3:AK" + str(last_row)).formula = (
+        #     '=IF(AL3="Lineitem", IF(ISNUMBER(INDIRECT(CONCAT("AJ",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))), "Lumpsum", "Unit Price"), "")'
+        # )
         sheet.range("AK3:AK" + str(last_row)).formula = (
-            '=IF(AL3="Lineitem", IF(ISNUMBER(INDIRECT(CONCAT("AJ",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))), "Lumpsum", "Unit Price"), "")'
+            '=IF(AL3="Lineitem", IF(ISNUMBER(INDEX($AJ$1:AJ2, XMATCH("Title", $AL$1:AL2, 0, -1))), "Lumpsum", "Unit Price"), "")'
         )
 
 
@@ -1323,12 +1360,12 @@ def format_text(
                         title=True,
                     )
 
-            # if systems.at[idx, "Format"] == "Description":
-            #     if len(str(systems.loc[idx, "Description"])) <= 60:
-            #         systems.at[idx, "Description"] = set_case_preserve_acronym(
-            #             (str(systems.loc[idx, "Description"]).strip()).lstrip("• "),
-            #             title=True,
-            #         )
+            if systems.at[idx, "Format"] == "Description":
+                if len(str(systems.loc[idx, "Description"])) <= 60:
+                    systems.at[idx, "Description"] = set_case_preserve_acronym(
+                        (str(systems.loc[idx, "Description"]).strip()).lstrip("• "),
+                        title=True,
+                    )
 
         if upper_title:
             if systems.at[idx, "Format"] == "Title":
