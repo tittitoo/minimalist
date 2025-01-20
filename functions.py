@@ -168,7 +168,7 @@ def fill_formula(sheet):
         #     '=IF(AND(ISNUMBER(D3), ISNUMBER(K3)), COUNT(INDIRECT(CONCAT("B",XMATCH("Title", $AL$1:AL2, 0, -1),":B",ROW()-1))) + 1 , "")'
         # )
         sheet.range("B3:B" + str(last_row)).formula = (
-            '=IF(AND(ISNUMBER(D3), ISNUMBER(K3)), COUNT(B2:INDEX($B$1:B2, XMATCH("Title", $AL$1:AL2, 0, -1))) + 1 , "")'
+            '=IF(AND(A3="", ISNUMBER(D3), ISNUMBER(K3)), COUNT(B2:INDEX($B$1:B2, XMATCH("Title", $AL$1:AL2, 0, -1))) + 1 , "")'
         )
 
         sheet.range("N3:N" + str(last_row)).formula = '=IF(K3<>"",K3*(1-M3),"")'
