@@ -289,8 +289,9 @@ def fill_formula(sheet):
         # )
         # Improved formula for Lumpsum
         # In XMATCH, I substract one so that it references the row above Title
+        # For lumpsum
         sheet.range("AJ3:AJ" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(AI4:INDEX(AI4:$AI$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(AI4:INDEX(AI4:$AI$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
         )
         # Flag to determine if it is lumpsum or Unit Price
         # sheet.range("AK3:AK" + str(last_row)).formula = (
@@ -298,6 +299,30 @@ def fill_formula(sheet):
         # )
         sheet.range("AK3:AK" + str(last_row)).formula = (
             '=IF(AL3="Lineitem", IF(ISNUMBER(INDEX($AJ$1:AJ2, XMATCH("Title", $AL$1:AL2, 0, -1))), "Lumpsum", "Unit Price"), "")'
+        )
+
+        # For SCDQL (Subtotal Cost after Discount in Quoted currency Lumpsum)
+        # This is the lumpsum of SCDQ (Subtotal Cost after Discount in Quoted Currency)
+        sheet.range("AP3:AP" + str(last_row)).formula = (
+            '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(S4:INDEX(S4:$S$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
+        )
+
+        # TCDQL (Total Cost after Discount in Quoted currency Lumpsum)
+        # This will be the total material cost
+        sheet.range("AQ3:AQ" + str(last_row)).formula = (
+            '=IF(AND(AL3="Title", ISNUMBER(D3)), D3*AP3, IF(AK3="Unit Price", S3, ""))'
+        )
+
+        # For BSCQL (Base Subtotal Cost in Quoted currency Lumpsum)
+        # This is the lumpsum of BSCQ (Base Subtotal Cost in Quoted Currency)
+        sheet.range("AR3:AR" + str(last_row)).formula = (
+            '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(U4:INDEX(U4:$U$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
+        )
+
+        # For SSPL (Subtotal Selling Price Lumpsum)
+        # This is the lumpsum of SSP (Subtotal Selling Price)
+        sheet.range("AT3:AT" + str(last_row)).formula = (
+            '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(AF4:INDEX(AF4:$AF$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
         )
 
 
