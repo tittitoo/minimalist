@@ -44,7 +44,7 @@ def disable_screen_updating(func):
             xw.Book.caller().app.status_bar = "Running please wait ..."
             func(*args, **kwargs)
             xw.Book.caller().app.screen_updating = True
-            # xw.Book.caller().app.status_bar = "Done"
+            xw.Book.caller().app.status_bar = "Ready"
         except Exception as e:
             print(f"Failed to make the app invisible -> {e}")
 
