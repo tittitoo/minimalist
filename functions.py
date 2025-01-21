@@ -303,6 +303,7 @@ def fill_formula(sheet):
 
         # For SCDQL (Subtotal Cost after Discount in Quoted currency Lumpsum)
         # This is the lumpsum of SCDQ (Subtotal Cost after Discount in Quoted Currency)
+        # TODO: To capture WAIVED and INCLUDED condition
         sheet.range("AP3:AP" + str(last_row)).formula = (
             '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(S4:INDEX(S4:$S$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
         )
@@ -319,10 +320,31 @@ def fill_formula(sheet):
             '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(U4:INDEX(U4:$U$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
         )
 
+        # For BTCQL (Base Total Cost in Quoted currency Lumpsum)
+        # This will be the total cost after escalation, which is our base cost
+        sheet.range("AS3:AS" + str(last_row)).formula = (
+            '=IF(AND(AL3="Title", ISNUMBER(D3)), D3*AR3, IF(AK3="Unit Price", U3, ""))'
+        )
+
         # For SSPL (Subtotal Selling Price Lumpsum)
         # This is the lumpsum of SSP (Subtotal Selling Price)
         sheet.range("AT3:AT" + str(last_row)).formula = (
             '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(AF4:INDEX(AF4:$AF$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
+        )
+
+        # For TSPL (Total Selling Price Lumpsum)
+        # This will be the total selling price lumpsum, which will be the source of true
+        sheet.range("AU3:AU" + str(last_row)).formula = (
+            '=IF(AND(AL3="Title", ISNUMBER(D3)), D3*AT3, IF(AK3="Unit Price", AF3, ""))'
+        )
+
+        # Total Profit for items (lumpsum or individal)
+        sheet.range("AV3:AV" + str(last_row)).formula = (
+            '=IF(AND(ISNUMBER(D3), ISNUMBER(AS3), ISNUMBER(AU3)), AU3-AS3, "")'
+        )
+        # GM (Grand Margin)
+        sheet.range("AW3:AW" + str(last_row)).formula = (
+            '=IF(AND(H3<>"OPTION", ISNUMBER(D3), ISNUMBER(AU3), ISNUMBER(AV3)), AV3/AU3, "")'
         )
 
 
