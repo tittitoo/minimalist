@@ -305,7 +305,7 @@ def fill_formula(sheet):
         # This is the lumpsum of SCDQ (Subtotal Cost after Discount in Quoted Currency)
         # TODO: To capture WAIVED and INCLUDED condition
         sheet.range("AP3:AP" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(S4:INDEX(S4:$S$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(S4:INDEX(S4:$S$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))'
         )
 
         # TCDQL (Total Cost after Discount in Quoted currency Lumpsum)
@@ -317,7 +317,7 @@ def fill_formula(sheet):
         # For BSCQL (Base Subtotal Cost in Quoted currency Lumpsum)
         # This is the lumpsum of BSCQ (Base Subtotal Cost in Quoted Currency)
         sheet.range("AR3:AR" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(U4:INDEX(U4:$U$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(U4:INDEX(U4:$U$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))'
         )
 
         # For BTCQL (Base Total Cost in Quoted currency Lumpsum)
@@ -329,7 +329,7 @@ def fill_formula(sheet):
         # For SSPL (Subtotal Selling Price Lumpsum)
         # This is the lumpsum of SSP (Subtotal Selling Price)
         sheet.range("AT3:AT" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(AF4:INDEX(AF4:$AF$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3)), SUM(AF4:INDEX(AF4:$AF$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))'
         )
 
         # For TSPL (Total Selling Price Lumpsum)
@@ -344,7 +344,7 @@ def fill_formula(sheet):
         )
         # GM (Grand Margin)
         sheet.range("AW3:AW" + str(last_row)).formula = (
-            '=IF(AND(H3<>"OPTION", ISNUMBER(D3), ISNUMBER(AU3), ISNUMBER(AV3)), AV3/AU3, "")'
+            '=IF(AND(H3<>"OPTION", ISNUMBER(D3), ISNUMBER(AU3), AU3<>0, ISNUMBER(AV3)), AV3/AU3, "")'
         )
 
 
