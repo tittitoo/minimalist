@@ -36,6 +36,10 @@ RESOURCES = os.path.join(
 
 # To update the value upon updating of the template.
 LATEST_WB_VERSION = "R2"
+LATEST_MINOR_REVISION = "M2"
+UPDATE_MESSAGE = (
+    "There is now no restrction on lumpsum price to be '1 Lot'. Enjoy the flexibility!"
+)
 
 # Skipped sheets
 SKIP_SHEETS = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
@@ -202,6 +206,7 @@ def fill_formula(sheet):
         sheet.range("U3:U" + str(last_row)).formula = (
             '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")'
         )
+        # TODO: To fix escalations for lumpsum
         # Default
         sheet.range("V3:V" + str(last_row)).formula = (
             '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$L$1,"")'
@@ -408,7 +413,23 @@ def fill_lastrow_sheet(wb, sheet):  # type: ignore
             "=AG" + str(last_row + 2) + "/AF" + str(last_row + 2)
         )
         sheet.range("AL" + str(last_row + 2)).value = "Title"
-
+        # TCDQL(Total Cost after Discount in Quoted Currency Lumpsum)
+        # Material cost
+        sheet.range(f"AQ{str(last_row + 2)}").formula = f"=SUM(AQ3:AQ{last_row+1})"
+        # BTCQL (Base Total Cost in Quoted Currency Lumpsum)
+        # Base price after escalation
+        sheet.range(f"AS{str(last_row + 2)}").formula = f"=SUM(AS3:AS{last_row+1})"
+        # TSPL (Total Selling Price Lumpsum)
+        # Actual selling price
+        sheet.range(f"AU{str(last_row + 2)}").formula = f"=SUM(AU3:AU{last_row+1})"
+        # TP (Total Profit)
+        sheet.range(f"AV{str(last_row + 2)}").formula = f"=SUM(AV3:AV{last_row+1})"
+        # Total Margin
+        sheet.range(f"AW{str(last_row + 2)}").formula = (
+            f'=IF(AU{str(last_row+2)}<>0,AV{str(last_row + 2)}/AU{str(last_row + 2)}, "")'
+        )
+        # The formatting for added row.
+        sheet.range(f"AW{str(last_row + 2)}").number_format = "0.00%"
         # Format
         sheet.range(f"S{last_row+2}:S{last_row+2}").font.color = (0, 144, 81)
         sheet.range(f"V{last_row+2}:Z{last_row+2}").font.color = (0, 144, 81)
@@ -527,16 +548,20 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 last_row = sheet.range("G1048576").end("up").row
                 collect = [
                     "='" + sheet.name + "'!$C$3",
+                    # Selling price
                     "='" + sheet.name + "'!$G$" + str(last_row),
-                    "='" + sheet.name + "'!$S$" + str(last_row),
+                    # "='" + sheet.name + "'!$S$" + str(last_row),
+                    # Material cost
+                    "='" + sheet.name + "'!$AQ$" + str(last_row),
+                    # Escalations
                     "='" + sheet.name + "'!$V$" + str(last_row),
                     "='" + sheet.name + "'!$W$" + str(last_row),
                     "='" + sheet.name + "'!$X$" + str(last_row),
                     "='" + sheet.name + "'!$Y$" + str(last_row),
                     "='" + sheet.name + "'!$Z$" + str(last_row),
-                    "='" + sheet.name + "'!$U$" + str(last_row),
+                    # Base cost after escalations
+                    "='" + sheet.name + "'!$AS$" + str(last_row),
                 ]
-                #    "='" + sheet.name + "'!$AF$" + str(last_row)]
                 summary_formula.extend(collect)
                 collect = []
 
@@ -788,9 +813,8 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 collect = [
                     "='" + sheet.name + "'!$C$3",
                     "='" + sheet.name + "'!$G$" + str(last_row),
-                    "='" + sheet.name + "'!$U$" + str(last_row),
+                    "='" + sheet.name + "'!$AS$" + str(last_row),
                 ]
-                #    "='" + sheet.name + "'!$AF$" + str(last_row
                 summary_formula.extend(collect)
                 collect = []
 
@@ -2137,66 +2161,94 @@ def update_template_version(wb):
         flag += 1
 
     if current_minor_revision is None or current_minor_revision < int(
-        cc.LATEST_MINOR_REVISION[1:]
+        LATEST_MINOR_REVISION[1:]
     ):
-        wb.sheets["Config"].range("C15").value = cc.LATEST_MINOR_REVISION
-        # Clear previous data if any
-        last_row = wb.sheets["Config"].range("A1048576").end("up").row
-        if last_row > 95:
-            wb.sheets["Config"].range(f"A95:A{last_row}").clear()
-        wb.sheets["Config"].range("A95").value = "SYSTEMS"
-        # Write data from list
-        cc.available_system_checklist_register.sort()
-        wb.sheets["Config"].range("A96").options(transpose=True).value = [
-            system.upper() for system in cc.available_system_checklist_register
-        ]
-
-        # Test if value "Systems" is already there
-        cell_value = wb.sheets["Technical_Notes"].range("F3")
-        # if cell_value is None:
-        if cell_value != "Systems".upper():
-            MACRO_NB.sheets["Data"].range("B1").copy(
-                wb.sheets["Technical_Notes"].range("F3")
-            )
-            # Call macro to fill in the dropbown formula
-            wb.sheets["Technical_Notes"].activate()
-            MACRO_NB.macro("put_systems_validation_formula")()
-
-        # For general checklist
-        # Clear previous data if any
-        last_row = wb.sheets["Config"].range("E1048576").end("up").row
-        if last_row > 95:
-            wb.sheets["Config"].range(f"E95:E{last_row}").clear()
-        wb.sheets["Config"].range("E95").value = "CHECKLISTS"
-        # Write data from list
-        cc.available_checklist_register.sort()
-        wb.sheets["Config"].range("E96").options(transpose=True).value = [
-            system.upper() for system in cc.available_checklist_register
-        ]
-
-        # Test if value "Systems" is already there
-        cell_value = wb.sheets["Technical_Notes"].range("G3")
-        # if cell_value is None:
-        if cell_value != "Checklists".upper():
-            MACRO_NB.sheets["Data"].range("E1").copy(
-                wb.sheets["Technical_Notes"].range("G3")
-            )
-            # Call macro to fill in the dropbown formula
-            wb.sheets["Technical_Notes"].activate()
-            MACRO_NB.macro("put_checklists_validation_formula")()
-
-            wb.sheets["Technical_Notes"].range("F:G").autofit()
+        # update_checklist(wb)
+        # xw.apps.active.alert("Called")  # type: ignore
+        update_format(wb)
+        wb.sheets["Config"].range("C15").value = LATEST_MINOR_REVISION
         flag += 1
 
     if flag:
         wb.sheets[current_sheet].activate()
         xw.apps.active.alert(  # type: ignore
-            f"The template has been updated to {LATEST_WB_VERSION}.{cc.LATEST_MINOR_REVISION}"
+            f"The template has been updated to {LATEST_WB_VERSION}.{LATEST_MINOR_REVISION} {UPDATE_MESSAGE}"
         )
-    else:
-        message = """           
-        No update is required. If you want to force an update, delete "Template Version" in cell "B15" & "C15" in "Config" sheet.
-        Advisable to force an update if system or checklist is not available in dropdown list in "Technical_Notes".
-        If item is not available in dropdown after forced update, there is no checklist or checklist is not ready.
-        """
-        xw.apps.active.alert(f"{message}")  # type: ignore
+    # else:
+    #     message = """
+    #     No update is required. If you want to force an update, delete "Template Version" in cell "B15" & "C15" in "Config" sheet.
+    #     Advisable to force an update if system or checklist is not available in dropdown list in "Technical_Notes".
+    #     If item is not available in dropdown after forced update, there is no checklist or checklist is not ready.
+    #     """
+    #     xw.apps.active.alert(f"{message}")  # type: ignore
+
+
+def update_checklist(wb):
+    "Update checklist"
+    wb.sheets["Config"].range("C15").value = LATEST_MINOR_REVISION
+    # Clear previous data if any
+    last_row = wb.sheets["Config"].range("A1048576").end("up").row
+    if last_row > 95:
+        wb.sheets["Config"].range(f"A95:A{last_row}").clear()
+    wb.sheets["Config"].range("A95").value = "SYSTEMS"
+    # Write data from list
+    cc.available_system_checklist_register.sort()
+    wb.sheets["Config"].range("A96").options(transpose=True).value = [
+        system.upper() for system in cc.available_system_checklist_register
+    ]
+
+    # Test if value "Systems" is already there
+    cell_value = wb.sheets["Technical_Notes"].range("F3")
+    # if cell_value is None:
+    if cell_value != "Systems".upper():
+        MACRO_NB.sheets["Data"].range("B1").copy(
+            wb.sheets["Technical_Notes"].range("F3")
+        )
+        # Call macro to fill in the dropbown formula
+        wb.sheets["Technical_Notes"].activate()
+        MACRO_NB.macro("put_systems_validation_formula")()
+
+    # For general checklist
+    # Clear previous data if any
+    last_row = wb.sheets["Config"].range("E1048576").end("up").row
+    if last_row > 95:
+        wb.sheets["Config"].range(f"E95:E{last_row}").clear()
+    wb.sheets["Config"].range("E95").value = "CHECKLISTS"
+    # Write data from list
+    cc.available_checklist_register.sort()
+    wb.sheets["Config"].range("E96").options(transpose=True).value = [
+        system.upper() for system in cc.available_checklist_register
+    ]
+
+    # Test if value "Systems" is already there
+    cell_value = wb.sheets["Technical_Notes"].range("G3")
+    # if cell_value is None:
+    if cell_value != "Checklists".upper():
+        MACRO_NB.sheets["Data"].range("E1").copy(
+            wb.sheets["Technical_Notes"].range("G3")
+        )
+        # Call macro to fill in the dropbown formula
+        wb.sheets["Technical_Notes"].activate()
+        MACRO_NB.macro("put_checklists_validation_formula")()
+
+        wb.sheets["Technical_Notes"].range("F:G").autofit()
+
+
+def update_format(wb):
+    "Update cell formatting for sheet"
+    "Separate out here because it needs to run only once and not everytime"
+    for sheet in wb.sheets:
+        if sheet.name not in SKIP_SHEETS:
+            # Write titles
+            # xw.apps.active.alert("Updating formats")
+            sheet.range("AP2").value = "SCDQL"
+            sheet.range("AQ2").value = "TCDQL"
+            sheet.range("AR2").value = "BSCQL"
+            sheet.range("AS2").value = "BTCQL"
+            sheet.range("AT2").value = "SSPL"
+            sheet.range("AU2").value = "TSPL"
+            sheet.range("AV2").value = "TP"
+            sheet.range("AW2").value = "TM"
+
+            sheet.range("AP:AV").number_format = ACCOUNTING
+            sheet.range("AW:AW").number_format = "0.00%"
