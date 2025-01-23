@@ -1517,6 +1517,7 @@ def shaded(wb, shaded=True):
     # wb.sheets[current_sheet].activate()
 
 
+# TODO: Upgrade require for new template
 def internal_costing(wb):
     directory = os.path.dirname(wb.fullname)
 
