@@ -211,35 +211,35 @@ def fill_formula(sheet):
         #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$L$1,"")'
         # )
         sheet.range("V3:V" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price"), S3*$L$1, ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$L$1, ""))'
         )
         # Warranty
         # sheet.range("W3:W" + str(last_row)).formula = (
         #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$N$1,"")'
         # )
         sheet.range("W3:W" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price"), S3*$N$1, ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$N$1, ""))'
         )
         # Freight (Inbound)
         # sheet.range("X3:X" + str(last_row)).formula = (
         #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$P$1,"")'
         # )
         sheet.range("X3:X" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price"), S3*$P$1, ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$P$1, ""))'
         )
         # Special (Condition)
         # sheet.range("Y3:Y" + str(last_row)).formula = (
         #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$R$1,"")'
         # )
         sheet.range("Y3:Y" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price"), S3*$R$1, ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$R$1, ""))'
         )
         # Risk
         # sheet.range("Z3:Z" + str(last_row)).formula = (
         #     '=IF(AND(D3<>"",K3<>"",U3<>""),U3-(S3+V3+W3+X3+Y3),"")'
         # )
         sheet.range("Z3:Z" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price"), U3-(S3+V3+W3+X3+Y3), ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), U3-(S3+V3+W3+X3+Y3), ""))'
         )
         sheet.range("AA3:AA" + str(last_row)).formula = (
             '=IF(AND(D3<>"",K3<>""),$J$1,"")'
@@ -390,13 +390,13 @@ def fill_lastrow_sheet(wb, sheet):  # type: ignore
             "=SUM(G3:G" + str(last_row + 1) + ")"
         )
         # SCDQ: Subtotal cost after discount in quoted currency
-        sheet.range("S" + str(last_row + 2)).formula = (
-            "=SUM(S3:S" + str(last_row + 1) + ")"
-        )
+        # sheet.range("S" + str(last_row + 2)).formula = (
+        #     "=SUM(S3:S" + str(last_row + 1) + ")"
+        # )
         # BSCQ: Base subtotal cost in quoted currency
-        sheet.range("U" + str(last_row + 2)).formula = (
-            "=SUM(U3:U" + str(last_row + 1) + ")"
-        )
+        # sheet.range("U" + str(last_row + 2)).formula = (
+        #     "=SUM(U3:U" + str(last_row + 1) + ")"
+        # )
         # Default
         sheet.range("V" + str(last_row + 2)).formula = (
             "=SUM(V3:V" + str(last_row + 1) + ")"
@@ -417,15 +417,15 @@ def fill_lastrow_sheet(wb, sheet):  # type: ignore
         sheet.range("Z" + str(last_row + 2)).formula = (
             "=SUM(Z3:Z" + str(last_row + 1) + ")"
         )
-        sheet.range("AF" + str(last_row + 2)).formula = (
-            "=SUM(AF3:AF" + str(last_row + 1) + ")"
-        )
-        sheet.range("AG" + str(last_row + 2)).formula = (
-            "=SUM(AG3:AG" + str(last_row + 1) + ")"
-        )
-        sheet.range("AH" + str(last_row + 2)).formula = (
-            "=AG" + str(last_row + 2) + "/AF" + str(last_row + 2)
-        )
+        # sheet.range("AF" + str(last_row + 2)).formula = (
+        #     "=SUM(AF3:AF" + str(last_row + 1) + ")"
+        # )
+        # sheet.range("AG" + str(last_row + 2)).formula = (
+        #     "=SUM(AG3:AG" + str(last_row + 1) + ")"
+        # )
+        # sheet.range("AH" + str(last_row + 2)).formula = (
+        #     "=AG" + str(last_row + 2) + "/AF" + str(last_row + 2)
+        # )
         sheet.range("AL" + str(last_row + 2)).value = "Title"
         # TCDQL(Total Cost after Discount in Quoted Currency Lumpsum)
         # Material cost
@@ -445,7 +445,7 @@ def fill_lastrow_sheet(wb, sheet):  # type: ignore
         # The formatting for added row.
         sheet.range(f"AW{str(last_row + 2)}").number_format = "0.00%"
         # Format
-        sheet.range(f"S{last_row+2}:S{last_row+2}").font.color = (0, 144, 81)
+        # sheet.range(f"S{last_row+2}:S{last_row+2}").font.color = (0, 144, 81)
         sheet.range(f"V{last_row+2}:Z{last_row+2}").font.color = (0, 144, 81)
         sheet.range(f"{last_row+2}:{last_row+2}").font.bold = True
 
@@ -2180,6 +2180,7 @@ def update_template_version(wb):
         # update_checklist(wb)
         # xw.apps.active.alert("Called")  # type: ignore
         update_format(wb)
+        summary(wb, discount=True)
         wb.sheets["Config"].range("C15").value = LATEST_MINOR_REVISION
         flag += 1
 
@@ -2266,3 +2267,4 @@ def update_format(wb):
 
             sheet.range("AP:AV").number_format = ACCOUNTING
             sheet.range("AW:AW").number_format = "0.00%"
+            sheet.range("AP:AW").autofit()
