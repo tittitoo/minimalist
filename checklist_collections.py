@@ -32,7 +32,6 @@ TEXTBOX_HEIGHT = 17
 PIC = " , Lin Zar, Oliver, Sahib, Thiha, 70"
 SALES = " , Derick, Don, Thiha, Shuan, Ooi, 70"
 
-LATEST_MINOR_REVISION = "M1"
 
 # Proposal checklist
 # Register system here will be availble in drop_down list in excel 'Technical_Notes'
