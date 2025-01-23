@@ -206,26 +206,40 @@ def fill_formula(sheet):
         sheet.range("U3:U" + str(last_row)).formula = (
             '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")'
         )
-        # TODO: To fix escalations for lumpsum
         # Default
+        # sheet.range("V3:V" + str(last_row)).formula = (
+        #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$L$1,"")'
+        # )
         sheet.range("V3:V" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$L$1,"")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price"), S3*$L$1, ""))'
         )
         # Warranty
+        # sheet.range("W3:W" + str(last_row)).formula = (
+        #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$N$1,"")'
+        # )
         sheet.range("W3:W" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$N$1,"")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price"), S3*$N$1, ""))'
         )
         # Freight (Inbound)
+        # sheet.range("X3:X" + str(last_row)).formula = (
+        #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$P$1,"")'
+        # )
         sheet.range("X3:X" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$P$1,"")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price"), S3*$P$1, ""))'
         )
         # Special (Condition)
+        # sheet.range("Y3:Y" + str(last_row)).formula = (
+        #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$R$1,"")'
+        # )
         sheet.range("Y3:Y" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$R$1,"")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price"), S3*$R$1, ""))'
         )
         # Risk
+        # sheet.range("Z3:Z" + str(last_row)).formula = (
+        #     '=IF(AND(D3<>"",K3<>"",U3<>""),U3-(S3+V3+W3+X3+Y3),"")'
+        # )
         sheet.range("Z3:Z" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"",U3<>""),U3-(S3+V3+W3+X3+Y3),"")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price"), U3-(S3+V3+W3+X3+Y3), ""))'
         )
         sheet.range("AA3:AA" + str(last_row)).formula = (
             '=IF(AND(D3<>"",K3<>""),$J$1,"")'
