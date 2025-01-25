@@ -313,7 +313,7 @@ def fill_formula(sheet):
         # In XMATCH, I substract one so that it references the row above Title
         # For lumpsum
         sheet.range("AJ3:AJ" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AI4:INDEX(AI4:$AI$5000, XMATCH("Title", AL4:$AL$5000, 0, 1)-1)), "")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AI4:INDEX(AI4:AI5000, XMATCH("Title", AL4:AL5000, 0, 1)-1)), "")'
         )
         # Flag to determine if it is lumpsum or Unit Price
         # sheet.range("AK3:AK" + str(last_row)).formula = (
@@ -326,7 +326,7 @@ def fill_formula(sheet):
         # For SCDQL (Subtotal Cost after Discount in Quoted currency Lumpsum)
         # This is the lumpsum of SCDQ (Subtotal Cost after Discount in Quoted Currency)
         sheet.range("AP3:AP" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(S4:INDEX(S4:$S$5000, XMATCH("Title", AL4:$AL$5000, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(S4:INDEX(S4:S5000, XMATCH("Title", AL4:AL5000, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))'
         )
 
         # TCDQL (Total Cost after Discount in Quoted currency Lumpsum)
@@ -338,7 +338,7 @@ def fill_formula(sheet):
         # For BSCQL (Base Subtotal Cost in Quoted currency Lumpsum)
         # This is the lumpsum of BSCQ (Base Subtotal Cost in Quoted Currency)
         sheet.range("AR3:AR" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(U4:INDEX(U4:$U$5000, XMATCH("Title", AL4:$AL$5000, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(U4:INDEX(U4:U5000, XMATCH("Title", AL4:AL5000, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))'
         )
 
         # For BTCQL (Base Total Cost in Quoted currency Lumpsum)
@@ -350,7 +350,7 @@ def fill_formula(sheet):
         # For SSPL (Subtotal Selling Price Lumpsum)
         # This is the lumpsum of SSP (Subtotal Selling Price)
         sheet.range("AT3:AT" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AF4:INDEX(AF4:$AF$5000, XMATCH("Title", AL4:$AL$5000, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AF4:INDEX(AF4:AF5000, XMATCH("Title", AL4:AL5000, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))'
         )
 
         # For TSPL (Total Selling Price Lumpsum)
