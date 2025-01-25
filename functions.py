@@ -1,5 +1,8 @@
 """ Multiple functions to support Excel automation.
     © Thiha Aung (infowizard@gmail.com)
+    For the excel, the last row technically is 1048576.
+    However, I have hard-limited this to 5000 rows.
+    The code will need to be updated if more rows are needed.
 """
 
 import os
@@ -160,7 +163,7 @@ def fill_formula(sheet):
     if sheet.name not in SKIP_SHEETS:
         # Formula to cells
         # Increase the last row by 1 so that the cells are not left empty
-        last_row = sheet.range("C1048576").end("up").row + 1
+        last_row = sheet.range("C5000").end("up").row + 1
         sheet.range("A1").formula = (
             '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
         )
@@ -310,7 +313,7 @@ def fill_formula(sheet):
         # In XMATCH, I substract one so that it references the row above Title
         # For lumpsum
         sheet.range("AJ3:AJ" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AI4:INDEX(AI4:$AI$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), "")'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AI4:INDEX(AI4:$AI$5000, XMATCH("Title", AL4:$AL$5000, 0, 1)-1)), "")'
         )
         # Flag to determine if it is lumpsum or Unit Price
         # sheet.range("AK3:AK" + str(last_row)).formula = (
@@ -323,7 +326,7 @@ def fill_formula(sheet):
         # For SCDQL (Subtotal Cost after Discount in Quoted currency Lumpsum)
         # This is the lumpsum of SCDQ (Subtotal Cost after Discount in Quoted Currency)
         sheet.range("AP3:AP" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(S4:INDEX(S4:$S$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(S4:INDEX(S4:$S$5000, XMATCH("Title", AL4:$AL$5000, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))'
         )
 
         # TCDQL (Total Cost after Discount in Quoted currency Lumpsum)
@@ -335,7 +338,7 @@ def fill_formula(sheet):
         # For BSCQL (Base Subtotal Cost in Quoted currency Lumpsum)
         # This is the lumpsum of BSCQ (Base Subtotal Cost in Quoted Currency)
         sheet.range("AR3:AR" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(U4:INDEX(U4:$U$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(U4:INDEX(U4:$U$5000, XMATCH("Title", AL4:$AL$5000, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))'
         )
 
         # For BTCQL (Base Total Cost in Quoted currency Lumpsum)
@@ -347,7 +350,7 @@ def fill_formula(sheet):
         # For SSPL (Subtotal Selling Price Lumpsum)
         # This is the lumpsum of SSP (Subtotal Selling Price)
         sheet.range("AT3:AT" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AF4:INDEX(AF4:$AF$1048576, XMATCH("Title", AL4:$AL$1048576, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))'
+            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AF4:INDEX(AF4:$AF$5000, XMATCH("Title", AL4:$AL$5000, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))'
         )
 
         # For TSPL (Total Selling Price Lumpsum)
@@ -380,7 +383,7 @@ def fill_lastrow(wb):
 def fill_lastrow_sheet(wb, sheet):  # type: ignore
     pwb = xw.books("PERSONAL.XLSB")
     if sheet.name not in SKIP_SHEETS:
-        last_row = sheet.range("C1048576").end("up").row
+        last_row = sheet.range("C5000").end("up").row
         (pwb.sheets["Design"].range("5:5")).copy(
             sheet.range(str(last_row + 2) + ":" + str(last_row + 2))
         )
@@ -559,7 +562,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
         for sheet in wb.sheet_names:
             if sheet not in SKIP_SHEETS:
                 sheet = wb.sheets[sheet]
-                last_row = sheet.range("G1048576").end("up").row
+                last_row = sheet.range("G5000").end("up").row
                 collect = [
                     "='" + sheet.name + "'!$C$3",
                     # Selling price
@@ -823,7 +826,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
         for sheet in wb.sheet_names:
             if sheet not in SKIP_SHEETS:
                 sheet = wb.sheets[sheet]
-                last_row = sheet.range("G1048576").end("up").row
+                last_row = sheet.range("G5000").end("up").row
                 collect = [
                     "='" + sheet.name + "'!$C$3",
                     "='" + sheet.name + "'!$G$" + str(last_row),
@@ -1051,7 +1054,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
     sheet.range("D:D").autofit()
     sheet.range("E:E").autofit()
     sheet.range("F:P").autofit()
-    last_row = sheet.range("C1048576").end("up").row
+    last_row = sheet.range("C5000").end("up").row
     sheet.page_setup.print_area = "A1:F" + str(last_row + 3)
 
 
@@ -1067,7 +1070,7 @@ def number_title(wb, count=10, step=10):
         if sheet.name not in SKIP_SHEETS:
             system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
-            last_row = ws.range("C1048576").end("up").row
+            last_row = ws.range("C5000").end("up").row
             data = (
                 ws.range("A2:C" + str(last_row))
                 .options(pd.DataFrame, index=False)
@@ -1104,7 +1107,7 @@ def prepare_to_print_technical(wb):
     page_setup(wb)
     for sheet in wb.sheet_names:
         if sheet not in SKIP_SHEETS:
-            last_row = wb.sheets[sheet].range("C1048576").end("up").row
+            last_row = wb.sheets[sheet].range("C5000").end("up").row
             wb.sheets[sheet].activate()
             wb.sheets[sheet].range("C:C").autofit()
             wb.sheets[sheet].range("C:C").column_width = 60
@@ -1147,7 +1150,7 @@ def technical(wb):
                 # Require to remove h_borders as these willl not be detected
                 # when columns are removed and page setup changed.
                 MACRO_NB.macro("remove_h_borders")()
-                last_row = ws.range("C1048576").end("up").row
+                last_row = ws.range("C5000").end("up").row
                 ws.range("F:G").delete()
                 ws.range("AL3:AL" + str(last_row)).value = ws.range(
                     "AL3:AL" + str(last_row)
@@ -1178,7 +1181,7 @@ def technical(wb):
             ws.range("A1").value = ws.range("A1").raw_value  # Remove formula
             ws.range("A1").wrap_text = False
             if sheet not in SKIP_SHEETS:
-                last_row = ws.range("C1048576").end("up").row
+                last_row = ws.range("C5000").end("up").row
                 ws.range("B3:B" + str(last_row)).value = ws.range(
                     "B3:B" + str(last_row)
                 ).raw_value
@@ -1229,7 +1232,7 @@ def commercial(wb):
     wb.sheets["Cover"].range("C42:C47").value = (
         wb.sheets["Cover"].range("C42:C47").raw_value
     )
-    last_row = wb.sheets["Summary"].range("D1048576").end("up").row
+    last_row = wb.sheets["Summary"].range("D5000").end("up").row
     wb.sheets["Summary"].range(f"G20:P{last_row}").value = (
         wb.sheets["Summary"].range(f"G20:P{last_row}").raw_value
     )
@@ -1242,7 +1245,7 @@ def commercial(wb):
         ws.range("A1").value = ws.range("A1").raw_value  # Remove formula
         ws.range("A1").wrap_text = False
         if sheet not in SKIP_SHEETS:
-            last_row = ws.range("G1048576").end("up").row
+            last_row = ws.range("G5000").end("up").row
             ws.activate()
             # Adjust column width as sometimes, the long value does not show.
             ws.range(f"A3:AL{last_row}").value = ws.range(f"A3:AL{last_row}").raw_value
@@ -1336,7 +1339,7 @@ def fix_unit_price(wb):
         if sheet.name not in SKIP_SHEETS:
             system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
-            last_row = ws.range("C1048576").end("up").row
+            last_row = ws.range("C5000").end("up").row
             data = (
                 ws.range("AE2:AE" + str(last_row))
                 .options(pd.DataFrame, index=False)
@@ -1378,7 +1381,7 @@ def format_text(
         if sheet.name not in SKIP_SHEETS:
             system_names.append(str.upper(sheet.name))
             ws = wb.sheets[sheet]
-            last_row = ws.range("C1048576").end("up").row
+            last_row = ws.range("C5000").end("up").row
             data = (
                 ws.range("C2:AL" + str(last_row))
                 .options(pd.DataFrame, empty="", index=False)
@@ -1482,7 +1485,7 @@ def indent_description(wb):
     for sheet in wb.sheets:
         if sheet.name not in SKIP_SHEETS:
             ws = wb.sheets[sheet]
-            last_row = ws.range("C1048576").end("up").row
+            last_row = ws.range("C5000").end("up").row
             for format in ws.range("AL3:AL" + str(last_row)):
                 if format.value == "Subtitle":
                     ws.range("C" + str(format.row)).value = str(
@@ -1529,7 +1532,7 @@ def internal_costing(wb):
         wb.sheets["Cover"].range("D6:D8").raw_value
     )
 
-    summary_last_row = wb.sheets["Summary"].range("D1048576").end("up").row
+    summary_last_row = wb.sheets["Summary"].range("D5000").end("up").row
     wb.sheets["Summary"].range("D20:D100").value = ""
     wb.sheets["Summary"].range("C20:C100").value = (
         wb.sheets["Summary"].range("C20:C100").raw_value
@@ -1561,7 +1564,7 @@ def internal_costing(wb):
             escalation = dict(zip(escalation[::2], escalation[1::2]))
 
             # Work on columns
-            last_row = ws.range("G1048576").end("up").row
+            last_row = ws.range("G5000").end("up").row
             ws.range("B3:B" + str(last_row)).value = ws.range(
                 "B3:B" + str(last_row)
             ).raw_value
@@ -1712,7 +1715,7 @@ def convert_legacy(wb):
                 default_mu = ws.range("H5").value
                 escalation["default_mu"] = default_mu
                 defaults[sheet.upper()] = escalation
-                last_row = ws.range("D100000").end("up").row  # Returns a number
+                last_row = ws.range("D5000").end("up").row  # Returns a number
                 data = (
                     ws.range("A8:K" + str(last_row))
                     .options(pd.DataFrame, index=False)
@@ -1739,7 +1742,7 @@ def convert_legacy(wb):
             "Discount",
         ]
         es = wb.sheets["ES"]
-        es_last_row = es.range("D100000").end("up").row
+        es_last_row = es.range("D5000").end("up").row
         eng_service = (
             es.range("A8:K" + str(es_last_row)).options(pd.DataFrame, index=False).value
         )
@@ -1933,7 +1936,7 @@ def convert_legacy(wb):
         for system in system_names:
             sheet = nb.sheets[system]
             unhide_columns(sheet)
-            last_row = sheet.range("G100000").end("up").row
+            last_row = sheet.range("G5000").end("up").row
             sheet.range("AL" + str(last_row)).value = "Title"
             sheet.page_setup.print_area = "A1:H" + str(last_row)
 
@@ -1992,8 +1995,8 @@ def fill_formula_active_row(wb, ws):
 
 
 def delete_extra_empty_row(ws):
-    c_column = ws.range("C1048576").end("up").row
-    g_column = ws.range("G1048576").end("up").row
+    c_column = ws.range("C5000").end("up").row
+    g_column = ws.range("G5000").end("up").row
     if c_column > g_column:
         last_row = c_column
     else:
@@ -2037,7 +2040,7 @@ def format_cell_data(wb):
     """
     for sheet in wb.sheets:
         if sheet.name not in SKIP_SHEETS:
-            last_row = sheet.range("C1048576").end("up").row + 1
+            last_row = sheet.range("C5000").end("up").row + 1
             # Set cell font and size
             sheet.range(f"A3:BD{last_row}").font.name = "Arial"
             sheet.range("2:2").font.size = 9
@@ -2203,7 +2206,7 @@ def update_checklist(wb):
     "Update checklist"
     wb.sheets["Config"].range("C15").value = LATEST_MINOR_REVISION
     # Clear previous data if any
-    last_row = wb.sheets["Config"].range("A1048576").end("up").row
+    last_row = wb.sheets["Config"].range("A5000").end("up").row
     if last_row > 95:
         wb.sheets["Config"].range(f"A95:A{last_row}").clear()
     wb.sheets["Config"].range("A95").value = "SYSTEMS"
@@ -2226,7 +2229,7 @@ def update_checklist(wb):
 
     # For general checklist
     # Clear previous data if any
-    last_row = wb.sheets["Config"].range("E1048576").end("up").row
+    last_row = wb.sheets["Config"].range("E5000").end("up").row
     if last_row > 95:
         wb.sheets["Config"].range(f"E95:E{last_row}").clear()
     wb.sheets["Config"].range("E95").value = "CHECKLISTS"
