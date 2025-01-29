@@ -2272,3 +2272,7 @@ def update_format(wb):
             sheet.range("AP:AV").number_format = ACCOUNTING
             sheet.range("AW:AW").number_format = "0.00%"
             sheet.range("AP:AW").autofit()
+
+
+if __name__ == "__main__":
+    pass
