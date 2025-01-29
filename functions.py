@@ -1085,11 +1085,17 @@ def number_title(wb, count=10, step=10):
     systems = systems.reindex(columns=["NO", "Description", "System"])
 
     # Need to do try-except as the float type can return nan
+    letter_count = 0
     for idx, item in systems["NO"].items():
         try:
             if int(item):
                 systems.at[idx, "NO"] = count
                 count += step
+                letter_count = 0
+        except ValueError:
+            if isinstance(item, str):
+                systems.at[idx, "NO"] = str(count - 10) + str(chr(letter_count + 65))
+                letter_count += 1
         except Exception:
             pass
 
