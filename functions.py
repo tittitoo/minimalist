@@ -1101,10 +1101,12 @@ def number_title(wb, count=10, step=10):
         except ValueError:
             if isinstance(item, str):
                 # If starts with A-Z, allow. Part of numbering.
+                # if not re.match(r"^[A-Z]", item.strip()):
+                #     systems.at[idx, "NO"] = str(count - step) + str(
+                #         chr(letter_count + 65)
+                #     )
                 if not re.match(r"^[A-Z]", item.strip()):
-                    systems.at[idx, "NO"] = str(count - step) + str(
-                        chr(letter_count + 65)
-                    )
+                    systems.at[idx, "NO"] = str(letter_count + 1) + "⠄"
                     letter_count += 1
         except Exception:
             pass
