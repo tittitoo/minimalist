@@ -236,11 +236,11 @@ def leave_application_checklist():
 
 
 def download_template():
-    functions.creat_new_template()
+    functions.create_new_template()
 
 
 def download_planner():
-    functions.creat_new_planner()
+    functions.create_new_planner()
 
 
 def generate_sales_checklist():

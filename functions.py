@@ -2141,11 +2141,18 @@ def download_template():
         print(f"Failed to download template -> {e}")
 
 
-def creat_new_template():
-    filename = "Template.xltx"
+def create_new_template():
+    filename = "Template.xlsx"
     file_path = Path(RESOURCES, filename)
     wb = xw.Book.caller()
     wb.app.books.open(file_path.absolute(), password=hide.legacy)
+    try:
+        wb.app.books.active.save(
+            Path("~/Downloads/Template.xlsx").expanduser(), password=hide.legacy
+        )
+        xw.apps.active.alert("Saved to Downloads as 'Template.xlsx'. Rename as required.")  # type: ignore
+    except Exception:
+        xw.apps.active.alert("Cannot save workbook. Save manually.")  # type: ignore
 
 
 # Can be done as tempfile
@@ -2168,7 +2175,7 @@ def download_planner():
         print(f"Failed to download template -> {e}")
 
 
-def creat_new_planner():
+def create_new_planner():
     filename = "Planner.xltx"
     file_path = Path(RESOURCES, filename)
     wb = xw.Book.caller()
