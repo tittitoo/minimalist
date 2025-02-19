@@ -1,8 +1,8 @@
-""" Multiple functions to support Excel automation.
-    © Thiha Aung (infowizard@gmail.com)
-    For the excel, the last row technically is 1048576.
-    However, I have hard-limited this to 1500 rows.
-    The code will need to be updated if more rows are needed.
+"""Multiple functions to support Excel automation.
+© Thiha Aung (infowizard@gmail.com)
+For the excel, the last row technically is 1048576.
+However, I have hard-limited this to 1500 rows.
+The code will need to be updated if more rows are needed.
 """
 
 import os
@@ -1152,6 +1152,8 @@ def technical(wb):
         return
 
     wb.sheets["Cover"].range("D39").value = "TECHNICAL PROPOSAL"
+    wb.sheets["Cover"].range("D40").value = wb.sheets["Cover"].range("D40").value
+
     wb.sheets["Summary"].range("D20:D100").value = ""
     wb.sheets["Summary"].range("C20:C100").value = (
         wb.sheets["Summary"].range("C20:C100").raw_value
@@ -1248,6 +1250,7 @@ def commercial(wb):
         wb.sheets["Cover"].range("D6:D8").raw_value
     )
     wb.sheets["Cover"].range("D39").value = wb.sheets["Config"].range("B13").value
+    wb.sheets["Cover"].range("D40").value = wb.sheets["Config"].range("B14").value
     wb.sheets["Cover"].range("C42:C47").value = (
         wb.sheets["Cover"].range("C42:C47").raw_value
     )
