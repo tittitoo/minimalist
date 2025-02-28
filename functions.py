@@ -24,6 +24,13 @@ LEGEND = {
     "Discount": "Discount in percentage from the supplier",
     "UCD": "Unit cost after discount in original (buying) currency",
     "SCD": "Subtotal cost after discount in original (buying) currency",
+    "UCDQ": "Unit cost after discount in quoted currency (follows main contract quoted currency)",
+    "SCDQ": "Subtotal cost after discount in quoted currency (follows main contract quoted currency)",
+    "SCDQL": "Subtotal cost after discount in quoted currency lumpsum (follows main contract quoted currency). If lumpsum, indicates lumpsum cost.",
+    "TCDQL": "Total cost after discount in quoted currency lumpsum (follows main contract quoted currency). Total lumpsum cost.",
+    "BSCQL": "Base subtotal cost in quoted currency lumpsum (follows main contract quoted currency). If lumpsum, indicates lumpsum cost.",
+    "BTCQL": "Base total cost in quoted currency lumpsum (follows main contract quoted currency). Total lumpsum cost.",
+    "NOTE": "BTCQL is overall system cost in the related excel sheet.",
 }
 
 MACRO_NB = xw.Book("PERSONAL.XLSB")
@@ -1542,7 +1549,6 @@ def shaded(wb, shaded=True):
     # wb.sheets[current_sheet].activate()
 
 
-# TODO: Upgrade require for new template
 def internal_costing(wb):
     directory = os.path.dirname(wb.fullname)
 
@@ -1595,19 +1601,68 @@ def internal_costing(wb):
             ws.range("Q3:Q" + str(last_row)).value = ws.range(
                 "Q3:Q" + str(last_row)
             ).raw_value
-            # ws.range('AM:AM').delete()
+            # Copy Flag
+            ws.range(f"AK2:AK{last_row}").value = ws.range(
+                f"AK2:AK{last_row}"
+            ).raw_value
+            ws.range("AK:AK").copy(ws.range("BB:BB"))
+            ws.range("AP:AW").delete()
             ws.range("R:AK").delete()
-            ws.range("W3").value = escalation
-            ws.range("W7").value = "Total"
-            ws.range("X7").formula = "=SUM(X3:X6)"
-            ws.range("X3:X7").number_format = "0.00%"
-            # Insert Escalation column
-            ws.range("S:S").insert("right")
-            ws.range("S2").value = "Escalation"
-            ws.range("S3:S" + str(last_row)).formula = (
-                '=IF(AND(D3<>"", J3<>"",K3<>""), $Y$7, "")'
+
+            # Copy row first to get formatting right
+            ws.range("K:K").copy(ws.range("V:V"))
+            ws.range("W:AB").insert("right")
+            ws.range("V:V").delete()
+            # Insert Escalation
+            ws.range("V2").value = "Escalation"
+            ws.range("V3:V" + str(last_row - 1)).formula = (
+                '=IF(AND(D3<>"", J3<>"",K3<>""), $AB$7, "")'
             )
-            ws.range("S3:S" + str(last_row)).number_format = "0.00%"
+            ws.range("V3:V" + str(last_row)).number_format = "0.00%"
+
+            # Insert UCDQ
+            ws.range("W2").value = "UCDQ"
+            ws.range(f"W3:W{last_row - 1}").formula = (
+                '=IF(AND(D3<>"", K3<>""), N3*Q3,"")'
+            )
+
+            # Insert SCDQ
+            ws.range("X2").value = "SCDQ"
+            ws.range(f"X3:X{last_row - 1}").formula = (
+                '=IF(AND(D3<>"", K3<>"", H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $R$1:R2, 0, -1))<>"OPTION"), D3*W3, "")'
+            )
+
+            # Insert SCDQL
+            ws.range("Y2").value = "SCDQL"
+            ws.range(f"Y3:Y{last_row - 1}").formula = (
+                '=IF(AND(R3="Title", ISNUMBER(D3), E3<>""), SUM(X4:INDEX(X4:X1500, XMATCH("Title", R4:R1500, 0, 1)-1)), IF(AND(R3="Lineitem", AE3="Unit Price"), W3, ""))'
+            )
+
+            # Insert TCDQL
+            ws.range("Z2").value = "TCDQL"
+            ws.range(f"Z3:Z{last_row - 1}").formula = (
+                '=IF(AND(ISNUMBER(D3), ISNUMBER(Y3), H3<>"OPTION"), D3*Y3, "")'
+            )
+
+            # Insert BSCQL
+            ws.range("AA2").value = "BSCQL"
+            ws.range(f"AA3:AA{last_row - 1}").formula = (
+                '=IF(ISNUMBER(Y3), Y3*(1+$AD$7)/(1-0.05), "")'
+            )
+
+            # Insert BTCQL
+            ws.range("AB2").value = "BTCQL"
+            ws.range(f"AB3:AB{last_row - 1}").formula = (
+                '=IF(AND(ISNUMBER(D3), ISNUMBER(AA3), H3<>"OPTION"), D3*AA3, "")'
+            )
+
+            ws.range(f"AB{last_row}").formula = "=SUM(AB3:AB" + str(last_row - 1) + ")"
+            ws.range(f"W3:AB{last_row}").number_format = ACCOUNTING
+            # Consolidated escalation
+            ws.range("AC3").value = escalation
+            ws.range("AC7").value = "Total"
+            ws.range("AD7").formula = "=SUM(AD3:AD6)"
+            ws.range("AD3:AD7").number_format = "0.00%"
 
             # To reduce visual clutter
             ws.range("D:X").autofit()
@@ -1615,6 +1670,7 @@ def internal_costing(wb):
             ws.range("P:P").column_width = 20
             ws.range("F:G").column_width = 0
             ws.range("R:R").column_width = 0
+            ws.range("AE:AG").column_width = 0
     wb.sheets["Config"].delete()
     # wb.sheets['T&C'].delete()
     prepare_to_print_internal(wb)
