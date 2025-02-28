@@ -1580,6 +1580,7 @@ def internal_costing(wb):
     wb.sheets["Summary"].range("I8:I16").number_format = "0.0000"
     wb.sheets["Summary"].range("K7").value = "Legend"
     wb.sheets["Summary"].range("K9").value = LEGEND
+    wb.sheets["Summary"].range("K:L").clear_formats()
 
     for sheet in wb.sheet_names:
         ws = wb.sheets[sheet]
