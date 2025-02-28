@@ -1616,7 +1616,7 @@ def internal_costing(wb):
             # Insert Escalation
             ws.range("V2").value = "Escalation"
             ws.range("V3:V" + str(last_row - 1)).formula = (
-                '=IF(AND(D3<>"", J3<>"",K3<>""), $AB$7, "")'
+                '=IF(AND(D3<>"", J3<>"",K3<>""), $AD$7, "")'
             )
             ws.range("V3:V" + str(last_row)).number_format = "0.00%"
 
