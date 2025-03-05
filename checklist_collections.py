@@ -209,6 +209,7 @@ must be outside and historical reference emails must be in '00-Arc' inside this 
             40,
         ]
     },
+    "Clean the folder using 'bid clean'.",
 ]
 
 costing = [  # type:ignore
