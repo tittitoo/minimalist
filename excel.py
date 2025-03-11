@@ -70,8 +70,12 @@ def fill_formula_wb():
     functions.delete_extra_empty_row_wb(wb)
     functions.number_title(wb)
     functions.fill_formula_wb(wb)
-    functions.format_text(wb, title_lineitem_or_description=True)
-    functions.format_text(wb, indent_description=True, bullet_description=True)
+    functions.format_text(
+        wb,
+        indent_description=True,
+        bullet_description=True,
+        title_lineitem_or_description=True,
+    )
     functions.format_cell_data(wb)
     functions.adjust_columns_wb(wb)
     functions.conditional_format_wb(wb)
