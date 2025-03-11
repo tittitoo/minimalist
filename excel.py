@@ -188,9 +188,12 @@ def format_text():
 
 @check_if_template
 @disable_screen_updating
+# TODO: intend_description now do fill_formula_wb, to change to consistent function name
+# To change to fill_formula_wb
 def indent_description():
     wb = xw.Book.caller()
-    functions.format_text(wb, indent_description=True, bullet_description=True)
+    functions.fill_formula_wb(wb)
+    # functions.format_text(wb, indent_description=True, bullet_description=True)
 
 
 @check_if_template
