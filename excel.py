@@ -1,4 +1,4 @@
-""" 
+"""
 Created so that python fucntions are available in Excel.
 © Thiha Aung (infowizard@gmail.com)
 """
@@ -178,7 +178,12 @@ def fix_unit_price():
 @disable_screen_updating
 def format_text():
     wb = xw.Book.caller()
-    functions.format_text(wb, title_lineitem_or_description=True)
+    functions.format_text(
+        wb,
+        title_lineitem_or_description=True,
+        indent_description=True,
+        bullet_description=True,
+    )
 
 
 @check_if_template

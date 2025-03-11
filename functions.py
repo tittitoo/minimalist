@@ -1449,25 +1449,6 @@ def format_text(
         if str(systems.loc[idx, "Scope"]) in ["waived"]:
             systems.at[idx, "Scope"] = "WAIVED"
 
-        if indent_description:
-            if systems.at[idx, "Format"] == "Description":
-                systems.at[idx, "Description"] = "   " + (
-                    str(systems.loc[idx, "Description"]).strip()
-                ).lstrip("• ")
-                if bullet_description:
-                    if str(systems.loc[idx, "Description"]).strip().startswith("#"):
-                        systems.at[idx, "Description"] = "      ‣ " + str(
-                            systems.loc[idx, "Description"]
-                        ).strip().lstrip("# ")
-                    elif str(systems.loc[idx, "Description"]).strip().startswith("‣"):
-                        systems.at[idx, "Description"] = "      ‣ " + str(
-                            systems.loc[idx, "Description"]
-                        ).strip().lstrip("‣ ")
-                    else:
-                        systems.at[idx, "Description"] = (
-                            "   • " + str(systems.loc[idx, "Description"]).strip()
-                        )
-
         if title_lineitem_or_description:
             if systems.at[idx, "Format"] == "Lineitem":
                 if len(str(systems.loc[idx, "Description"])) <= 60:
@@ -1494,6 +1475,25 @@ def format_text(
                 systems.at[idx, "Description"] = (
                     str(systems.loc[idx, "Description"]).strip().upper()
                 )
+
+        if indent_description:
+            if systems.at[idx, "Format"] == "Description":
+                systems.at[idx, "Description"] = "   " + (
+                    str(systems.loc[idx, "Description"]).strip()
+                ).lstrip("• ")
+                if bullet_description:
+                    if str(systems.loc[idx, "Description"]).strip().startswith("#"):
+                        systems.at[idx, "Description"] = "      ‣ " + str(
+                            systems.loc[idx, "Description"]
+                        ).strip().lstrip("# ")
+                    elif str(systems.loc[idx, "Description"]).strip().startswith("‣"):
+                        systems.at[idx, "Description"] = "      ‣ " + str(
+                            systems.loc[idx, "Description"]
+                        ).strip().lstrip("‣ ")
+                    else:
+                        systems.at[idx, "Description"] = (
+                            "   • " + str(systems.loc[idx, "Description"]).strip()
+                        )
 
     # Write fomatted description to Description field
     for system in system_names:
