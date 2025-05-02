@@ -2267,7 +2267,7 @@ def update_template_version(wb):
     if current_minor_revision is None or current_minor_revision < int(
         LATEST_MINOR_REVISION[1:]
     ):
-        # update_checklist(wb)
+        update_checklist(wb)  # Enabled the update checklist
         # xw.apps.active.alert("Called")  # type: ignore
         update_format(wb)
         summary(wb, discount=True)

@@ -47,6 +47,7 @@ available_checklist_register = [
     "cisco_rfq_checklist",
     "rfq_checklist",
     "ndb_checklist",
+    # "python_excel_setup",
 ]
 
 leave_application_checklist = [
@@ -379,6 +380,9 @@ Search for 'where python' and if it points to 'Windowsapp', take the location of
     "Setup the necessary toolbar.",
     "Ask IT to allow the scripts if necessary.",
     "Take note or inform that the excel file may need to be local to the machine to run the tools.",
+    "Have `git for windows` installed. This is to get access to `git bash`",
+    "Have `uv` installed. Usually it is a script you need to curl and run from command line.",
+    "Navigate to @tools folder and run the initial `bid setup`. Use either `python` or `uv run`.",
 ]
 
 cisco_rfq_checklist = [
