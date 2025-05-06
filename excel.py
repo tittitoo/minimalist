@@ -57,6 +57,8 @@ def fill_formula():
     wb = xw.Book.caller()
     ws = wb.sheets.active
     functions.fill_formula(ws)
+    # Added number_title so that it is also tied to ctrl+e shortcut
+    functions.number_title(wb)
 
 
 # Fix the whole workbook. The function name will later change to fix_workbook
