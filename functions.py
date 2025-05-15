@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import requests
 import xlwings as xw  # type: ignore
+import string
 
 import hide
 import checklist_collections as cc
@@ -95,7 +96,10 @@ def title_case_ignore_double_char(text):
     words = text.split()
     titled_words = []
     for word in words:
-        if len(word) > 2:  # So that two letter words are ignored.
+        if (
+            len(word.strip(string.punctuation)) > 2
+        ):  # So that two letter words are ignored without punctuation mark
+            # To prevent cases like 'mm)' from becoming 'Mm)'
             titled_words.append(word.title())
         else:
             titled_words.append(word)
