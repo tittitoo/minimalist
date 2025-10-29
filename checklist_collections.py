@@ -118,7 +118,7 @@ sales_checklist = [  # type:ignore
     },
     {
         "Jason entity to be quoted under": ["Jason Electronics", "Jason Energy", 120],
-        "Currency to be quoted in": ["SGD", "USD", 70],
+        "Currency to be quoted in": ["SGD", "USD", "EUR", 70],
         "Type of quotation": ["Budgetary", "Firmed", 70],
         # "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70],
     },
