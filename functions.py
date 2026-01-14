@@ -34,7 +34,43 @@ LEGEND = {
     "NOTE": "BTCQL is overall system cost in the related excel sheet.",
 }
 
-MACRO_NB = xw.Book("PERSONAL.XLSB")
+# MACRO_NB references PERSONAL.XLSB which is auto-loaded by Excel from XLSTART folder
+# Lazy loading avoids import-time errors when Excel is not running
+_MACRO_NB = None
+
+
+def get_macro_nb():
+    """
+    Get the PERSONAL.XLSB workbook (auto-loaded by Excel from XLSTART folder).
+    Works on both Mac and Windows.
+    """
+    global _MACRO_NB
+    if _MACRO_NB is None:
+        _MACRO_NB = xw.Book("PERSONAL.XLSB")
+    return _MACRO_NB
+
+
+def run_macro(macro_name):
+    """Run a VBA macro from PERSONAL.XLSB."""
+    get_macro_nb().macro(macro_name)()
+
+
+def get_macro_sheet(sheet_name):
+    """Get a sheet from PERSONAL.XLSB."""
+    return get_macro_nb().sheets[sheet_name]
+
+
+def copy_design_row(pwb, row_num, dest_range):
+    """
+    Copy a design row from PERSONAL.XLSB.
+
+    Args:
+        pwb: The PERSONAL.XLSB workbook (from get_macro_nb())
+        row_num: The row number to copy from Design sheet (e.g., "5:5" or "21:21")
+        dest_range: The destination range object
+    """
+    pwb.sheets["Design"].range(row_num).copy(dest_range)
+
 
 # Accounting number format
 ACCOUNTING = "_(* #,##0.00_);_(* (#,##0.00);_(* " "-" "??_);_(@_)"
@@ -317,10 +353,10 @@ def fill_lastrow(wb):
 
 
 def fill_lastrow_sheet(wb, sheet):  # type: ignore
-    pwb = xw.books("PERSONAL.XLSB")
     if sheet.name not in SKIP_SHEETS:
         last_row = sheet.range("C1500").end("up").row
-        (pwb.sheets["Design"].range("5:5")).copy(
+        # Copy design row from PERSONAL.XLSB
+        get_macro_sheet("Design").range("5:5").copy(
             sheet.range(str(last_row + 2) + ":" + str(last_row + 2))
         )
         sheet.range("F" + str(last_row + 2)).formula = '="Subtotal(" & Config!B12 & ")"'
@@ -467,8 +503,8 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
     summary_formula = []
     collect = []  # Collect formula to be put in summary page.
     # formula_fragment = '=IF(OR(Config!B13="COMMERCIAL PROPOSAL", Config!B13="BUDGETARY PROPOSAL"),'
-    # The design will now be taken from PERSONAL.XLSB
-    pwb = xw.books("PERSONAL.XLSB")
+    # The design will now be taken from PERSONAL.XLSB (Windows only)
+    pwb = get_macro_nb()
 
     # Initialize counters
     start_row = 19
@@ -534,8 +570,8 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
 
         for system in wb.sheet_names:
             if system not in SKIP_SHEETS:
-                (pwb.sheets["Design"].range("21:21")).copy(
-                    sheet.range(str(offset) + ":" + str(offset))
+                copy_design_row(
+                    pwb, "21:21", sheet.range(str(offset) + ":" + str(offset))
                 )
                 sheet.range("B" + str(offset)).value = str(count) + " ‣ "
                 sheet.range("C" + str(offset)).formula = odered_summary_formula.pop()
@@ -574,14 +610,12 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 offset += 1
 
         # Drawing lines
-        (pwb.sheets["Design"].range("15:15")).copy(
-            sheet.range(str(start_row) + ":" + str(start_row))
+        copy_design_row(
+            pwb, "15:15", sheet.range(str(start_row) + ":" + str(start_row))
         )
-        (pwb.sheets["Design"].range("11:11")).copy(
-            sheet.range(str(offset) + ":" + str(offset))
-        )
-        (pwb.sheets["Design"].range("17:17")).copy(
-            sheet.range(str(offset + 1) + ":" + str(offset + 1))
+        copy_design_row(pwb, "11:11", sheet.range(str(offset) + ":" + str(offset)))
+        copy_design_row(
+            pwb, "17:17", sheet.range(str(offset + 1) + ":" + str(offset + 1))
         )
 
         # sheet = wb.sheets['Summary']
@@ -652,11 +686,11 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 ]
 
         if discount:
-            (pwb.sheets["Design"].range("18:18")).copy(
-                sheet.range(str(offset + 2) + ":" + str(offset + 2))
+            copy_design_row(
+                pwb, "18:18", sheet.range(str(offset + 2) + ":" + str(offset + 2))
             )
-            (pwb.sheets["Design"].range("19:19")).copy(
-                sheet.range(str(offset + 3) + ":" + str(offset + 3))
+            copy_design_row(
+                pwb, "19:19", sheet.range(str(offset + 3) + ":" + str(offset + 3))
             )
             sheet.range("C" + str(offset + 3)).formula = (
                 '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
@@ -787,8 +821,8 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
 
         for system in wb.sheet_names:
             if system not in SKIP_SHEETS:
-                (pwb.sheets["Design"].range("21:21")).copy(
-                    sheet.range(str(offset) + ":" + str(offset))
+                copy_design_row(
+                    pwb, "21:21", sheet.range(str(offset) + ":" + str(offset))
                 )
                 sheet.range("B" + str(offset)).value = str(count) + " ‣ "
                 sheet.range("C" + str(offset)).formula = odered_summary_formula.pop()
@@ -821,14 +855,12 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 offset += 1
 
         # Drawing lines
-        (pwb.sheets["Design"].range("13:13")).copy(
-            sheet.range(str(start_row) + ":" + str(start_row))
+        copy_design_row(
+            pwb, "13:13", sheet.range(str(start_row) + ":" + str(start_row))
         )
-        (pwb.sheets["Design"].range("11:11")).copy(
-            sheet.range(str(offset) + ":" + str(offset))
-        )
-        (pwb.sheets["Design"].range("7:7")).copy(
-            sheet.range(str(offset + 1) + ":" + str(offset + 1))
+        copy_design_row(pwb, "11:11", sheet.range(str(offset) + ":" + str(offset)))
+        copy_design_row(
+            pwb, "7:7", sheet.range(str(offset + 1) + ":" + str(offset + 1))
         )
 
         # sheet = wb.sheets['Summary']
@@ -879,11 +911,11 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 ]
 
         if discount:
-            (pwb.sheets["Design"].range("8:8")).copy(
-                sheet.range(str(offset + 2) + ":" + str(offset + 2))
+            copy_design_row(
+                pwb, "8:8", sheet.range(str(offset + 2) + ":" + str(offset + 2))
             )
-            (pwb.sheets["Design"].range("9:9")).copy(
-                sheet.range(str(offset + 3) + ":" + str(offset + 3))
+            copy_design_row(
+                pwb, "9:9", sheet.range(str(offset + 3) + ":" + str(offset + 3))
             )
             sheet.range("C" + str(offset + 3)).formula = (
                 '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
@@ -1100,9 +1132,9 @@ def prepare_to_print_technical(wb):
             # Adjust the last two rows so that unwanted pagebreak can be prevented
             wb.sheets[sheet].range(f"{last_row+1}:{last_row+1}").delete()
             wb.sheets[sheet].range(f"{last_row+1}:{last_row+1}").row_height = 2
-            MACRO_NB.macro("conditional_format")()
-            MACRO_NB.macro("remove_h_borders")()
-            MACRO_NB.macro("pagebreak_borders")()
+            run_macro("conditional_format")
+            run_macro("remove_h_borders")
+            run_macro("pagebreak_borders")
     wb.sheets[current_sheet].activate()
 
 
@@ -1135,7 +1167,7 @@ def technical(wb):
             if sheet not in SKIP_SHEETS:
                 # Require to remove h_borders as these willl not be detected
                 # when columns are removed and page setup changed.
-                MACRO_NB.macro("remove_h_borders")()
+                run_macro("remove_h_borders")
                 last_row = ws.range("C1500").end("up").row
                 ws.range("F:G").delete()
                 ws.range("AL3:AL" + str(last_row)).value = ws.range(
@@ -1252,9 +1284,9 @@ def commercial(wb):
             ws.range("I:I").delete()
             ws.range("AL:AL").column_width = 0
             # Call macros
-            MACRO_NB.macro("conditional_format")()
-            MACRO_NB.macro("remove_h_borders")()
-            MACRO_NB.macro("pagebreak_borders")()
+            run_macro("conditional_format")
+            run_macro("remove_h_borders")
+            run_macro("pagebreak_borders")
 
     wb.sheets["Summary"].range("G:X").delete()
     wb.sheets["Config"].delete()
@@ -1280,8 +1312,8 @@ def prepare_to_print_internal(wb):
     for sheet in wb.sheet_names:
         if sheet not in SKIP_SHEETS:
             wb.sheets[sheet].activate()
-            MACRO_NB.macro("conditional_format_internal_costing")()
-            MACRO_NB.macro("remove_h_borders")()
+            run_macro("conditional_format_internal_costing")
+            run_macro("remove_h_borders")
             # Below is commented out so that blue lines do not show
             # MACRO_NB.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
@@ -1307,11 +1339,11 @@ def conditional_format_wb(wb):
     for sheet in wb.sheet_names:
         if sheet not in SKIP_SHEETS:
             wb.sheets[sheet].activate()
-            MACRO_NB.macro("conditional_format")()
+            run_macro("conditional_format")
             # Remove H borders in original excel
-            MACRO_NB.macro("remove_h_borders")()
+            run_macro("remove_h_borders")
             # Fix the columns border
-            MACRO_NB.macro("format_column_border")()
+            run_macro("format_column_border")
     wb.sheets[current_sheet].activate()
 
 
@@ -1510,9 +1542,9 @@ def shaded(wb, shaded=True):
         if sheet not in SKIP_SHEETS:
             wb.sheets[sheet].activate()
             if shaded:
-                MACRO_NB.macro("shaded")()
+                run_macro("shaded")
             else:
-                MACRO_NB.macro("unshaded")()
+                run_macro("unshaded")
                 # pass
     # wb.sheets[current_sheet].activate()
 
@@ -2230,14 +2262,15 @@ def update_template_version(wb):
     if current_wb_revision is None or current_wb_revision < int(LATEST_WB_VERSION[1:]):
         wb.sheets["Config"].range("D1:I20").clear()
         wb.sheets["Config"].range("95:106").delete()
-        MACRO_NB.sheets["Design"].range("A28:E36").copy(wb.sheets["Config"].range("D2"))
-        MACRO_NB.sheets["Data"].range("C1:C2").copy(wb.sheets["Config"].range("B95"))
-        MACRO_NB.sheets["Data"].range("D1:D2").copy(wb.sheets["Config"].range("C95"))
+        # Copy design elements from PERSONAL.XLSB
+        get_macro_sheet("Design").range("A28:E36").copy(wb.sheets["Config"].range("D2"))
+        get_macro_sheet("Data").range("C1:C2").copy(wb.sheets["Config"].range("B95"))
+        get_macro_sheet("Data").range("D1:D2").copy(wb.sheets["Config"].range("C95"))
         wb.sheets["Config"].range("A15").value = "Template Version"
         wb.sheets["Config"].range("B15").value = LATEST_WB_VERSION
         # Put currency and proposal type validation
         wb.sheets["Config"].activate()
-        MACRO_NB.macro("put_currency_proposal_validation_formula")()
+        run_macro("put_currency_proposal_validation_formula")
         flag += 1
 
     if current_minor_revision is None or current_minor_revision < int(
@@ -2282,12 +2315,13 @@ def update_checklist(wb):
     cell_value = wb.sheets["Technical_Notes"].range("F3")
     # if cell_value is None:
     if cell_value != "Systems".upper():
-        MACRO_NB.sheets["Data"].range("B1").copy(
+        # Copy from PERSONAL.XLSB
+        get_macro_sheet("Data").range("B1").copy(
             wb.sheets["Technical_Notes"].range("F3")
         )
-        # Call macro to fill in the dropbown formula
+        # Call macro to fill in the dropdown formula
         wb.sheets["Technical_Notes"].activate()
-        MACRO_NB.macro("put_systems_validation_formula")()
+        run_macro("put_systems_validation_formula")
 
     # For general checklist
     # Clear previous data if any
@@ -2301,16 +2335,17 @@ def update_checklist(wb):
         system.upper() for system in cc.available_checklist_register
     ]
 
-    # Test if value "Systems" is already there
+    # Test if value "Checklists" is already there
     cell_value = wb.sheets["Technical_Notes"].range("G3")
     # if cell_value is None:
     if cell_value != "Checklists".upper():
-        MACRO_NB.sheets["Data"].range("E1").copy(
+        # Copy from PERSONAL.XLSB
+        get_macro_sheet("Data").range("E1").copy(
             wb.sheets["Technical_Notes"].range("G3")
         )
-        # Call macro to fill in the dropbown formula
+        # Call macro to fill in the dropdown formula
         wb.sheets["Technical_Notes"].activate()
-        MACRO_NB.macro("put_checklists_validation_formula")()
+        run_macro("put_checklists_validation_formula")
 
         wb.sheets["Technical_Notes"].range("F:G").autofit()
 

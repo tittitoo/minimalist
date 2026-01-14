@@ -97,6 +97,8 @@ def fill_formula_wb():
     functions.conditional_format_wb(wb)
     functions.fill_lastrow(wb)
     functions.update_template_version(wb)
+    # Force recalculation at the end to avoid stale value errors
+    wb.app.calculate()
 
 
 @check_if_template
