@@ -36,17 +36,29 @@ def check_if_template(func):
 
 
 def disable_screen_updating(func):
-    "Disable excel screen updating to improve performance"
+    "Disable excel screen updating and automatic calculation to improve performance"
 
     def wrapper(*args, **kwargs):
+        app = xw.Book.caller().app
+        # Store original settings
+        original_calculation = app.calculation
+        original_screen_updating = app.screen_updating
         try:
-            xw.Book.caller().app.screen_updating = False
-            xw.Book.caller().app.status_bar = "Running please wait ..."
+            app.screen_updating = False
+            app.calculation = "manual"
+            app.status_bar = "Running please wait ..."
             func(*args, **kwargs)
-            xw.Book.caller().app.screen_updating = True
-            xw.Book.caller().app.status_bar = "Ready"
         except Exception as e:
-            print(f"Failed to make the app invisible -> {e}")
+            print(f"Error during function execution -> {e}")
+            raise
+        finally:
+            # Restore calculation mode first, then recalculate
+            app.calculation = original_calculation
+            # Force full recalculation to avoid stale value errors
+            app.calculate()
+            # Restore screen updating last
+            app.screen_updating = original_screen_updating
+            app.status_bar = "Ready"
 
     return wrapper
 
@@ -59,6 +71,8 @@ def fill_formula():
     functions.fill_formula(ws)
     # Added number_title so that it is also tied to ctrl+e shortcut
     functions.number_title(wb)
+    # Reset font sizes to default (Arial 12 for data, 9 for headers)
+    functions.format_cell_data_sheet(ws)
 
 
 # Fix the whole workbook. The function name will later change to fix_workbook

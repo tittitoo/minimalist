@@ -23,14 +23,12 @@ NA_YES_NO = "NA, Yes, No, 70"
 NA_YES_NO_PROGRESS = "NA, Yes, No, In Progress, 70"
 NIL_YES_NO_NA = " , Yes, No, NA, 70"
 DELIVERY_TERMS = "EXW, FOB, CIF, CPT, FCA, DAP, DDU, DDP, 70"
-CREDIT_TERMS = (
-    "30 Days, 45 Days, Advanced T/T, COD, 7 Days, 10 Days, 14 Days, LC at Sight, 70"
-)
+CREDIT_TERMS = "30 Days, 45 Days, 60 Days, Advanced T/T, COD, 7 Days, 10 Days, 14 Days, LC at Sight, 70"
 CLASS_SOCIETY = "DNV, ABS, LR, BV, NA, Others, 70"
-VALIDITY = "30 Days, 45 Days, 60 Days, 90 Days, 120 Days, 7 Days, 15 Days, 70"
+VALIDITY = "30 Days, 45 Days, 60 Days, 90 Days, 120 Days, 365 Days, 15 Days, 7 Days, 70"
 TEXTBOX_HEIGHT = 17
 PIC = " , Lin Zar, Oliver, Sahib, Thiha, 70"
-SALES = " , Derick, Don, Thiha, Shuan, Ooi, 70"
+SALES = " , Derick, Thiha, Shuan, 70"
 
 
 # Proposal checklist
@@ -117,8 +115,8 @@ sales_checklist = [  # type:ignore
         "Is there any NDA in place?": NO_YES.split(","),
     },
     {
-        "Jason entity to be quoted under": ["Jason Electronics", "Jason Energy", 120],
-        "Currency to be quoted in": ["SGD", "USD", 70],
+        "Jason entity to be quoted under": ["Jason Energy", "Jason Electronics", 120],
+        "Currency to be quoted in": ["SGD", "USD", "EUR", 70],
         "Type of quotation": ["Budgetary", "Firmed", 70],
         # "Have we received all the required information.": [' ', 'Yes', 'No', 'Not Sure', 70],
     },
