@@ -194,62 +194,70 @@ def fill_formula(sheet):
         )
 
         # BATCH 1: Columns N, O (2 adjacent columns) - Cost calculations
-        sheet.range("N3:O" + lr).formula = [[
-            '=IF(K3<>"",K3*(1-M3),"")',  # N: UCD
-            '=IF(AND(D3<>"", K3<>"",H3<>"OPTION"),D3*N3,"")',  # O: SCD
-        ]]
+        sheet.range("N3:O" + lr).formula = [
+            [
+                '=IF(K3<>"",K3*(1-M3),"")',  # N: UCD
+                '=IF(AND(D3<>"", K3<>"",H3<>"OPTION"),D3*N3,"")',  # O: SCD
+            ]
+        ]
 
         # BATCH 2: Columns Q through AA (11 adjacent columns) - Exchange rates & escalations
-        sheet.range("Q3:AA" + lr).formula = [[
-            # Q: Exchange rate
-            '=IF(J3<>"", INDEX(Config!$B$2:$B$10, XMATCH(J3, Config!$A$2:$A$10, 0))/INDEX(Config!$B$2:$B$10, XMATCH(Config!$B$12, Config!$A$2:$A$10, 0)), "")',
-            # R: UCDQ
-            '=IF(AND(D3<>"", K3<>""), N3*Q3,"")',
-            # S: SCDQ
-            '=IF(AND(D3<>"", K3<>"", H3<>"OPTION", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
-            # T: BUCQ
-            '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")',
-            # U: BSCQ
-            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
-            # V: Default escalation
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$L$1, ""))',
-            # W: Warranty
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$N$1, ""))',
-            # X: Freight
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$P$1, ""))',
-            # Y: Special
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$R$1, ""))',
-            # Z: Risk
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), U3-(S3+V3+W3+X3+Y3), ""))',
-            # AA: Margin reference
-            '=IF(AND(D3<>"",K3<>""),$J$1,"")',
-        ]]
+        sheet.range("Q3:AA" + lr).formula = [
+            [
+                # Q: Exchange rate
+                '=IF(J3<>"", INDEX(Config!$B$2:$B$10, XMATCH(J3, Config!$A$2:$A$10, 0))/INDEX(Config!$B$2:$B$10, XMATCH(Config!$B$12, Config!$A$2:$A$10, 0)), "")',
+                # R: UCDQ
+                '=IF(AND(D3<>"", K3<>""), N3*Q3,"")',
+                # S: SCDQ
+                '=IF(AND(D3<>"", K3<>"", H3<>"OPTION", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
+                # T: BUCQ
+                '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")',
+                # U: BSCQ
+                '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
+                # V: Default escalation
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$L$1, ""))',
+                # W: Warranty
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$N$1, ""))',
+                # X: Freight
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$P$1, ""))',
+                # Y: Special
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$R$1, ""))',
+                # Z: Risk
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), U3-(S3+V3+W3+X3+Y3), ""))',
+                # AA: Margin reference
+                '=IF(AND(D3<>"",K3<>""),$J$1,"")',
+            ]
+        ]
 
         # BATCH 3: Columns AC through AI (7 adjacent columns) - Pricing calculations
-        sheet.range("AC3:AI" + lr).formula = [[
-            # AC: RUPQ
-            '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")',
-            # AD: RSPQ
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")',
-            # AE: UPLS
-            '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")',
-            # AF: SPLS
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
-            # AG: Profit
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")',
-            # AH: Margin %
-            '=IF(AND(AG3<>"", AG3<>0), AG3/AF3, "")',
-            # AI: Total price
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"), D3*AE3, "")',
-        ]]
+        sheet.range("AC3:AI" + lr).formula = [
+            [
+                # AC: RUPQ
+                '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")',
+                # AD: RSPQ
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")',
+                # AE: UPLS
+                '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")',
+                # AF: SPLS
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
+                # AG: Profit
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")',
+                # AH: Margin %
+                '=IF(AND(AG3<>"", AG3<>0), AG3/AF3, "")',
+                # AI: Total price
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"), D3*AE3, "")',
+            ]
+        ]
 
         # BATCH 4: Columns F, G (2 adjacent columns) - Unit/Subtotal Price
-        sheet.range("F3:G" + lr).formula = [[
-            # F: Unit Price
-            '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))',
-            # G: Subtotal Price
-            '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")',
-        ]]
+        sheet.range("F3:G" + lr).formula = [
+            [
+                # F: Unit Price
+                '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))',
+                # G: Subtotal Price
+                '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")',
+            ]
+        ]
 
         # L: Subtotal Cost (single column)
         sheet.range("L3:L" + lr).formula = (
@@ -265,32 +273,36 @@ def fill_formula(sheet):
         sheet.range("AL" + str(last_row + 1)).value = "Title"
 
         # BATCH 5: Columns AJ, AK (2 adjacent columns) - Lumpsum flags
-        sheet.range("AJ3:AK" + lr).formula = [[
-            # AJ: Lumpsum total
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AI4:INDEX(AI4:AI1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), "")',
-            # AK: Lumpsum/Unit Price flag
-            '=IF(AL3="Lineitem", IF(ISNUMBER(INDEX($AJ$1:AJ2, XMATCH("Title", $AL$1:AL2, 0, -1))), "Lumpsum", "Unit Price"), "")',
-        ]]
+        sheet.range("AJ3:AK" + lr).formula = [
+            [
+                # AJ: Lumpsum total
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AI4:INDEX(AI4:AI1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), "")',
+                # AK: Lumpsum/Unit Price flag
+                '=IF(AL3="Lineitem", IF(ISNUMBER(INDEX($AJ$1:AJ2, XMATCH("Title", $AL$1:AL2, 0, -1))), "Lumpsum", "Unit Price"), "")',
+            ]
+        ]
 
         # BATCH 6: Columns AP through AW (8 adjacent columns) - Lumpsum calculations
-        sheet.range("AP3:AW" + lr).formula = [[
-            # AP: SCDQL
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(S4:INDEX(S4:S1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))',
-            # AQ: TCDQL (material cost)
-            '=IF(AND(ISNUMBER(D3), ISNUMBER(AP3), H3<>"OPTION"), D3*AP3, "")',
-            # AR: BSCQL
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(U4:INDEX(U4:U1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))',
-            # AS: BTCQL (base cost)
-            '=IF(AND(ISNUMBER(D3), ISNUMBER(AR3), H3<>"OPTION"), D3*AR3, "")',
-            # AT: SSPL
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AF4:INDEX(AF4:AF1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))',
-            # AU: TSPL (selling price)
-            '=IF(AND(ISNUMBER(D3), H3<>"WAIVED", H3<>"INCLUDED", H3<>"OPTION", ISNUMBER(AT3)), D3*AT3, "")',
-            # AV: Total Profit
-            '=IF(AND(ISNUMBER(D3), ISNUMBER(AS3), ISNUMBER(AU3)), AU3-AS3, "")',
-            # AW: Grand Margin
-            '=IF(AND(H3<>"OPTION", ISNUMBER(D3), ISNUMBER(AU3), AU3<>0, ISNUMBER(AV3)), AV3/AU3, "")',
-        ]]
+        sheet.range("AP3:AW" + lr).formula = [
+            [
+                # AP: SCDQL
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(S4:INDEX(S4:S1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))',
+                # AQ: TCDQL (material cost)
+                '=IF(AND(ISNUMBER(D3), ISNUMBER(AP3), H3<>"OPTION"), D3*AP3, "")',
+                # AR: BSCQL
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(U4:INDEX(U4:U1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))',
+                # AS: BTCQL (base cost)
+                '=IF(AND(ISNUMBER(D3), ISNUMBER(AR3), H3<>"OPTION"), D3*AR3, "")',
+                # AT: SSPL
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AF4:INDEX(AF4:AF1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))',
+                # AU: TSPL (selling price)
+                '=IF(AND(ISNUMBER(D3), H3<>"WAIVED", H3<>"INCLUDED", H3<>"OPTION", ISNUMBER(AT3)), D3*AT3, "")',
+                # AV: Total Profit
+                '=IF(AND(ISNUMBER(D3), ISNUMBER(AS3), ISNUMBER(AU3)), AU3-AS3, "")',
+                # AW: Grand Margin
+                '=IF(AND(H3<>"OPTION", ISNUMBER(D3), ISNUMBER(AU3), AU3<>0, ISNUMBER(AV3)), AV3/AU3, "")',
+            ]
+        ]
 
 
 def fill_formula_wb(wb):
@@ -1045,7 +1057,9 @@ def number_title(wb, count=10, step=10):
     starts_with_az = no_col.apply(starts_with_letter)
 
     # Identify sub-items: strings that don't start with A-Z and are not main titles
-    is_sub_item = (~is_main_title) & (~starts_with_az) & (no_col.astype(str).str.strip() != "")
+    is_sub_item = (
+        (~is_main_title) & (~starts_with_az) & (no_col.astype(str).str.strip() != "")
+    )
 
     # Assign main title numbers
     # cumsum of is_main_title gives us the title count at each position
@@ -1059,7 +1073,9 @@ def number_title(wb, count=10, step=10):
         # Create group ID based on which title each row belongs to
         group_id = title_cumsum
         # Within each group, count sub-items
-        sub_item_count = systems[is_sub_item].groupby(group_id[is_sub_item]).cumcount() + 1
+        sub_item_count = (
+            systems[is_sub_item].groupby(group_id[is_sub_item]).cumcount() + 1
+        )
         systems.loc[is_sub_item, "NO"] = "⠠" + sub_item_count.astype(str)
 
     # Now is the matter of writing to the required sheets
@@ -1285,7 +1301,7 @@ def print_technical(wb):
 def conditional_format_wb(wb):
     """
     Takes a workbook, and do conditional formatting.
-    Rely on excel macro for conditional format.
+    Uses Python functions instead of VBA macros.
     """
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
@@ -1396,9 +1412,8 @@ def format_text(
 
     # Apply title case to Lineitem and Description rows with short descriptions
     if title_lineitem_or_description:
-        mask = (
-            systems["Format"].isin(["Lineitem", "Description"])
-            & (systems["Description"].str.len() <= 60)
+        mask = systems["Format"].isin(["Lineitem", "Description"]) & (
+            systems["Description"].str.len() <= 60
         )
         if mask.any():
             systems.loc[mask, "Description"] = (
@@ -1436,10 +1451,12 @@ def format_text(
                 # Default -> • bullet
 
                 result = pd.Series(index=desc_col.index, dtype=str)
-                result[starts_hash] = "      ‣ " + desc_col[starts_hash].str.lstrip("# ")
-                result[starts_triangle] = (
-                    "      ‣ " + desc_col[starts_triangle].str.lstrip("‣ ")
+                result[starts_hash] = "      ‣ " + desc_col[starts_hash].str.lstrip(
+                    "# "
                 )
+                result[starts_triangle] = "      ‣ " + desc_col[
+                    starts_triangle
+                ].str.lstrip("‣ ")
                 result[~starts_hash & ~starts_triangle] = (
                     "   • " + desc_col[~starts_hash & ~starts_triangle]
                 )
@@ -1491,7 +1508,7 @@ def shaded(wb, shaded=True):
     # current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in SKIP_SHEETS:
-            wb.sheets[sheet].ativate()
+            wb.sheets[sheet].activate()
             if shaded:
                 MACRO_NB.macro("shaded")()
             else:
