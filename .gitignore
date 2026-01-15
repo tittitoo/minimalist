@@ -1,3 +1,4 @@
+*.tmp
 hide.py
 __pycache__/hide.cpython-310.pyc
 ~$*

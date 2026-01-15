@@ -2074,34 +2074,51 @@ def fill_formula_active_row(wb, ws):
 
 
 def delete_extra_empty_row(ws):
+    """
+    Delete consecutive empty rows (2 or more) from a worksheet.
+
+    Optimized to read all data at once instead of row-by-row COM calls.
+    """
     c_column = ws.range("C1500").end("up").row
     g_column = ws.range("G1500").end("up").row
-    if c_column > g_column:
-        last_row = c_column
-    else:
-        last_row = g_column
+    last_row = max(c_column, g_column)
 
-    empty_row = 0
-    start_row = 0
+    if last_row <= 1:
+        return
 
-    for i in range(1, last_row + 1):
-        # Check if the below columns are empty
-        if all(cell.value is None for cell in ws.range(f"A{i}:H{i}")):
-            empty_row += 1
-            if empty_row == 1:
-                # Set start_row to empty_row
-                start_row = i + 1
+    # Read all data at once (single COM call instead of row-by-row)
+    data = ws.range(f"A1:H{last_row}").value
+
+    # Handle single row case (value is a list, not list of lists)
+    if last_row == 1:
+        data = [data]
+
+    # Find empty rows using numpy for speed
+    empty_mask = np.array(
+        [all(cell is None or cell == "" for cell in row) for row in data]
+    )
+
+    # Find ranges of consecutive empty rows (2 or more)
+    ranges_to_delete = []
+    i = 0
+    while i < len(empty_mask):
+        if empty_mask[i]:
+            # Found start of empty region
+            start = i
+            while i < len(empty_mask) and empty_mask[i]:
+                i += 1
+            end = i
+            # Only delete if 2 or more consecutive empty rows
+            # Keep one empty row, delete the rest
+            if end - start >= 2:
+                # Delete from start+1 to end (keep one empty row)
+                ranges_to_delete.append((start + 2, end))  # +2 for 1-based Excel row
         else:
-            # Check if there is more empty rows
-            if empty_row >= 2:
-                # Delete the empty rows
-                ws.range(f"A{start_row}:XFD{i-1}").delete(shift="up")
-                # Make adjustment
-                last_row -= empty_row
-                i -= empty_row
-            # Reset empty_row and start_row
-            empty_row = 0
-            start_row = 0
+            i += 1
+
+    # Delete ranges from bottom to top to avoid index shifting
+    for start_row, end_row in reversed(ranges_to_delete):
+        ws.range(f"{start_row}:{end_row}").delete(shift="up")
 
 
 def delete_extra_empty_row_wb(wb):
@@ -2115,28 +2132,41 @@ def format_cell_data_sheet(sheet):
     """
     Set the cell font and font size for a single sheet.
     Resets font to Arial size 12 for data rows, size 9 for headers.
+
+    Optimized to format only used range instead of entire columns.
     """
     if sheet.name not in SKIP_SHEETS:
         last_row = sheet.range("C1500").end("up").row + 1
-        # Set cell font and size
-        sheet.range(f"A3:BD{last_row}").font.name = "Arial"
+        lr = str(last_row)
+
+        # Set cell font and size for data range only
+        data_range = sheet.range(f"A3:BD{lr}")
+        data_range.font.name = "Arial"
+        data_range.font.size = 12
         sheet.range("2:2").font.size = 9
-        sheet.range(f"A3:BD{last_row}").font.size = 12
         sheet.range("C3").font.size = 14
-        # Set cell number formats
-        sheet.range("A:B").number_format = "0"
-        sheet.range("D:D").number_format = "0"
-        sheet.range("F:G").number_format = ACCOUNTING
-        sheet.range("K:L").number_format = ACCOUNTING
-        sheet.range("M:M").number_format = "0.00%"
-        sheet.range("N:O").number_format = ACCOUNTING
-        sheet.range("Q:Q").number_format = EXCNANGE_RATE
-        sheet.range("R:Z").number_format = ACCOUNTING
-        sheet.range("MU:MU").number_format = "0.00%"
-        sheet.range("AB:AG").number_format = ACCOUNTING
-        sheet.range("AH:AH").number_format = "0.00%"
-        sheet.range("AI:AJ").number_format = ACCOUNTING
+
+        # Set cell number formats - optimized to use used range instead of entire columns
+        # Integer format columns
+        sheet.range(f"A1:B{lr}").number_format = "0"
+        sheet.range(f"D1:D{lr}").number_format = "0"
+
+        # Accounting format columns - batch adjacent columns together
+        sheet.range(f"F1:G{lr}").number_format = ACCOUNTING
+        sheet.range(f"K1:L{lr}").number_format = ACCOUNTING
+        sheet.range(f"N1:O{lr}").number_format = ACCOUNTING
+        sheet.range(f"R1:Z{lr}").number_format = ACCOUNTING
+        sheet.range(f"AB1:AG{lr}").number_format = ACCOUNTING
+        sheet.range(f"AI1:AJ{lr}").number_format = ACCOUNTING
+
+        # Percentage format columns
+        sheet.range(f"M1:M{lr}").number_format = "0.00%"
+        sheet.range(f"AH1:AH{lr}").number_format = "0.00%"
         sheet.range("I1:R1").number_format = "0.00%"
+
+        # Exchange rate format
+        sheet.range(f"Q1:Q{lr}").number_format = EXCNANGE_RATE
+
         # Delete 'Category' and 'System' fields to avoid visual clutter.
         if sheet.range("AN2").value == "System":
             sheet.range("AN:AN").delete()
