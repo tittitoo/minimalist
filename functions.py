@@ -7,6 +7,7 @@ The code will need to be updated if more rows are needed.
 
 import os
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -70,6 +71,38 @@ def copy_design_row(pwb, row_num, dest_range):
         dest_range: The destination range object
     """
     pwb.sheets["Design"].range(row_num).copy(dest_range)
+
+
+def apply_lastrow_border(row_range):
+    """
+    Apply top and bottom border with color #0332FF to a row range.
+    Compatible with both Mac and Windows platforms.
+
+    Args:
+        row_range: xlwings range object for the row to style
+    """
+    # Excel border edge constants
+    xlEdgeTop = 8
+    xlEdgeBottom = 9
+    # Line style constants
+    xlContinuous = 1
+    # Weight constants
+    xlThin = 2
+
+    # Color #0332FF: R=3, G=50, B=255
+    if sys.platform == "win32":
+        # Windows: Use COM API directly (pure Python)
+        # Color in BGR long integer format for Windows
+        color = 255 * 65536 + 50 * 256 + 3  # 16724483
+        for edge in [xlEdgeTop, xlEdgeBottom]:
+            border = row_range.api.Borders(edge)
+            border.LineStyle = xlContinuous
+            border.Weight = xlThin
+            border.Color = color
+    else:
+        # macOS: AppleScript/VBA limitations prevent direct border manipulation.
+        # Fall back to copying border style from PERSONAL.XLSB Design sheet.
+        get_macro_sheet("Design").range("5:5").copy(row_range)
 
 
 # Accounting number format
@@ -355,10 +388,9 @@ def fill_lastrow(wb):
 def fill_lastrow_sheet(wb, sheet):  # type: ignore
     if sheet.name not in SKIP_SHEETS:
         last_row = sheet.range("C1500").end("up").row
-        # Copy design row from PERSONAL.XLSB
-        get_macro_sheet("Design").range("5:5").copy(
-            sheet.range(str(last_row + 2) + ":" + str(last_row + 2))
-        )
+        # Apply top and bottom border with color #0332FF (pure Python, cross-platform)
+        row_range = sheet.range(f"{last_row + 2}:{last_row + 2}")
+        apply_lastrow_border(row_range)
         sheet.range("F" + str(last_row + 2)).formula = '="Subtotal(" & Config!B12 & ")"'
         sheet.range("F" + str(last_row + 2)).font.size = 9
         sheet.range("G" + str(last_row + 2)).formula = (
