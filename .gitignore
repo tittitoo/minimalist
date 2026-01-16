@@ -1,3 +1,4 @@
+*.tmp
 hide.py
 __pycache__/hide.cpython-310.pyc
 ~$*
@@ -14,3 +15,4 @@ test.ipynb
 resources/Planner.xltx
 resources/Template.xltx
 .ipynb_checkpoints
+.claude

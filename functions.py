@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import requests
 import xlwings as xw  # type: ignore
+import string
 
 import hide
 import checklist_collections as cc
@@ -33,7 +34,43 @@ LEGEND = {
     "NOTE": "BTCQL is overall system cost in the related excel sheet.",
 }
 
-MACRO_NB = xw.Book("PERSONAL.XLSB")
+# MACRO_NB references PERSONAL.XLSB which is auto-loaded by Excel from XLSTART folder
+# Lazy loading avoids import-time errors when Excel is not running
+_MACRO_NB = None
+
+
+def get_macro_nb():
+    """
+    Get the PERSONAL.XLSB workbook (auto-loaded by Excel from XLSTART folder).
+    Works on both Mac and Windows.
+    """
+    global _MACRO_NB
+    if _MACRO_NB is None:
+        _MACRO_NB = xw.Book("PERSONAL.XLSB")
+    return _MACRO_NB
+
+
+def run_macro(macro_name):
+    """Run a VBA macro from PERSONAL.XLSB."""
+    get_macro_nb().macro(macro_name)()
+
+
+def get_macro_sheet(sheet_name):
+    """Get a sheet from PERSONAL.XLSB."""
+    return get_macro_nb().sheets[sheet_name]
+
+
+def copy_design_row(pwb, row_num, dest_range):
+    """
+    Copy a design row from PERSONAL.XLSB.
+
+    Args:
+        pwb: The PERSONAL.XLSB workbook (from get_macro_nb())
+        row_num: The row number to copy from Design sheet (e.g., "5:5" or "21:21")
+        dest_range: The destination range object
+    """
+    pwb.sheets["Design"].range(row_num).copy(dest_range)
+
 
 # Accounting number format
 ACCOUNTING = "_(* #,##0.00_);_(* (#,##0.00);_(* " "-" "??_);_(@_)"
@@ -95,7 +132,10 @@ def title_case_ignore_double_char(text):
     words = text.split()
     titled_words = []
     for word in words:
-        if len(word) > 2:  # So that two letter words are ignored.
+        if (
+            len(word.strip(string.punctuation)) > 2
+        ):  # So that two letter words are ignored without punctuation mark
+            # To prevent cases like 'mm)' from becoming 'Mm)'
             titled_words.append(word.title())
         else:
             titled_words.append(word)
@@ -167,219 +207,138 @@ def set_x(text):
 
 
 def fill_formula(sheet):
+    """
+    Fill formulas in a sheet for pricing calculations.
+
+    Optimized to batch adjacent column formula assignments, reducing COM calls
+    from ~30 to ~10 for significant performance improvement.
+    """
     if sheet.name not in SKIP_SHEETS:
         # Formula to cells
         # Increase the last row by 1 so that the cells are not left empty
         last_row = sheet.range("C1500").end("up").row + 1
+        lr = str(last_row)
+
+        # A1: Reference formula (single cell)
         sheet.range("A1").formula = (
             '= "JASON REF: " & Config!B29 &  ", REVISION: " &  Config!B30 & ", PROJECT: " & Config!B26'
         )
-        # Serail Numbering (SN)
-        # sheet.range("B3:B" + str(last_row)).formula = (
-        #     '=IF(AND(ISNUMBER(D3), ISNUMBER(K3), XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)), COUNT(INDIRECT(CONCAT("B",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1),":B",ROW()-1))) + 1, "")'
-        # )
-        # sheet.range("B3:B" + str(last_row)).formula = (
-        #     '=IF(AND(ISNUMBER(D3), ISNUMBER(K3)), COUNT(INDIRECT(CONCAT("B",XMATCH("Title", $AL$1:AL2, 0, -1),":B",ROW()-1))) + 1 , "")'
-        # )
-        sheet.range("B3:B" + str(last_row)).formula = (
+
+        # B: Serial Numbering (single column)
+        sheet.range("B3:B" + lr).formula = (
             '=IF(AND(A3="", ISNUMBER(D3), ISNUMBER(K3)), COUNT(B2:INDEX($B$1:B2, XMATCH("Title", $AL$1:AL2, 0, -1))) + 1 , "")'
         )
 
-        sheet.range("N3:N" + str(last_row)).formula = '=IF(K3<>"",K3*(1-M3),"")'
-        sheet.range("O3:O" + str(last_row)).formula = (
-            '=IF(AND(D3<>"", K3<>"",H3<>"OPTION"),D3*N3,"")'
-        )
-        # Exchange rates
-        # sheet.range("Q3:Q" + str(last_row)).formula = (
-        #     '=IF(Config!$B$12="SGD", IF(J3<>"", INDEX(Config!$B$2:$B$10, XMATCH(J3, Config!$A$2:$A$10, 0)), ""), IF(J3<>"",INDEX(Config!$B$2:$B$10, XMATCH(J3, Config!$A$2:$A$10, 0))/INDEX(Config!$B$2:$B$10, XMATCH(Config!$B$12, Config!$A$2:$A$10, 0)), ""))'
-        # )
-        sheet.range("Q3:Q" + str(last_row)).formula = (
-            '=IF(J3<>"", INDEX(Config!$B$2:$B$10, XMATCH(J3, Config!$A$2:$A$10, 0))/INDEX(Config!$B$2:$B$10, XMATCH(Config!$B$12, Config!$A$2:$A$10, 0)), "")'
-        )
-        # sheet.range("Q3:Q" + str(last_row)).formula = (
-        #     '=IF(Config!$B$12="SGD",IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE),""),IF(J3<>"",VLOOKUP(J3,Config!$A$2:$B$10,2,FALSE)/VLOOKUP(Config!$B$12,Config!$A$2:$B$10,2,FALSE),""))'
-        # )
-        sheet.range("R3:R" + str(last_row)).formula = (
-            '=IF(AND(D3<>"", K3<>""), N3*Q3,"")'
-        )
-        # sheet.range('S3:S' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"",H3<>"OPTION") ,D3*R3,"")'
+        # BATCH 1: Columns N, O (2 adjacent columns) - Cost calculations
+        sheet.range("N3:O" + lr).formula = [
+            [
+                '=IF(K3<>"",K3*(1-M3),"")',  # N: UCD
+                '=IF(AND(D3<>"", K3<>"",H3<>"OPTION"),D3*N3,"")',  # O: SCD
+            ]
+        ]
 
-        # Formula for SCDQ
-        # sheet.range("S3:S" + str(last_row)).formula = (
-        #     '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*R3,"")'
-        # )
-        sheet.range("S3:S" + str(last_row)).formula = (
-            '=IF(AND(D3<>"", K3<>"", H3<>"OPTION", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")'
-        )
+        # BATCH 2: Columns Q through AA (11 adjacent columns) - Exchange rates & escalations
+        sheet.range("Q3:AA" + lr).formula = [
+            [
+                # Q: Exchange rate
+                '=IF(J3<>"", INDEX(Config!$B$2:$B$10, XMATCH(J3, Config!$A$2:$A$10, 0))/INDEX(Config!$B$2:$B$10, XMATCH(Config!$B$12, Config!$A$2:$A$10, 0)), "")',
+                # R: UCDQ
+                '=IF(AND(D3<>"", K3<>""), N3*Q3,"")',
+                # S: SCDQ
+                '=IF(AND(D3<>"", K3<>"", H3<>"OPTION", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
+                # T: BUCQ
+                '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")',
+                # U: BSCQ
+                '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
+                # V: Default escalation
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$L$1, ""))',
+                # W: Warranty
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$N$1, ""))',
+                # X: Freight
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$P$1, ""))',
+                # Y: Special
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$R$1, ""))',
+                # Z: Risk
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), U3-(S3+V3+W3+X3+Y3), ""))',
+                # AA: Margin reference
+                '=IF(AND(D3<>"",K3<>""),$J$1,"")',
+            ]
+        ]
 
-        sheet.range("T3:T" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")'
-        )
-        # Formula for BSCQ
-        # sheet.range("U3:U" + str(last_row)).formula = (
-        #     '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))<>"OPTION"),D3*T3,"")'
-        # )
-        sheet.range("U3:U" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")'
-        )
-        # Default
-        # sheet.range("V3:V" + str(last_row)).formula = (
-        #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$L$1,"")'
-        # )
-        sheet.range("V3:V" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$L$1, ""))'
-        )
-        # Warranty
-        # sheet.range("W3:W" + str(last_row)).formula = (
-        #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$N$1,"")'
-        # )
-        sheet.range("W3:W" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$N$1, ""))'
-        )
-        # Freight (Inbound)
-        # sheet.range("X3:X" + str(last_row)).formula = (
-        #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$P$1,"")'
-        # )
-        sheet.range("X3:X" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$P$1, ""))'
-        )
-        # Special (Condition)
-        # sheet.range("Y3:Y" + str(last_row)).formula = (
-        #     '=IF(AND(D3<>"",K3<>"",U3<>""),D3*R3*$R$1,"")'
-        # )
-        sheet.range("Y3:Y" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$R$1, ""))'
-        )
-        # Risk
-        # sheet.range("Z3:Z" + str(last_row)).formula = (
-        #     '=IF(AND(D3<>"",K3<>"",U3<>""),U3-(S3+V3+W3+X3+Y3),"")'
-        # )
-        sheet.range("Z3:Z" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), U3-(S3+V3+W3+X3+Y3), ""))'
-        )
-        sheet.range("AA3:AA" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>""),$J$1,"")'
-        )
-        sheet.range("AC3:AC" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")'
-        )
-        # For RSPQ
-        # sheet.range('AD3:AD' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED"),D3*AC3,"")'
-        # sheet.range("AD3:AD" + str(last_row)).formula = (
-        #     '=IF(AND(D3<>"",K3<>"", H3<>"OPTION",H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AC3,"")'
-        # )
-        sheet.range("AD3:AD" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")'
-        )
-        # UPLS
-        sheet.range("AE3:AE" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")'
-        )
+        # BATCH 3: Columns AC through AI (7 adjacent columns) - Pricing calculations
+        sheet.range("AC3:AI" + lr).formula = [
+            [
+                # AC: RUPQ
+                '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")',
+                # AD: RSPQ
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")',
+                # AE: UPLS
+                '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")',
+                # AF: SPLS
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
+                # AG: Profit
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")',
+                # AH: Margin %
+                '=IF(AND(AG3<>"", AG3<>0), AG3/AF3, "")',
+                # AI: Total price
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"), D3*AE3, "")',
+            ]
+        ]
 
-        # for SPLS
-        # sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED"),D3*AE3,"")'
-        # sheet.range("AF3:AF" + str(last_row)).formula = (
-        #     '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",(INDIRECT(CONCAT("H",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))) <>"OPTION"),D3*AE3,"")'
-        # )
-        sheet.range("AF3:AF" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")'
-        )
+        # BATCH 4: Columns F, G (2 adjacent columns) - Unit/Subtotal Price
+        sheet.range("F3:G" + lr).formula = [
+            [
+                # F: Unit Price
+                '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))',
+                # G: Subtotal Price
+                '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")',
+            ]
+        ]
 
-        # sheet.range('AF3:AF' + str(last_row)).formula = '=IF(AND(D3<>"",K3<>""),D3*AE3,"")'
-        sheet.range("AG3:AG" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")'
-        )
-        sheet.range("AH3:AH" + str(last_row)).formula = (
-            '=IF(AND(AG3<>"", AG3<>0), AG3/AF3, "")'
-        )
-        sheet.range("AI3:AI" + str(last_row)).formula = (
-            '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"), D3*AE3, "")'
-        )
-        # sheet.range('AL3:AL' + str(last_row)).formula = '=IF(A3<>"","Title",IF(B3<>"","Lineitem",IF(LEFT(C3,3)="***","Comment",IF(AND(A3="",B3="",C2="", C4<>"",D4<>""), "Subtitle",""))))'
-        # Unit Price
-        sheet.range("F3:F" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))'
-        )
-        # sheet.range('F3:F' + str(last_row)).formula = '=IF(AE3<>"", AE3,"")'
-        sheet.range("G3:G" + str(last_row)).formula = (
-            '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
-        )
-        sheet.range("L3:L" + str(last_row)).formula = (
+        # L: Subtotal Cost (single column)
+        sheet.range("L3:L" + lr).formula = (
             '=IF(AND(D3<>"",K3<>"",H3<>"OPTION"),D3*K3,"")'
         )
-        # For Format field
+
+        # AL: Format field (special handling - values and formulas)
         sheet.range("AL1").value = "Title"
         sheet.range("AL3").value = "System"
-        # sheet.range('AL4:AL' + str(last_row)).formula = '=IF(C4<>"",IF(AND(A4<>"",C4<>""),"Title", IF(B4<>"","Lineitem", IF(LEFT(C4,3)="***","Comment", IF(AND(A4="",B4="",C3="", C5<>"",D5<>""), "Subtitle","Description")))),"")'
-        # Implement "Subsystem"
-        sheet.range("AL4:AL" + str(last_row)).formula = (
+        sheet.range("AL4:AL" + lr).formula = (
             '=IF(C4<>"",IF(AND(A4<>"",C4<>""),"Title", IF(B4<>"","Lineitem", IF(LEFT(C4,3)="***","Comment", IF(AND(A4="",B4="",C3="", C5<>"",D5<>""), "Subtitle", IF(AND(A4="",B4="",C3="", C5=""), "Subsystem", "Description"))))),"")'
         )
         sheet.range("AL" + str(last_row + 1)).value = "Title"
 
-        # For Lumpsum
-        # sheet.range('AJ3:AJ' + str(last_row)).formula = '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AF", ROW()+1, ":AF",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
-        # sheet.range("AJ3:AJ" + str(last_row)).formula = (
-        #     '=IF(AND(AL3="Title", D3=1, E3="lot"), SUM(INDIRECT(CONCAT("AI", ROW()+1, ":AI",((MATCH("Title",INDIRECT(CONCAT("AL", ROW()+1, ":AL", MATCH(REPT("z",50),AL:AL))),0)) + ROW())))), "")'
-        # )
-        # Improved formula for Lumpsum
-        # In XMATCH, I substract one so that it references the row above Title
-        # For lumpsum
-        sheet.range("AJ3:AJ" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AI4:INDEX(AI4:AI1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), "")'
-        )
-        # Flag to determine if it is lumpsum or Unit Price
-        # sheet.range("AK3:AK" + str(last_row)).formula = (
-        #     '=IF(AL3="Lineitem", IF(ISNUMBER(INDIRECT(CONCAT("AJ",XMATCH("Title",(INDIRECT(CONCAT("AL1:","AL",ROW()-1))),0,-1)))), "Lumpsum", "Unit Price"), "")'
-        # )
-        sheet.range("AK3:AK" + str(last_row)).formula = (
-            '=IF(AL3="Lineitem", IF(ISNUMBER(INDEX($AJ$1:AJ2, XMATCH("Title", $AL$1:AL2, 0, -1))), "Lumpsum", "Unit Price"), "")'
-        )
+        # BATCH 5: Columns AJ, AK (2 adjacent columns) - Lumpsum flags
+        sheet.range("AJ3:AK" + lr).formula = [
+            [
+                # AJ: Lumpsum total
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AI4:INDEX(AI4:AI1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), "")',
+                # AK: Lumpsum/Unit Price flag
+                '=IF(AL3="Lineitem", IF(ISNUMBER(INDEX($AJ$1:AJ2, XMATCH("Title", $AL$1:AL2, 0, -1))), "Lumpsum", "Unit Price"), "")',
+            ]
+        ]
 
-        # For SCDQL (Subtotal Cost after Discount in Quoted currency Lumpsum)
-        # This is the lumpsum of SCDQ (Subtotal Cost after Discount in Quoted Currency)
-        sheet.range("AP3:AP" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(S4:INDEX(S4:S1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))'
-        )
-
-        # TCDQL (Total Cost after Discount in Quoted currency Lumpsum)
-        # This will be the total material cost
-        sheet.range("AQ3:AQ" + str(last_row)).formula = (
-            '=IF(AND(ISNUMBER(D3), ISNUMBER(AP3), H3<>"OPTION"), D3*AP3, "")'
-        )
-
-        # For BSCQL (Base Subtotal Cost in Quoted currency Lumpsum)
-        # This is the lumpsum of BSCQ (Base Subtotal Cost in Quoted Currency)
-        sheet.range("AR3:AR" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(U4:INDEX(U4:U1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))'
-        )
-
-        # For BTCQL (Base Total Cost in Quoted currency Lumpsum)
-        # This will be the total cost after escalation, which is our base cost
-        sheet.range("AS3:AS" + str(last_row)).formula = (
-            '=IF(AND(ISNUMBER(D3), ISNUMBER(AR3), H3<>"OPTION"), D3*AR3, "")'
-        )
-
-        # For SSPL (Subtotal Selling Price Lumpsum)
-        # This is the lumpsum of SSP (Subtotal Selling Price)
-        sheet.range("AT3:AT" + str(last_row)).formula = (
-            '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AF4:INDEX(AF4:AF1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))'
-        )
-
-        # For TSPL (Total Selling Price Lumpsum)
-        # This will be the total selling price lumpsum, which will be the source of true
-        sheet.range("AU3:AU" + str(last_row)).formula = (
-            '=IF(AND(ISNUMBER(D3), H3<>"WAIVED", H3<>"INCLUDED", H3<>"OPTION", ISNUMBER(AT3)), D3*AT3, "")'
-        )
-
-        # Total Profit for items (lumpsum or individal)
-        sheet.range("AV3:AV" + str(last_row)).formula = (
-            '=IF(AND(ISNUMBER(D3), ISNUMBER(AS3), ISNUMBER(AU3)), AU3-AS3, "")'
-        )
-        # GM (Grand Margin)
-        sheet.range("AW3:AW" + str(last_row)).formula = (
-            '=IF(AND(H3<>"OPTION", ISNUMBER(D3), ISNUMBER(AU3), AU3<>0, ISNUMBER(AV3)), AV3/AU3, "")'
-        )
+        # BATCH 6: Columns AP through AW (8 adjacent columns) - Lumpsum calculations
+        sheet.range("AP3:AW" + lr).formula = [
+            [
+                # AP: SCDQL
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(S4:INDEX(S4:S1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))',
+                # AQ: TCDQL (material cost)
+                '=IF(AND(ISNUMBER(D3), ISNUMBER(AP3), H3<>"OPTION"), D3*AP3, "")',
+                # AR: BSCQL
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(U4:INDEX(U4:U1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))',
+                # AS: BTCQL (base cost)
+                '=IF(AND(ISNUMBER(D3), ISNUMBER(AR3), H3<>"OPTION"), D3*AR3, "")',
+                # AT: SSPL
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AF4:INDEX(AF4:AF1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))',
+                # AU: TSPL (selling price)
+                '=IF(AND(ISNUMBER(D3), H3<>"WAIVED", H3<>"INCLUDED", H3<>"OPTION", ISNUMBER(AT3)), D3*AT3, "")',
+                # AV: Total Profit
+                '=IF(AND(ISNUMBER(D3), ISNUMBER(AS3), ISNUMBER(AU3)), AU3-AS3, "")',
+                # AW: Grand Margin
+                '=IF(AND(H3<>"OPTION", ISNUMBER(D3), ISNUMBER(AU3), AU3<>0, ISNUMBER(AV3)), AV3/AU3, "")',
+            ]
+        ]
 
 
 def fill_formula_wb(wb):
@@ -394,10 +353,10 @@ def fill_lastrow(wb):
 
 
 def fill_lastrow_sheet(wb, sheet):  # type: ignore
-    pwb = xw.books("PERSONAL.XLSB")
     if sheet.name not in SKIP_SHEETS:
         last_row = sheet.range("C1500").end("up").row
-        (pwb.sheets["Design"].range("5:5")).copy(
+        # Copy design row from PERSONAL.XLSB
+        get_macro_sheet("Design").range("5:5").copy(
             sheet.range(str(last_row + 2) + ":" + str(last_row + 2))
         )
         sheet.range("F" + str(last_row + 2)).formula = '="Subtotal(" & Config!B12 & ")"'
@@ -538,11 +497,14 @@ def hide_columns(sheet):
 
 
 def summary(wb, discount=False, detail=False, simulation=True, discount_level=15):
+    # Calculate first to ensure we read fresh values (not stale)
+    wb.app.calculate()
+
     summary_formula = []
     collect = []  # Collect formula to be put in summary page.
     # formula_fragment = '=IF(OR(Config!B13="COMMERCIAL PROPOSAL", Config!B13="BUDGETARY PROPOSAL"),'
-    # The design will now be taken from PERSONAL.XLSB
-    pwb = xw.books("PERSONAL.XLSB")
+    # The design will now be taken from PERSONAL.XLSB (Windows only)
+    pwb = get_macro_nb()
 
     # Initialize counters
     start_row = 19
@@ -608,8 +570,8 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
 
         for system in wb.sheet_names:
             if system not in SKIP_SHEETS:
-                (pwb.sheets["Design"].range("21:21")).copy(
-                    sheet.range(str(offset) + ":" + str(offset))
+                copy_design_row(
+                    pwb, "21:21", sheet.range(str(offset) + ":" + str(offset))
                 )
                 sheet.range("B" + str(offset)).value = str(count) + " ‣ "
                 sheet.range("C" + str(offset)).formula = odered_summary_formula.pop()
@@ -648,14 +610,12 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 offset += 1
 
         # Drawing lines
-        (pwb.sheets["Design"].range("15:15")).copy(
-            sheet.range(str(start_row) + ":" + str(start_row))
+        copy_design_row(
+            pwb, "15:15", sheet.range(str(start_row) + ":" + str(start_row))
         )
-        (pwb.sheets["Design"].range("11:11")).copy(
-            sheet.range(str(offset) + ":" + str(offset))
-        )
-        (pwb.sheets["Design"].range("17:17")).copy(
-            sheet.range(str(offset + 1) + ":" + str(offset + 1))
+        copy_design_row(pwb, "11:11", sheet.range(str(offset) + ":" + str(offset)))
+        copy_design_row(
+            pwb, "17:17", sheet.range(str(offset + 1) + ":" + str(offset + 1))
         )
 
         # sheet = wb.sheets['Summary']
@@ -726,11 +686,11 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 ]
 
         if discount:
-            (pwb.sheets["Design"].range("18:18")).copy(
-                sheet.range(str(offset + 2) + ":" + str(offset + 2))
+            copy_design_row(
+                pwb, "18:18", sheet.range(str(offset + 2) + ":" + str(offset + 2))
             )
-            (pwb.sheets["Design"].range("19:19")).copy(
-                sheet.range(str(offset + 3) + ":" + str(offset + 3))
+            copy_design_row(
+                pwb, "19:19", sheet.range(str(offset + 3) + ":" + str(offset + 3))
             )
             sheet.range("C" + str(offset + 3)).formula = (
                 '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
@@ -861,8 +821,8 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
 
         for system in wb.sheet_names:
             if system not in SKIP_SHEETS:
-                (pwb.sheets["Design"].range("21:21")).copy(
-                    sheet.range(str(offset) + ":" + str(offset))
+                copy_design_row(
+                    pwb, "21:21", sheet.range(str(offset) + ":" + str(offset))
                 )
                 sheet.range("B" + str(offset)).value = str(count) + " ‣ "
                 sheet.range("C" + str(offset)).formula = odered_summary_formula.pop()
@@ -895,14 +855,12 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 offset += 1
 
         # Drawing lines
-        (pwb.sheets["Design"].range("13:13")).copy(
-            sheet.range(str(start_row) + ":" + str(start_row))
+        copy_design_row(
+            pwb, "13:13", sheet.range(str(start_row) + ":" + str(start_row))
         )
-        (pwb.sheets["Design"].range("11:11")).copy(
-            sheet.range(str(offset) + ":" + str(offset))
-        )
-        (pwb.sheets["Design"].range("7:7")).copy(
-            sheet.range(str(offset + 1) + ":" + str(offset + 1))
+        copy_design_row(pwb, "11:11", sheet.range(str(offset) + ":" + str(offset)))
+        copy_design_row(
+            pwb, "7:7", sheet.range(str(offset + 1) + ":" + str(offset + 1))
         )
 
         # sheet = wb.sheets['Summary']
@@ -953,11 +911,11 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 ]
 
         if discount:
-            (pwb.sheets["Design"].range("8:8")).copy(
-                sheet.range(str(offset + 2) + ":" + str(offset + 2))
+            copy_design_row(
+                pwb, "8:8", sheet.range(str(offset + 2) + ":" + str(offset + 2))
             )
-            (pwb.sheets["Design"].range("9:9")).copy(
-                sheet.range(str(offset + 3) + ":" + str(offset + 3))
+            copy_design_row(
+                pwb, "9:9", sheet.range(str(offset + 3) + ":" + str(offset + 3))
             )
             sheet.range("C" + str(offset + 3)).formula = (
                 '="TOTAL PROJECT PRICE AFTER DISCOUNT (" & Config!B12 & ")"'
@@ -1064,6 +1022,9 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
             )
 
+    # Calculate all formulas written to summary sheet to avoid stale values
+    wb.app.calculate()
+
     sheet.range("D:D").autofit()
     sheet.range("E:E").autofit()
     sheet.range("F:P").autofit()
@@ -1075,7 +1036,10 @@ def number_title(wb, count=10, step=10):
     """
     For the main numbering. It will fix as long as it is a number.
     Need to look for only the systems and engineering services.
-    Takes a work book, then start number and step."""
+    Takes a work book, then start number and step.
+
+    Optimized to use vectorized pandas operations instead of row-by-row iteration.
+    """
     # Collect system_names and data
     systems = pd.DataFrame()
     system_names = []
@@ -1091,40 +1055,66 @@ def number_title(wb, count=10, step=10):
             )
             data["System"] = str.upper(sheet.name)
             systems = pd.concat([systems, data], join="outer")
+
     # Now that I have collect the data, let us do the numbering
     # Index is reset so that index number is continuous
     systems = systems.reset_index(drop=True)
     # Reindexing will remove columns that are not named.
     systems = systems.reindex(columns=["NO", "Description", "System"])
 
-    # Need to do try-except as the float type can return nan
-    letter_count = 0
-    for idx, item in systems["NO"].items():
+    # Vectorized approach:
+    # 1. Identify numeric values (main titles)
+    # 2. Identify strings not starting with A-Z (sub-items)
+    # 3. Use cumsum to group sub-items under their parent title
+    # 4. Assign numbers using vectorized operations
+
+    # Convert to string for consistent checking, handle NaN
+    no_col = systems["NO"].fillna("")
+
+    # Check if each value can be converted to int (is a main title number)
+    def is_numeric(x):
         try:
-            if int(item):
-                systems.at[idx, "NO"] = count
-                count += step
-                letter_count = 0
-        except ValueError:
-            if isinstance(item, str):
-                # If starts with A-Z, allow. Part of numbering.
-                # if not re.match(r"^[A-Z]", item.strip()):
-                #     systems.at[idx, "NO"] = str(count - step) + str(
-                #         chr(letter_count + 65)
-                #     )
-                if not re.match(r"^[A-Z]", item.strip()):
-                    systems.at[idx, "NO"] = "⠠" + str(letter_count + 1)
-                    # systems.at[idx, "NO"] = str(letter_count + 1) + "⠄"
-                    letter_count += 1
-        except Exception:
-            pass
+            return bool(int(x)) if x != "" else False
+        except (ValueError, TypeError):
+            return False
+
+    is_main_title = no_col.apply(is_numeric)
+
+    # Check if string starts with A-Z (should be kept as-is)
+    def starts_with_letter(x):
+        if isinstance(x, str) and x.strip():
+            return bool(re.match(r"^[A-Z]", x.strip()))
+        return False
+
+    starts_with_az = no_col.apply(starts_with_letter)
+
+    # Identify sub-items: strings that don't start with A-Z and are not main titles
+    is_sub_item = (
+        (~is_main_title) & (~starts_with_az) & (no_col.astype(str).str.strip() != "")
+    )
+
+    # Assign main title numbers
+    # cumsum of is_main_title gives us the title count at each position
+    title_cumsum = is_main_title.cumsum()
+    # For main titles: count + (cumsum - 1) * step = 10, 20, 30, ...
+    systems.loc[is_main_title, "NO"] = count + (title_cumsum[is_main_title] - 1) * step
+
+    # Assign sub-item numbers within each title group
+    # Group by the cumulative title count to get sub-items under each title
+    if is_sub_item.any():
+        # Create group ID based on which title each row belongs to
+        group_id = title_cumsum
+        # Within each group, count sub-items
+        sub_item_count = (
+            systems[is_sub_item].groupby(group_id[is_sub_item]).cumcount() + 1
+        )
+        systems.loc[is_sub_item, "NO"] = "⠠" + sub_item_count.astype(str)
 
     # Now is the matter of writing to the required sheets
     for system in system_names:
-        # print(system)
         sheet = wb.sheets[system]
-        system = systems[systems["System"] == system]
-        sheet.range("A2").options(index=False).value = system["NO"]
+        system_data = systems[systems["System"] == system]
+        sheet.range("A2").options(index=False).value = system_data["NO"]
 
 
 def prepare_to_print_technical(wb):
@@ -1142,9 +1132,9 @@ def prepare_to_print_technical(wb):
             # Adjust the last two rows so that unwanted pagebreak can be prevented
             wb.sheets[sheet].range(f"{last_row+1}:{last_row+1}").delete()
             wb.sheets[sheet].range(f"{last_row+1}:{last_row+1}").row_height = 2
-            MACRO_NB.macro("conditional_format")()
-            MACRO_NB.macro("remove_h_borders")()
-            MACRO_NB.macro("pagebreak_borders")()
+            run_macro("conditional_format")
+            run_macro("remove_h_borders")
+            run_macro("pagebreak_borders")
     wb.sheets[current_sheet].activate()
 
 
@@ -1177,7 +1167,7 @@ def technical(wb):
             if sheet not in SKIP_SHEETS:
                 # Require to remove h_borders as these willl not be detected
                 # when columns are removed and page setup changed.
-                MACRO_NB.macro("remove_h_borders")()
+                run_macro("remove_h_borders")
                 last_row = ws.range("C1500").end("up").row
                 ws.range("F:G").delete()
                 ws.range("AL3:AL" + str(last_row)).value = ws.range(
@@ -1294,9 +1284,9 @@ def commercial(wb):
             ws.range("I:I").delete()
             ws.range("AL:AL").column_width = 0
             # Call macros
-            MACRO_NB.macro("conditional_format")()
-            MACRO_NB.macro("remove_h_borders")()
-            MACRO_NB.macro("pagebreak_borders")()
+            run_macro("conditional_format")
+            run_macro("remove_h_borders")
+            run_macro("pagebreak_borders")
 
     wb.sheets["Summary"].range("G:X").delete()
     wb.sheets["Config"].delete()
@@ -1322,8 +1312,8 @@ def prepare_to_print_internal(wb):
     for sheet in wb.sheet_names:
         if sheet not in SKIP_SHEETS:
             wb.sheets[sheet].activate()
-            MACRO_NB.macro("conditional_format_internal_costing")()
-            MACRO_NB.macro("remove_h_borders")()
+            run_macro("conditional_format_internal_costing")
+            run_macro("remove_h_borders")
             # Below is commented out so that blue lines do not show
             # MACRO_NB.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
@@ -1343,17 +1333,17 @@ def print_technical(wb):
 def conditional_format_wb(wb):
     """
     Takes a workbook, and do conditional formatting.
-    Rely on excel macro for conditional format.
+    Uses Python functions instead of VBA macros.
     """
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in SKIP_SHEETS:
             wb.sheets[sheet].activate()
-            MACRO_NB.macro("conditional_format")()
+            run_macro("conditional_format")
             # Remove H borders in original excel
-            MACRO_NB.macro("remove_h_borders")()
+            run_macro("remove_h_borders")
             # Fix the columns border
-            MACRO_NB.macro("format_column_border")()
+            run_macro("format_column_border")
     wb.sheets[current_sheet].activate()
 
 
@@ -1402,6 +1392,8 @@ def format_text(
 ):
     """
     Format text in the workbook to remove inconsistencies.
+
+    Optimized to use vectorized pandas operations instead of row-by-row iteration.
     """
     # Collect system_names and data
     systems = pd.DataFrame()
@@ -1417,92 +1409,100 @@ def format_text(
                 .value
             )
             data["System"] = str.upper(sheet.name)
-            # format_type = ws.range('AL2:AL' + str(last_row)).options(pd.DataFrame, empty='', index=False).value
             systems = pd.concat([systems, data], join="outer")
-            # systems = pd.concat([systems, format_type], join='outer')
 
-    systems = systems.reset_index(
-        drop=True
-    )  # Otherwise separate sheet will have own index.
+    systems = systems.reset_index(drop=True)
     systems = systems.reindex(
         columns=["Description", "Unit", "Scope", "Format", "System"]
     )
 
-    for idx, _ in systems["Description"].items():
-        systems.at[idx, "Description"] = set_nitty_gritty(
-            str(systems.loc[idx, "Description"]).strip().lstrip("• ")
+    # Vectorized processing of Description column
+    # Apply set_nitty_gritty using vectorized apply (faster than row iteration)
+    systems["Description"] = (
+        systems["Description"]
+        .astype(str)
+        .str.strip()
+        .str.lstrip("• ")
+        .apply(set_nitty_gritty)
+    )
+
+    # Vectorized Unit processing
+    systems["Unit"] = systems["Unit"].astype(str).str.strip().str.lower()
+    # Replace "nos" and "no" with "ea"
+    systems.loc[systems["Unit"].isin(["nos", "no"]), "Unit"] = "ea"
+    # Remove trailing 's' (but not if it's the only character)
+    mask_trailing_s = (systems["Unit"].str.len() > 1) & (systems["Unit"].str[-1] == "s")
+    systems.loc[mask_trailing_s, "Unit"] = systems.loc[mask_trailing_s, "Unit"].str[:-1]
+
+    # Vectorized Scope processing
+    systems["Scope"] = systems["Scope"].astype(str).str.strip().str.lower()
+    systems.loc[
+        systems["Scope"].isin(["inclusive", "include", "included"]), "Scope"
+    ] = "INCLUDED"
+    systems.loc[systems["Scope"].isin(["option", "optional"]), "Scope"] = "OPTION"
+    systems.loc[systems["Scope"] == "waived", "Scope"] = "WAIVED"
+
+    # Apply title case to Lineitem and Description rows with short descriptions
+    if title_lineitem_or_description:
+        mask = systems["Format"].isin(["Lineitem", "Description"]) & (
+            systems["Description"].str.len() <= 60
         )
-        # Set unit description
-        # Set to lower case
-        systems.at[idx, "Unit"] = str(systems.loc[idx, "Unit"]).strip().lower()
-        # Change to ea
-        if str(systems.loc[idx, "Unit"]) in ["nos", "no"]:
-            systems.at[idx, "Unit"] = "ea"
-        if str(systems.loc[idx, "Unit"])[-1:] == "s":
-            systems.at[idx, "Unit"] = str(systems.loc[idx, "Unit"])[:-1]
+        if mask.any():
+            systems.loc[mask, "Description"] = (
+                systems.loc[mask, "Description"]
+                .str.strip()
+                .str.lstrip("• ")
+                .apply(lambda x: set_case_preserve_acronym(x, title=True))
+            )
 
-        systems.at[idx, "Scope"] = str(systems.loc[idx, "Scope"]).strip().lower()
-        if str(systems.loc[idx, "Scope"]) in ["inclusive", "include", "included"]:
-            systems.at[idx, "Scope"] = "INCLUDED"
-        if str(systems.loc[idx, "Scope"]) in ["option", "optional"]:
-            systems.at[idx, "Scope"] = "OPTION"
-        if str(systems.loc[idx, "Scope"]) in ["waived"]:
-            systems.at[idx, "Scope"] = "WAIVED"
+    # Upper case for Title rows
+    if upper_title:
+        mask = systems["Format"] == "Title"
+        systems.loc[mask, "Description"] = (
+            systems.loc[mask, "Description"].str.strip().str.upper()
+        )
 
-        if title_lineitem_or_description:
-            if systems.at[idx, "Format"] == "Lineitem":
-                if len(str(systems.loc[idx, "Description"])) <= 60:
-                    systems.at[idx, "Description"] = set_case_preserve_acronym(
-                        (str(systems.loc[idx, "Description"]).strip()).lstrip("• "),
-                        title=True,
-                    )
+    # Upper case for System rows
+    if upper_system:
+        mask = systems["Format"] == "System"
+        systems.loc[mask, "Description"] = (
+            systems.loc[mask, "Description"].str.strip().str.upper()
+        )
 
-            if systems.at[idx, "Format"] == "Description":
-                if len(str(systems.loc[idx, "Description"])) <= 60:
-                    systems.at[idx, "Description"] = set_case_preserve_acronym(
-                        (str(systems.loc[idx, "Description"]).strip()).lstrip("• "),
-                        title=True,
-                    )
+    # Indent and bullet Description rows
+    if indent_description:
+        mask = systems["Format"] == "Description"
+        if mask.any():
+            desc_col = systems.loc[mask, "Description"].str.strip().str.lstrip("• ")
 
-        if upper_title:
-            if systems.at[idx, "Format"] == "Title":
-                systems.at[idx, "Description"] = (
-                    str(systems.loc[idx, "Description"]).strip().upper()
+            if bullet_description:
+                # Handle # prefix -> ‣ bullet
+                starts_hash = desc_col.str.startswith("#")
+                # Handle ‣ prefix -> ‣ bullet
+                starts_triangle = desc_col.str.startswith("‣")
+                # Default -> • bullet
+
+                result = pd.Series(index=desc_col.index, dtype=str)
+                result[starts_hash] = "      ‣ " + desc_col[starts_hash].str.lstrip(
+                    "# "
                 )
-
-        if upper_system:
-            if systems.at[idx, "Format"] == "System":
-                systems.at[idx, "Description"] = (
-                    str(systems.loc[idx, "Description"]).strip().upper()
+                result[starts_triangle] = "      ‣ " + desc_col[
+                    starts_triangle
+                ].str.lstrip("‣ ")
+                result[~starts_hash & ~starts_triangle] = (
+                    "   • " + desc_col[~starts_hash & ~starts_triangle]
                 )
+                systems.loc[mask, "Description"] = result
+            else:
+                systems.loc[mask, "Description"] = "   " + desc_col
 
-        if indent_description:
-            if systems.at[idx, "Format"] == "Description":
-                systems.at[idx, "Description"] = "   " + (
-                    str(systems.loc[idx, "Description"]).strip()
-                ).lstrip("• ")
-                if bullet_description:
-                    if str(systems.loc[idx, "Description"]).strip().startswith("#"):
-                        systems.at[idx, "Description"] = "      ‣ " + str(
-                            systems.loc[idx, "Description"]
-                        ).strip().lstrip("# ")
-                    elif str(systems.loc[idx, "Description"]).strip().startswith("‣"):
-                        systems.at[idx, "Description"] = "      ‣ " + str(
-                            systems.loc[idx, "Description"]
-                        ).strip().lstrip("‣ ")
-                    else:
-                        systems.at[idx, "Description"] = (
-                            "   • " + str(systems.loc[idx, "Description"]).strip()
-                        )
-
-    # Write fomatted description to Description field
+    # Write formatted description to Description field
     for system in system_names:
         sheet = wb.sheets[system]
-        system = systems[systems["System"] == system]
-        # sheet.range('C2').value = sheet.range('C2').options(empty='')
-        sheet.range("C2").options(index=False).value = system["Description"]
-        sheet.range("E2").options(index=False).value = system["Unit"]
-        sheet.range("H2").options(index=False).value = system["Scope"]
+        system_data = systems[systems["System"] == system]
+        sheet.range("C2").options(index=False).value = system_data["Description"]
+        sheet.range("E2").options(index=False).value = system_data["Unit"]
+        sheet.range("H2").options(index=False).value = system_data["Scope"]
 
 
 def indent_description(wb):
@@ -1540,11 +1540,11 @@ def shaded(wb, shaded=True):
     # current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if sheet not in SKIP_SHEETS:
-            wb.sheets[sheet].ativate()
+            wb.sheets[sheet].activate()
             if shaded:
-                MACRO_NB.macro("shaded")()
+                run_macro("shaded")
             else:
-                MACRO_NB.macro("unshaded")()
+                run_macro("unshaded")
                 # pass
     # wb.sheets[current_sheet].activate()
 
@@ -2074,34 +2074,51 @@ def fill_formula_active_row(wb, ws):
 
 
 def delete_extra_empty_row(ws):
+    """
+    Delete consecutive empty rows (2 or more) from a worksheet.
+
+    Optimized to read all data at once instead of row-by-row COM calls.
+    """
     c_column = ws.range("C1500").end("up").row
     g_column = ws.range("G1500").end("up").row
-    if c_column > g_column:
-        last_row = c_column
-    else:
-        last_row = g_column
+    last_row = max(c_column, g_column)
 
-    empty_row = 0
-    start_row = 0
+    if last_row <= 1:
+        return
 
-    for i in range(1, last_row + 1):
-        # Check if the below columns are empty
-        if all(cell.value is None for cell in ws.range(f"A{i}:H{i}")):
-            empty_row += 1
-            if empty_row == 1:
-                # Set start_row to empty_row
-                start_row = i + 1
+    # Read all data at once (single COM call instead of row-by-row)
+    data = ws.range(f"A1:H{last_row}").value
+
+    # Handle single row case (value is a list, not list of lists)
+    if last_row == 1:
+        data = [data]
+
+    # Find empty rows using numpy for speed
+    empty_mask = np.array(
+        [all(cell is None or cell == "" for cell in row) for row in data]
+    )
+
+    # Find ranges of consecutive empty rows (2 or more)
+    ranges_to_delete = []
+    i = 0
+    while i < len(empty_mask):
+        if empty_mask[i]:
+            # Found start of empty region
+            start = i
+            while i < len(empty_mask) and empty_mask[i]:
+                i += 1
+            end = i
+            # Only delete if 2 or more consecutive empty rows
+            # Keep one empty row, delete the rest
+            if end - start >= 2:
+                # Delete from start+1 to end (keep one empty row)
+                ranges_to_delete.append((start + 2, end))  # +2 for 1-based Excel row
         else:
-            # Check if there is more empty rows
-            if empty_row >= 2:
-                # Delete the empty rows
-                ws.range(f"A{start_row}:XFD{i-1}").delete(shift="up")
-                # Make adjustment
-                last_row -= empty_row
-                i -= empty_row
-            # Reset empty_row and start_row
-            empty_row = 0
-            start_row = 0
+            i += 1
+
+    # Delete ranges from bottom to top to avoid index shifting
+    for start_row, end_row in reversed(ranges_to_delete):
+        ws.range(f"{start_row}:{end_row}").delete(shift="up")
 
 
 def delete_extra_empty_row_wb(wb):
@@ -2111,42 +2128,63 @@ def delete_extra_empty_row_wb(wb):
             delete_extra_empty_row(sheet)
 
 
+def format_cell_data_sheet(sheet):
+    """
+    Set the cell font and font size for a single sheet.
+    Resets font to Arial size 12 for data rows, size 9 for headers.
+
+    Optimized to format only used range instead of entire columns.
+    """
+    if sheet.name not in SKIP_SHEETS:
+        last_row = sheet.range("C1500").end("up").row + 1
+        lr = str(last_row)
+
+        # Set cell font and size for data range only
+        data_range = sheet.range(f"A3:BD{lr}")
+        data_range.font.name = "Arial"
+        data_range.font.size = 12
+        sheet.range("2:2").font.size = 9
+        sheet.range("C3").font.size = 14
+
+        # Set cell number formats - optimized to use used range instead of entire columns
+        # Integer format columns
+        sheet.range(f"A1:B{lr}").number_format = "0"
+        sheet.range(f"D1:D{lr}").number_format = "0"
+
+        # Accounting format columns - batch adjacent columns together
+        sheet.range(f"F1:G{lr}").number_format = ACCOUNTING
+        sheet.range(f"K1:L{lr}").number_format = ACCOUNTING
+        sheet.range(f"N1:O{lr}").number_format = ACCOUNTING
+        sheet.range(f"R1:Z{lr}").number_format = ACCOUNTING
+        sheet.range(f"AB1:AG{lr}").number_format = ACCOUNTING
+        sheet.range(f"AI1:AJ{lr}").number_format = ACCOUNTING
+
+        # Percentage format columns
+        sheet.range(f"M1:M{lr}").number_format = "0.00%"
+        sheet.range(f"AH1:AH{lr}").number_format = "0.00%"
+        sheet.range("I1:R1").number_format = "0.00%"
+
+        # Exchange rate format
+        sheet.range(f"Q1:Q{lr}").number_format = EXCNANGE_RATE
+
+        # Delete 'Category' and 'System' fields to avoid visual clutter.
+        if sheet.range("AN2").value == "System":
+            sheet.range("AN:AN").delete()
+        if sheet.range("AM2").value == "Category":
+            sheet.range("AM:AM").delete()
+        sheet.range("AM2").value = "Leadtime"
+        sheet.range("AN2").value = "Supplier"
+        sheet.range("AO2").value = "Maker"
+
+
 def format_cell_data(wb):
     """
-    Set the cell font and font size
+    Set the cell font and font size for all sheets in workbook.
     Format the cell data to correct number or text representation.
     E.g. 1,000.00 or 1.00%
     """
     for sheet in wb.sheets:
-        if sheet.name not in SKIP_SHEETS:
-            last_row = sheet.range("C1500").end("up").row + 1
-            # Set cell font and size
-            sheet.range(f"A3:BD{last_row}").font.name = "Arial"
-            sheet.range("2:2").font.size = 9
-            sheet.range(f"A3:BD{last_row}").font.size = 12
-            sheet.range("C3").font.size = 14
-            # Set cell format
-            sheet.range("A:B").number_format = "0"
-            sheet.range("D:D").number_format = "0"
-            sheet.range("F:G").number_format = ACCOUNTING
-            sheet.range("K:L").number_format = ACCOUNTING
-            sheet.range("M:M").number_format = "0.00%"
-            sheet.range("N:O").number_format = ACCOUNTING
-            sheet.range("Q:Q").number_format = EXCNANGE_RATE
-            sheet.range("R:Z").number_format = ACCOUNTING
-            sheet.range("MU:MU").number_format = "0.00%"
-            sheet.range("AB:AG").number_format = ACCOUNTING
-            sheet.range("AH:AH").number_format = "0.00%"
-            sheet.range("AI:AJ").number_format = ACCOUNTING
-            sheet.range("I1:R1").number_format = "0.00%"
-            # Delet 'Catergory' and 'System' fields to avoid visual clutter.
-            if sheet.range("AN2").value == "System":
-                sheet.range("AN:AN").delete()
-            if sheet.range("AM2").value == "Category":
-                sheet.range("AM:AM").delete()
-            sheet.range("AM2").value = "Leadtime"
-            sheet.range("AN2").value = "Supplier"
-            sheet.range("AO2").value = "Maker"
+        format_cell_data_sheet(sheet)
 
 
 def download_file(path, filename, url):
@@ -2254,14 +2292,15 @@ def update_template_version(wb):
     if current_wb_revision is None or current_wb_revision < int(LATEST_WB_VERSION[1:]):
         wb.sheets["Config"].range("D1:I20").clear()
         wb.sheets["Config"].range("95:106").delete()
-        MACRO_NB.sheets["Design"].range("A28:E36").copy(wb.sheets["Config"].range("D2"))
-        MACRO_NB.sheets["Data"].range("C1:C2").copy(wb.sheets["Config"].range("B95"))
-        MACRO_NB.sheets["Data"].range("D1:D2").copy(wb.sheets["Config"].range("C95"))
+        # Copy design elements from PERSONAL.XLSB
+        get_macro_sheet("Design").range("A28:E36").copy(wb.sheets["Config"].range("D2"))
+        get_macro_sheet("Data").range("C1:C2").copy(wb.sheets["Config"].range("B95"))
+        get_macro_sheet("Data").range("D1:D2").copy(wb.sheets["Config"].range("C95"))
         wb.sheets["Config"].range("A15").value = "Template Version"
         wb.sheets["Config"].range("B15").value = LATEST_WB_VERSION
         # Put currency and proposal type validation
         wb.sheets["Config"].activate()
-        MACRO_NB.macro("put_currency_proposal_validation_formula")()
+        run_macro("put_currency_proposal_validation_formula")
         flag += 1
 
     if current_minor_revision is None or current_minor_revision < int(
@@ -2306,12 +2345,13 @@ def update_checklist(wb):
     cell_value = wb.sheets["Technical_Notes"].range("F3")
     # if cell_value is None:
     if cell_value != "Systems".upper():
-        MACRO_NB.sheets["Data"].range("B1").copy(
+        # Copy from PERSONAL.XLSB
+        get_macro_sheet("Data").range("B1").copy(
             wb.sheets["Technical_Notes"].range("F3")
         )
-        # Call macro to fill in the dropbown formula
+        # Call macro to fill in the dropdown formula
         wb.sheets["Technical_Notes"].activate()
-        MACRO_NB.macro("put_systems_validation_formula")()
+        run_macro("put_systems_validation_formula")
 
     # For general checklist
     # Clear previous data if any
@@ -2325,16 +2365,17 @@ def update_checklist(wb):
         system.upper() for system in cc.available_checklist_register
     ]
 
-    # Test if value "Systems" is already there
+    # Test if value "Checklists" is already there
     cell_value = wb.sheets["Technical_Notes"].range("G3")
     # if cell_value is None:
     if cell_value != "Checklists".upper():
-        MACRO_NB.sheets["Data"].range("E1").copy(
+        # Copy from PERSONAL.XLSB
+        get_macro_sheet("Data").range("E1").copy(
             wb.sheets["Technical_Notes"].range("G3")
         )
-        # Call macro to fill in the dropbown formula
+        # Call macro to fill in the dropdown formula
         wb.sheets["Technical_Notes"].activate()
-        MACRO_NB.macro("put_checklists_validation_formula")()
+        run_macro("put_checklists_validation_formula")
 
         wb.sheets["Technical_Notes"].range("F:G").autofit()
 
