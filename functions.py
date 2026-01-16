@@ -39,6 +39,11 @@ LEGEND = {
 # Lazy loading avoids import-time errors when Excel is not running
 _MACRO_NB = None
 
+# Cache for PERSONAL.XLSB range references.
+# Since PERSONAL.XLSB doesn't change during an Excel session, we cache range
+# references to avoid repeated workbook/sheet/range lookups on each copy operation.
+_PERSONAL_RANGE_CACHE = {}
+
 
 def get_macro_nb():
     """
@@ -61,16 +66,37 @@ def get_macro_sheet(sheet_name):
     return get_macro_nb().sheets[sheet_name]
 
 
+def get_cached_range(sheet_name, range_addr):
+    """
+    Get a cached range reference from PERSONAL.XLSB.
+
+    Caches range references to avoid repeated workbook/sheet/range lookups.
+    The cache is valid for the entire Excel session since PERSONAL.XLSB
+    doesn't change during a session.
+
+    Args:
+        sheet_name: Name of the sheet in PERSONAL.XLSB (e.g., "Design", "Data")
+        range_addr: Range address (e.g., "5:5", "A28:E36", "B1")
+
+    Returns:
+        xlwings Range object from the cached reference
+    """
+    cache_key = f"{sheet_name}:{range_addr}"
+    if cache_key not in _PERSONAL_RANGE_CACHE:
+        _PERSONAL_RANGE_CACHE[cache_key] = get_macro_sheet(sheet_name).range(range_addr)
+    return _PERSONAL_RANGE_CACHE[cache_key]
+
+
 def copy_design_row(pwb, row_num, dest_range):
     """
     Copy a design row from PERSONAL.XLSB.
 
     Args:
-        pwb: The PERSONAL.XLSB workbook (from get_macro_nb())
+        pwb: The PERSONAL.XLSB workbook (from get_macro_nb()) - kept for API compatibility
         row_num: The row number to copy from Design sheet (e.g., "5:5" or "21:21")
         dest_range: The destination range object
     """
-    pwb.sheets["Design"].range(row_num).copy(dest_range)
+    get_cached_range("Design", row_num).copy(dest_range)
 
 
 def apply_lastrow_border(row_range):
@@ -102,7 +128,7 @@ def apply_lastrow_border(row_range):
     else:
         # macOS: AppleScript/VBA limitations prevent direct border manipulation.
         # Fall back to copying border style from PERSONAL.XLSB Design sheet.
-        get_macro_sheet("Design").range("5:5").copy(row_range)
+        get_cached_range("Design", "5:5").copy(row_range)
 
 
 # Accounting number format
@@ -2324,10 +2350,10 @@ def update_template_version(wb):
     if current_wb_revision is None or current_wb_revision < int(LATEST_WB_VERSION[1:]):
         wb.sheets["Config"].range("D1:I20").clear()
         wb.sheets["Config"].range("95:106").delete()
-        # Copy design elements from PERSONAL.XLSB
-        get_macro_sheet("Design").range("A28:E36").copy(wb.sheets["Config"].range("D2"))
-        get_macro_sheet("Data").range("C1:C2").copy(wb.sheets["Config"].range("B95"))
-        get_macro_sheet("Data").range("D1:D2").copy(wb.sheets["Config"].range("C95"))
+        # Copy design elements from PERSONAL.XLSB (using cached ranges)
+        get_cached_range("Design", "A28:E36").copy(wb.sheets["Config"].range("D2"))
+        get_cached_range("Data", "C1:C2").copy(wb.sheets["Config"].range("B95"))
+        get_cached_range("Data", "D1:D2").copy(wb.sheets["Config"].range("C95"))
         wb.sheets["Config"].range("A15").value = "Template Version"
         wb.sheets["Config"].range("B15").value = LATEST_WB_VERSION
         # Put currency and proposal type validation
@@ -2377,10 +2403,8 @@ def update_checklist(wb):
     cell_value = wb.sheets["Technical_Notes"].range("F3")
     # if cell_value is None:
     if cell_value != "Systems".upper():
-        # Copy from PERSONAL.XLSB
-        get_macro_sheet("Data").range("B1").copy(
-            wb.sheets["Technical_Notes"].range("F3")
-        )
+        # Copy from PERSONAL.XLSB (using cached range)
+        get_cached_range("Data", "B1").copy(wb.sheets["Technical_Notes"].range("F3"))
         # Call macro to fill in the dropdown formula
         wb.sheets["Technical_Notes"].activate()
         run_macro("put_systems_validation_formula")
@@ -2401,10 +2425,8 @@ def update_checklist(wb):
     cell_value = wb.sheets["Technical_Notes"].range("G3")
     # if cell_value is None:
     if cell_value != "Checklists".upper():
-        # Copy from PERSONAL.XLSB
-        get_macro_sheet("Data").range("E1").copy(
-            wb.sheets["Technical_Notes"].range("G3")
-        )
+        # Copy from PERSONAL.XLSB (using cached range)
+        get_cached_range("Data", "E1").copy(wb.sheets["Technical_Notes"].range("G3"))
         # Call macro to fill in the dropdown formula
         wb.sheets["Technical_Notes"].activate()
         run_macro("put_checklists_validation_formula")
