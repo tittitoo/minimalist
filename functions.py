@@ -131,6 +131,47 @@ def apply_lastrow_border(row_range):
         get_cached_range("Design", "5:5").copy(row_range)
 
 
+def get_workbook_directory(wb):
+    """
+    Get the directory path for a workbook, handling SharePoint/OneDrive URLs.
+
+    When a workbook is opened from SharePoint or OneDrive, wb.fullname may return
+    a URL instead of a local file path, or may fail entirely. This function
+    handles both cases and returns the user's Downloads folder as a fallback.
+
+    Args:
+        wb: xlwings Workbook object
+
+    Returns:
+        tuple: (directory_path, is_cloud) where:
+            - directory_path: Local directory path for saving files
+            - is_cloud: True if the file is on SharePoint/OneDrive or fullname failed
+    """
+    try:
+        fullname = wb.fullname
+    except Exception:
+        # wb.fullname can fail on SharePoint/OneDrive files
+        fullname = None
+
+    # Check if it's a SharePoint/OneDrive URL or if fullname failed
+    is_cloud = fullname is None or fullname.startswith(("http://", "https://"))
+
+    if is_cloud:
+        # Use Downloads folder as fallback for cloud files
+        downloads = Path.home() / "Downloads"
+
+        # Create a subdirectory for the project if possible
+        project_name = wb.name[:-5] if wb.name.endswith(".xlsx") else wb.name[:-4]
+        project_dir = downloads / project_name
+
+        # Create the directory if it doesn't exist
+        project_dir.mkdir(parents=True, exist_ok=True)
+
+        return str(project_dir), True
+    else:
+        return os.path.dirname(fullname), False
+
+
 # Accounting number format
 ACCOUNTING = "_(* #,##0.00_);_(* (#,##0.00);_(* " "-" "??_);_(@_)"
 EXCNANGE_RATE = '_(* #,##0.0000_);_(* (#,##0.0000);_(* "-"????_);_(@_)'
@@ -1197,7 +1238,7 @@ def prepare_to_print_technical(wb):
 
 
 def technical(wb):
-    directory = os.path.dirname(wb.fullname)
+    directory, is_cloud = get_workbook_directory(wb)
     # Check if Technical PDF already exist
     temp_file_name = Path(directory, "Technical " + wb.name[:-4] + "pdf")
     if temp_file_name.is_file():
@@ -1205,6 +1246,11 @@ def technical(wb):
             "The Technical PDF file already exists!\n Please delete the file and try again."
         )
         return
+
+    if is_cloud:
+        xw.apps.active.alert(  # type: ignore
+            f"File is on SharePoint/OneDrive.\nPDF will be saved to:\n{directory}"
+        )
 
     wb.sheets["Cover"].range("D39").value = "TECHNICAL PROPOSAL"
     wb.sheets["Cover"].range("D40").value = wb.sheets["Cover"].range("D40").value
@@ -1290,7 +1336,7 @@ def technical(wb):
 
 
 def commercial(wb):
-    directory = os.path.dirname(wb.fullname)
+    directory, is_cloud = get_workbook_directory(wb)
     # Check if Commercial PDF already exists
     temp_file_name = Path(directory, "Commercial " + wb.name[:-4] + "pdf")
     if temp_file_name.is_file():
@@ -1298,6 +1344,11 @@ def commercial(wb):
             "The Commercial PDF file already exists!\n Please delete the file and try again."
         )
         return
+
+    if is_cloud:
+        xw.apps.active.alert(  # type: ignore
+            f"File is on SharePoint/OneDrive.\nPDF will be saved to:\n{directory}"
+        )
 
     """Takes a work book, set horizantal borders at pagebreaks."""
     # current_sheet = wb.sheets.active
@@ -1608,7 +1659,12 @@ def shaded(wb, shaded=True):
 
 
 def internal_costing(wb):
-    directory = os.path.dirname(wb.fullname)
+    directory, is_cloud = get_workbook_directory(wb)
+
+    if is_cloud:
+        xw.apps.active.alert(  # type: ignore
+            f"File is on SharePoint/OneDrive.\nFile will be saved to:\n{directory}"
+        )
 
     wb.sheets["Cover"].range("D39").value = "INTERNAL COSTING"
     wb.sheets["Cover"].range("C42:C47").value = (
@@ -1739,7 +1795,12 @@ def internal_costing(wb):
 
 
 def convert_legacy(wb):
-    directory = os.path.dirname(wb.fullname)
+    directory, is_cloud = get_workbook_directory(wb)
+
+    if is_cloud:
+        xw.apps.active.alert(  # type: ignore
+            f"File is on SharePoint/OneDrive.\nConverted file will be saved to:\n{directory}"
+        )
 
     if wb.name[-4:] == "xlsm":
         # Read and initialize values
