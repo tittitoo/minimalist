@@ -1199,6 +1199,17 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
     sheet.page_setup.print_area = "A1:F" + str(last_row + 3)
 
 
+def get_num_scheme(wb):
+    """
+    Get numbering scheme parameters from Config B16
+    - Double (or empty/None): count=10, step=10
+    """
+    scheme = wb.sheets["Config"].range("B16").value
+    if scheme and str(scheme).strip().upper() == "SINGLE":
+        return 1, 1
+    return 10, 10  # Default to Double
+
+
 def number_title(wb, count=10, step=10):
     """
     For the main numbering. It will fix as long as it is a number.
