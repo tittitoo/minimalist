@@ -27,6 +27,7 @@ from functions import (
     is_sheet_name,
     get_sheet,
     sheet_exists,
+    should_skip_sheet,
 )
 
 
@@ -318,12 +319,48 @@ class TestSkipSheets(unittest.TestCase):
     """Test that SKIP_SHEETS constant is defined correctly."""
 
     def test_skip_sheets_contains_expected(self):
-        expected = ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C"]
+        expected = ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C", "Scratch"]
         for sheet in expected:
             self.assertIn(sheet, SKIP_SHEETS)
 
     def test_skip_sheets_is_list(self):
         self.assertIsInstance(SKIP_SHEETS, list)
+
+
+class TestShouldSkipSheet(unittest.TestCase):
+    """Test should_skip_sheet helper function for case-insensitive Scratch handling."""
+
+    def test_skips_standard_sheets(self):
+        """Standard sheets in SKIP_SHEETS should be skipped."""
+        for sheet in ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C"]:
+            self.assertTrue(should_skip_sheet(sheet), f"{sheet} should be skipped")
+
+    def test_skips_scratch_exact_case(self):
+        """Scratch with exact case should be skipped."""
+        self.assertTrue(should_skip_sheet("Scratch"))
+
+    def test_skips_scratch_lowercase(self):
+        """scratch (lowercase) should be skipped."""
+        self.assertTrue(should_skip_sheet("scratch"))
+
+    def test_skips_scratch_uppercase(self):
+        """SCRATCH (uppercase) should be skipped."""
+        self.assertTrue(should_skip_sheet("SCRATCH"))
+
+    def test_skips_scratch_mixed_case(self):
+        """ScRaTcH (mixed case) should be skipped."""
+        self.assertTrue(should_skip_sheet("ScRaTcH"))
+
+    def test_does_not_skip_system_sheets(self):
+        """System/product sheets should not be skipped."""
+        for sheet in ["CCTV", "Access Control", "Fire Alarm", "System1"]:
+            self.assertFalse(should_skip_sheet(sheet), f"{sheet} should NOT be skipped")
+
+    def test_does_not_skip_partial_scratch_match(self):
+        """Sheet names containing 'scratch' but not exactly 'scratch' should not be skipped."""
+        self.assertFalse(should_skip_sheet("Scratch2"))
+        self.assertFalse(should_skip_sheet("MyScratch"))
+        self.assertFalse(should_skip_sheet("Scratch_Notes"))
 
 
 class TestSheetAliases(unittest.TestCase):
