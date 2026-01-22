@@ -70,7 +70,8 @@ def fill_formula():
     ws = wb.sheets.active
     functions.fill_formula(ws)
     # Added number_title so that it is also tied to ctrl+e shortcut
-    functions.number_title(wb)
+    count, step = functions.get_num_scheme(wb)
+    functions.number_title(wb, count=count, step=step)
     # Reset font sizes to default (Arial 12 for data, 9 for headers)
     functions.format_cell_data_sheet(ws)
 
@@ -84,7 +85,8 @@ def fill_formula_wb():
     functions.delete_extra_empty_row_wb(wb)
     # Calling twice as sometimes some rows are missed.
     functions.delete_extra_empty_row_wb(wb)
-    functions.number_title(wb)
+    count, step = functions.get_num_scheme(wb)
+    functions.number_title(wb, count=count, step=step)
     functions.fill_formula_wb(wb)
     functions.format_text(
         wb,
@@ -156,7 +158,8 @@ def summary_detail_discount():
 @disable_screen_updating
 def number_title():
     wb = xw.Book.caller()
-    functions.number_title(wb)
+    count, step = functions.get_num_scheme(wb)
+    functions.number_title(wb, count=count, step=step)
 
 
 @check_if_template

@@ -22,6 +22,9 @@ from functions import (
     set_case_preserve_acronym,
     title_case_ignore_double_char,
     SKIP_SHEETS,
+    SHEET_ALIASES,
+    resolve_sheet_name,
+    is_sheet_name,
 )
 
 
@@ -313,12 +316,47 @@ class TestSkipSheets(unittest.TestCase):
     """Test that SKIP_SHEETS constant is defined correctly."""
 
     def test_skip_sheets_contains_expected(self):
-        expected = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
+        expected = ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C"]
         for sheet in expected:
             self.assertIn(sheet, SKIP_SHEETS)
 
     def test_skip_sheets_is_list(self):
         self.assertIsInstance(SKIP_SHEETS, list)
+
+
+class TestSheetAliases(unittest.TestCase):
+    """Test sheet name aliasing functionality."""
+
+    def test_technical_notes_alias_defined(self):
+        """TN should be an alias for Technical_Notes."""
+        self.assertEqual(SHEET_ALIASES.get("TN"), "Technical_Notes")
+
+    def test_resolve_alias(self):
+        """resolve_sheet_name should convert TN to Technical_Notes."""
+        self.assertEqual(resolve_sheet_name("TN"), "Technical_Notes")
+
+    def test_resolve_canonical_unchanged(self):
+        """resolve_sheet_name should return canonical names unchanged."""
+        self.assertEqual(resolve_sheet_name("Technical_Notes"), "Technical_Notes")
+        self.assertEqual(resolve_sheet_name("Config"), "Config")
+        self.assertEqual(resolve_sheet_name("Summary"), "Summary")
+
+    def test_resolve_unknown_unchanged(self):
+        """resolve_sheet_name should return unknown names unchanged."""
+        self.assertEqual(resolve_sheet_name("Unknown_Sheet"), "Unknown_Sheet")
+
+    def test_is_sheet_name_with_alias(self):
+        """is_sheet_name should match alias to canonical name."""
+        self.assertTrue(is_sheet_name("TN", "Technical_Notes"))
+
+    def test_is_sheet_name_with_canonical(self):
+        """is_sheet_name should match canonical name to itself."""
+        self.assertTrue(is_sheet_name("Technical_Notes", "Technical_Notes"))
+
+    def test_is_sheet_name_mismatch(self):
+        """is_sheet_name should return False for non-matching names."""
+        self.assertFalse(is_sheet_name("Config", "Technical_Notes"))
+        self.assertFalse(is_sheet_name("TN", "Config"))
 
 
 if __name__ == "__main__":

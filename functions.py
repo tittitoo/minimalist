@@ -7,6 +7,7 @@ The code will need to be updated if more rows are needed.
 
 import os
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -38,6 +39,11 @@ LEGEND = {
 # Lazy loading avoids import-time errors when Excel is not running
 _MACRO_NB = None
 
+# Cache for PERSONAL.XLSB range references.
+# Since PERSONAL.XLSB doesn't change during an Excel session, we cache range
+# references to avoid repeated workbook/sheet/range lookups on each copy operation.
+_PERSONAL_RANGE_CACHE = {}
+
 
 def get_macro_nb():
     """
@@ -60,16 +66,110 @@ def get_macro_sheet(sheet_name):
     return get_macro_nb().sheets[sheet_name]
 
 
+def get_cached_range(sheet_name, range_addr):
+    """
+    Get a cached range reference from PERSONAL.XLSB.
+
+    Caches range references to avoid repeated workbook/sheet/range lookups.
+    The cache is valid for the entire Excel session since PERSONAL.XLSB
+    doesn't change during a session.
+
+    Args:
+        sheet_name: Name of the sheet in PERSONAL.XLSB (e.g., "Design", "Data")
+        range_addr: Range address (e.g., "5:5", "A28:E36", "B1")
+
+    Returns:
+        xlwings Range object from the cached reference
+    """
+    cache_key = f"{sheet_name}:{range_addr}"
+    if cache_key not in _PERSONAL_RANGE_CACHE:
+        _PERSONAL_RANGE_CACHE[cache_key] = get_macro_sheet(sheet_name).range(range_addr)
+    return _PERSONAL_RANGE_CACHE[cache_key]
+
+
 def copy_design_row(pwb, row_num, dest_range):
     """
     Copy a design row from PERSONAL.XLSB.
 
     Args:
-        pwb: The PERSONAL.XLSB workbook (from get_macro_nb())
+        pwb: The PERSONAL.XLSB workbook (from get_macro_nb()) - kept for API compatibility
         row_num: The row number to copy from Design sheet (e.g., "5:5" or "21:21")
         dest_range: The destination range object
     """
-    pwb.sheets["Design"].range(row_num).copy(dest_range)
+    get_cached_range("Design", row_num).copy(dest_range)
+
+
+def apply_lastrow_border(row_range):
+    """
+    Apply top and bottom border with color #0332FF to a row range.
+    Compatible with both Mac and Windows platforms.
+
+    Args:
+        row_range: xlwings range object for the row to style
+    """
+    # Excel border edge constants
+    xlEdgeTop = 8
+    xlEdgeBottom = 9
+    # Line style constants
+    xlContinuous = 1
+    # Weight constants
+    xlThin = 2
+
+    # Color #0332FF: R=3, G=50, B=255
+    if sys.platform == "win32":
+        # Windows: Use COM API directly (pure Python)
+        # Color in BGR long integer format for Windows
+        color = 255 * 65536 + 50 * 256 + 3  # 16724483
+        for edge in [xlEdgeTop, xlEdgeBottom]:
+            border = row_range.api.Borders(edge)
+            border.LineStyle = xlContinuous
+            border.Weight = xlThin
+            border.Color = color
+    else:
+        # macOS: AppleScript/VBA limitations prevent direct border manipulation.
+        # Fall back to copying border style from PERSONAL.XLSB Design sheet.
+        get_cached_range("Design", "5:5").copy(row_range)
+
+
+def get_workbook_directory(wb):
+    """
+    Get the directory path for a workbook, handling SharePoint/OneDrive URLs.
+
+    When a workbook is opened from SharePoint or OneDrive, wb.fullname may return
+    a URL instead of a local file path, or may fail entirely. This function
+    handles both cases and returns the user's Downloads folder as a fallback.
+
+    Args:
+        wb: xlwings Workbook object
+
+    Returns:
+        tuple: (directory_path, is_cloud) where:
+            - directory_path: Local directory path for saving files
+            - is_cloud: True if the file is on SharePoint/OneDrive or fullname failed
+    """
+    try:
+        fullname = wb.fullname
+    except Exception:
+        # wb.fullname can fail on SharePoint/OneDrive files
+        fullname = None
+
+    # Check if it's a SharePoint/OneDrive URL or if fullname failed
+    is_cloud = fullname is None or fullname.startswith(("http://", "https://"))
+
+    if is_cloud:
+        # Use Downloads folder as fallback for cloud files
+        downloads = Path.home() / "Downloads"
+
+        # Create a subdirectory for the project if possible
+        project_name = wb.name[:-5] if wb.name.endswith(".xlsx") else wb.name[:-4]
+        project_dir = downloads / project_name
+
+        # Create the directory if it doesn't exist
+        project_dir.mkdir(parents=True, exist_ok=True)
+
+        return str(project_dir), True
+    else:
+        return os.path.dirname(fullname), False
 
 
 # Accounting number format
@@ -83,13 +183,81 @@ RESOURCES = os.path.join(
 
 # To update the value upon updating of the template.
 LATEST_WB_VERSION = "R2"
-LATEST_MINOR_REVISION = "M2"
+LATEST_MINOR_REVISION = "M3"
 UPDATE_MESSAGE = (
     "There is now no restrction on lumpsum price to be '1 Lot'. Enjoy the flexibility!"
 )
 
-# Skipped sheets
-SKIP_SHEETS = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
+# Skipped sheets (includes TN as alias for Technical_Notes)
+SKIP_SHEETS = ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C"]
+
+# Sheet name aliases - maps alternative names to canonical sheet names
+# Format: {"alias": "canonical_name"}
+SHEET_ALIASES = {
+    "TN": "Technical_Notes",
+}
+
+# Reverse mapping: canonical → list of aliases (built automatically)
+_CANONICAL_TO_ALIASES = {}
+for alias, canonical in SHEET_ALIASES.items():
+    _CANONICAL_TO_ALIASES.setdefault(canonical, []).append(alias)
+
+
+def resolve_sheet_name(name):
+    """
+    Resolve a sheet name alias to its canonical name.
+
+    Args:
+        name: Sheet name or alias (e.g., "TN" or "Technical_Notes")
+
+    Returns:
+        The canonical sheet name (e.g., "Technical_Notes")
+    """
+    return SHEET_ALIASES.get(name, name)
+
+
+def get_sheet(wb, name):
+    """
+    Get a sheet from a workbook, supporting aliases.
+
+    Tries the canonical name first, then any aliases. Works whether the
+    actual sheet in Excel is named "Technical_Notes" or "TN".
+
+    Args:
+        wb: xlwings Workbook object
+        name: Sheet name or alias (e.g., "TN" or "Technical_Notes")
+
+    Returns:
+        xlwings Sheet object
+    """
+    canonical_name = resolve_sheet_name(name)
+    sheet_names = wb.sheet_names
+
+    # Try canonical name first
+    if canonical_name in sheet_names:
+        return wb.sheets[canonical_name]
+
+    # Try aliases if canonical not found
+    for alias in _CANONICAL_TO_ALIASES.get(canonical_name, []):
+        if alias in sheet_names:
+            return wb.sheets[alias]
+
+    # Fall back to original name (will raise KeyError if not found)
+    return wb.sheets[name]
+
+
+def is_sheet_name(name, canonical):
+    """
+    Check if a sheet name matches a canonical name (including aliases).
+
+    Args:
+        name: Sheet name to check (could be an alias)
+        canonical: The canonical sheet name to match against
+
+    Returns:
+        True if name matches canonical (directly or via alias)
+    """
+    return resolve_sheet_name(name) == canonical
 
 
 def set_nitty_gritty(text):
@@ -355,10 +523,9 @@ def fill_lastrow(wb):
 def fill_lastrow_sheet(wb, sheet):  # type: ignore
     if sheet.name not in SKIP_SHEETS:
         last_row = sheet.range("C1500").end("up").row
-        # Copy design row from PERSONAL.XLSB
-        get_macro_sheet("Design").range("5:5").copy(
-            sheet.range(str(last_row + 2) + ":" + str(last_row + 2))
-        )
+        # Apply top and bottom border with color #0332FF (pure Python, cross-platform)
+        row_range = sheet.range(f"{last_row + 2}:{last_row + 2}")
+        apply_lastrow_border(row_range)
         sheet.range("F" + str(last_row + 2)).formula = '="Subtotal(" & Config!B12 & ")"'
         sheet.range("F" + str(last_row + 2)).font.size = 9
         sheet.range("G" + str(last_row + 2)).formula = (
@@ -1032,6 +1199,17 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
     sheet.page_setup.print_area = "A1:F" + str(last_row + 3)
 
 
+def get_num_scheme(wb):
+    """
+    Get numbering scheme parameters from Config B16
+    - Double (or empty/None): count=10, step=10
+    """
+    scheme = wb.sheets["Config"].range("B16").value
+    if scheme and str(scheme).strip().upper() == "SINGLE":
+        return 1, 1
+    return 10, 10  # Default to Double
+
+
 def number_title(wb, count=10, step=10):
     """
     For the main numbering. It will fix as long as it is a number.
@@ -1139,7 +1317,7 @@ def prepare_to_print_technical(wb):
 
 
 def technical(wb):
-    directory = os.path.dirname(wb.fullname)
+    directory, is_cloud = get_workbook_directory(wb)
     # Check if Technical PDF already exist
     temp_file_name = Path(directory, "Technical " + wb.name[:-4] + "pdf")
     if temp_file_name.is_file():
@@ -1147,6 +1325,11 @@ def technical(wb):
             "The Technical PDF file already exists!\n Please delete the file and try again."
         )
         return
+
+    if is_cloud:
+        xw.apps.active.alert(  # type: ignore
+            f"File is on SharePoint/OneDrive.\nPDF will be saved to:\n{directory}"
+        )
 
     wb.sheets["Cover"].range("D39").value = "TECHNICAL PROPOSAL"
     wb.sheets["Cover"].range("D40").value = wb.sheets["Cover"].range("D40").value
@@ -1216,7 +1399,7 @@ def technical(wb):
                 ws.range("G:G").delete()
                 ws.range("AL:AL").column_width = 0
         wb.sheets["Config"].delete()
-        wb.sheets["Technical_Notes"].range("F:I").delete()
+        get_sheet(wb, "Technical_Notes").range("F:I").delete()
 
         # If T&C does not exist, do nothing.
         try:
@@ -1232,7 +1415,7 @@ def technical(wb):
 
 
 def commercial(wb):
-    directory = os.path.dirname(wb.fullname)
+    directory, is_cloud = get_workbook_directory(wb)
     # Check if Commercial PDF already exists
     temp_file_name = Path(directory, "Commercial " + wb.name[:-4] + "pdf")
     if temp_file_name.is_file():
@@ -1240,6 +1423,11 @@ def commercial(wb):
             "The Commercial PDF file already exists!\n Please delete the file and try again."
         )
         return
+
+    if is_cloud:
+        xw.apps.active.alert(  # type: ignore
+            f"File is on SharePoint/OneDrive.\nPDF will be saved to:\n{directory}"
+        )
 
     """Takes a work book, set horizantal borders at pagebreaks."""
     # current_sheet = wb.sheets.active
@@ -1290,7 +1478,7 @@ def commercial(wb):
 
     wb.sheets["Summary"].range("G:X").delete()
     wb.sheets["Config"].delete()
-    wb.sheets["Technical_Notes"].range("F:I").delete()
+    get_sheet(wb, "Technical_Notes").range("F:I").delete()
     wb.sheets["Summary"].activate()
     file_name = "Commercial " + wb.name[:-4] + "xlsx"
     wb.save(Path(directory, file_name), password="")
@@ -1550,7 +1738,12 @@ def shaded(wb, shaded=True):
 
 
 def internal_costing(wb):
-    directory = os.path.dirname(wb.fullname)
+    directory, is_cloud = get_workbook_directory(wb)
+
+    if is_cloud:
+        xw.apps.active.alert(  # type: ignore
+            f"File is on SharePoint/OneDrive.\nFile will be saved to:\n{directory}"
+        )
 
     wb.sheets["Cover"].range("D39").value = "INTERNAL COSTING"
     wb.sheets["Cover"].range("C42:C47").value = (
@@ -1681,7 +1874,12 @@ def internal_costing(wb):
 
 
 def convert_legacy(wb):
-    directory = os.path.dirname(wb.fullname)
+    directory, is_cloud = get_workbook_directory(wb)
+
+    if is_cloud:
+        xw.apps.active.alert(  # type: ignore
+            f"File is on SharePoint/OneDrive.\nConverted file will be saved to:\n{directory}"
+        )
 
     if wb.name[-4:] == "xlsm":
         # Read and initialize values
@@ -1950,7 +2148,7 @@ def convert_legacy(wb):
         template.sheets["Technical_Notes"].copy(after=nb.sheets[-1])
         template.sheets["T&C"].copy(after=nb.sheets[-1])
         for sheet in nb.sheet_names:
-            if sheet in ["Summary", "Technical_Notes", "T&C"]:
+            if sheet in ["Summary", "Technical_Notes", "TN", "T&C"]:
                 # nb.sheets[sheet].range('C1').formula = '=Config!B29'
                 # nb.sheets[sheet].range('C2').formula = '=Config!B30'
                 # nb.sheets[sheet].range('C3').formula = '=Config!B32'
@@ -2050,7 +2248,7 @@ def page_setup(wb):
         sheet.page_setup.header_margin = 0.3  # in inches
         sheet.page_setup.footer_margin = 0.3  # in inches
         sheet.page_setup.fit_to_width = True
-        if sheet.name in ["Technical_Notes", "T&C"]:
+        if sheet.name in ["Technical_Notes", "TN", "T&C"]:
             sheet.range("A:A").column_width = 2
             sheet.range("B:B").autofit()
             sheet.range("C:C").column_width = 70
@@ -2292,10 +2490,10 @@ def update_template_version(wb):
     if current_wb_revision is None or current_wb_revision < int(LATEST_WB_VERSION[1:]):
         wb.sheets["Config"].range("D1:I20").clear()
         wb.sheets["Config"].range("95:106").delete()
-        # Copy design elements from PERSONAL.XLSB
-        get_macro_sheet("Design").range("A28:E36").copy(wb.sheets["Config"].range("D2"))
-        get_macro_sheet("Data").range("C1:C2").copy(wb.sheets["Config"].range("B95"))
-        get_macro_sheet("Data").range("D1:D2").copy(wb.sheets["Config"].range("C95"))
+        # Copy design elements from PERSONAL.XLSB (using cached ranges)
+        get_cached_range("Design", "A28:E36").copy(wb.sheets["Config"].range("D2"))
+        get_cached_range("Data", "C1:C2").copy(wb.sheets["Config"].range("B95"))
+        get_cached_range("Data", "D1:D2").copy(wb.sheets["Config"].range("C95"))
         wb.sheets["Config"].range("A15").value = "Template Version"
         wb.sheets["Config"].range("B15").value = LATEST_WB_VERSION
         # Put currency and proposal type validation
@@ -2342,15 +2540,15 @@ def update_checklist(wb):
     ]
 
     # Test if value "Systems" is already there
-    cell_value = wb.sheets["Technical_Notes"].range("F3")
+    cell_value = get_sheet(wb, "Technical_Notes").range("F3")
     # if cell_value is None:
     if cell_value != "Systems".upper():
-        # Copy from PERSONAL.XLSB
-        get_macro_sheet("Data").range("B1").copy(
-            wb.sheets["Technical_Notes"].range("F3")
+        # Copy from PERSONAL.XLSB (using cached range)
+        get_cached_range("Data", "B1").copy(
+            get_sheet(wb, "Technical_Notes").range("F3")
         )
         # Call macro to fill in the dropdown formula
-        wb.sheets["Technical_Notes"].activate()
+        get_sheet(wb, "Technical_Notes").activate()
         run_macro("put_systems_validation_formula")
 
     # For general checklist
@@ -2366,18 +2564,26 @@ def update_checklist(wb):
     ]
 
     # Test if value "Checklists" is already there
-    cell_value = wb.sheets["Technical_Notes"].range("G3")
+    cell_value = get_sheet(wb, "Technical_Notes").range("G3")
     # if cell_value is None:
     if cell_value != "Checklists".upper():
-        # Copy from PERSONAL.XLSB
-        get_macro_sheet("Data").range("E1").copy(
-            wb.sheets["Technical_Notes"].range("G3")
+        # Copy from PERSONAL.XLSB (using cached range)
+        get_cached_range("Data", "E1").copy(
+            get_sheet(wb, "Technical_Notes").range("G3")
         )
         # Call macro to fill in the dropdown formula
-        wb.sheets["Technical_Notes"].activate()
+        get_sheet(wb, "Technical_Notes").activate()
         run_macro("put_checklists_validation_formula")
 
-        wb.sheets["Technical_Notes"].range("F:G").autofit()
+        get_sheet(wb, "Technical_Notes").range("F:G").autofit()
+
+    # Add Num Scheme setting
+    config = wb.sheets["Config"]
+    config.range("A16").value = "Num Scheme"
+    config.range("B16").value = "Single"  # Default value
+    if sys.platform == "win32":
+        # Windows: Add dropdown validation
+        config.range("B16").api.Validation.Add(Type=3, Formula1="Single,Double")
 
 
 def update_format(wb):
