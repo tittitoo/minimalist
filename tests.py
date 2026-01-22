@@ -25,6 +25,8 @@ from functions import (
     SHEET_ALIASES,
     resolve_sheet_name,
     is_sheet_name,
+    get_sheet,
+    sheet_exists,
 )
 
 
@@ -357,6 +359,85 @@ class TestSheetAliases(unittest.TestCase):
         """is_sheet_name should return False for non-matching names."""
         self.assertFalse(is_sheet_name("Config", "Technical_Notes"))
         self.assertFalse(is_sheet_name("TN", "Config"))
+
+
+class MockWorkbook:
+    """Mock workbook for testing get_sheet and sheet_exists without Excel."""
+
+    def __init__(self, sheet_names_list):
+        self._sheet_names = sheet_names_list
+        self._sheets = {name: f"Sheet:{name}" for name in sheet_names_list}
+
+    @property
+    def sheet_names(self):
+        return self._sheet_names
+
+    @property
+    def sheets(self):
+        return self._sheets
+
+
+class TestGetSheetOptional(unittest.TestCase):
+    """Tests for get_sheet with required=False parameter."""
+
+    def test_get_sheet_returns_sheet_when_exists(self):
+        """get_sheet should return the sheet when it exists."""
+        wb = MockWorkbook(["Config", "Technical_Notes", "Summary"])
+        result = get_sheet(wb, "Technical_Notes")
+        self.assertEqual(result, "Sheet:Technical_Notes")
+
+    def test_get_sheet_returns_sheet_via_alias(self):
+        """get_sheet should find sheet via alias."""
+        wb = MockWorkbook(["Config", "TN", "Summary"])
+        result = get_sheet(wb, "Technical_Notes")
+        self.assertEqual(result, "Sheet:TN")
+
+    def test_get_sheet_required_true_raises_on_missing(self):
+        """get_sheet with required=True should raise KeyError when sheet missing."""
+        wb = MockWorkbook(["Config", "Summary"])
+        with self.assertRaises(KeyError):
+            get_sheet(wb, "Technical_Notes", required=True)
+
+    def test_get_sheet_required_false_returns_none_on_missing(self):
+        """get_sheet with required=False should return None when sheet missing."""
+        wb = MockWorkbook(["Config", "Summary"])
+        result = get_sheet(wb, "Technical_Notes", required=False)
+        self.assertIsNone(result)
+
+    def test_get_sheet_required_false_returns_sheet_when_exists(self):
+        """get_sheet with required=False should still return sheet when it exists."""
+        wb = MockWorkbook(["Config", "Technical_Notes", "Summary"])
+        result = get_sheet(wb, "Technical_Notes", required=False)
+        self.assertEqual(result, "Sheet:Technical_Notes")
+
+
+class TestSheetExists(unittest.TestCase):
+    """Tests for sheet_exists helper function."""
+
+    def test_sheet_exists_true_for_canonical_name(self):
+        """sheet_exists should return True when sheet exists by canonical name."""
+        wb = MockWorkbook(["Config", "Technical_Notes", "Summary"])
+        self.assertTrue(sheet_exists(wb, "Technical_Notes"))
+
+    def test_sheet_exists_true_for_alias(self):
+        """sheet_exists should return True when sheet exists by alias."""
+        wb = MockWorkbook(["Config", "TN", "Summary"])
+        self.assertTrue(sheet_exists(wb, "Technical_Notes"))
+
+    def test_sheet_exists_true_when_query_by_alias(self):
+        """sheet_exists should return True when queried by alias for existing sheet."""
+        wb = MockWorkbook(["Config", "Technical_Notes", "Summary"])
+        self.assertTrue(sheet_exists(wb, "TN"))
+
+    def test_sheet_exists_false_when_missing(self):
+        """sheet_exists should return False when sheet doesn't exist."""
+        wb = MockWorkbook(["Config", "Summary"])
+        self.assertFalse(sheet_exists(wb, "Technical_Notes"))
+
+    def test_sheet_exists_false_for_unknown_sheet(self):
+        """sheet_exists should return False for unknown sheet names."""
+        wb = MockWorkbook(["Config", "Summary"])
+        self.assertFalse(sheet_exists(wb, "Unknown_Sheet"))
 
 
 if __name__ == "__main__":

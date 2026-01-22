@@ -216,7 +216,7 @@ def resolve_sheet_name(name):
     return SHEET_ALIASES.get(name, name)
 
 
-def get_sheet(wb, name):
+def get_sheet(wb, name, required=True):
     """
     Get a sheet from a workbook, supporting aliases.
 
@@ -226,9 +226,10 @@ def get_sheet(wb, name):
     Args:
         wb: xlwings Workbook object
         name: Sheet name or alias (e.g., "TN" or "Technical_Notes")
+        required: If False, returns None when sheet doesn't exist instead of raising.
 
     Returns:
-        xlwings Sheet object
+        xlwings Sheet object, or None if required=False and sheet doesn't exist.
     """
     canonical_name = resolve_sheet_name(name)
     sheet_names = wb.sheet_names
@@ -242,8 +243,32 @@ def get_sheet(wb, name):
         if alias in sheet_names:
             return wb.sheets[alias]
 
+    # Sheet not found
+    if not required:
+        return None
+
     # Fall back to original name (will raise KeyError if not found)
     return wb.sheets[name]
+
+
+def sheet_exists(wb, name):
+    """
+    Check if a sheet exists in workbook (considering aliases).
+
+    Args:
+        wb: xlwings Workbook object
+        name: Sheet name or alias (e.g., "TN" or "Technical_Notes")
+
+    Returns:
+        True if the sheet exists, False otherwise.
+    """
+    canonical = resolve_sheet_name(name)
+    if canonical in wb.sheet_names:
+        return True
+    for alias in _CANONICAL_TO_ALIASES.get(canonical, []):
+        if alias in wb.sheet_names:
+            return True
+    return False
 
 
 def is_sheet_name(name, canonical):
@@ -1399,7 +1424,9 @@ def technical(wb):
                 ws.range("G:G").delete()
                 ws.range("AL:AL").column_width = 0
         wb.sheets["Config"].delete()
-        get_sheet(wb, "Technical_Notes").range("F:I").delete()
+        tn_sheet = get_sheet(wb, "Technical_Notes", required=False)
+        if tn_sheet:
+            tn_sheet.range("F:I").delete()
 
         # If T&C does not exist, do nothing.
         try:
@@ -1478,7 +1505,9 @@ def commercial(wb):
 
     wb.sheets["Summary"].range("G:X").delete()
     wb.sheets["Config"].delete()
-    get_sheet(wb, "Technical_Notes").range("F:I").delete()
+    tn_sheet = get_sheet(wb, "Technical_Notes", required=False)
+    if tn_sheet:
+        tn_sheet.range("F:I").delete()
     wb.sheets["Summary"].activate()
     file_name = "Commercial " + wb.name[:-4] + "xlsx"
     wb.save(Path(directory, file_name), password="")
@@ -2539,17 +2568,19 @@ def update_checklist(wb):
         system.upper() for system in cc.available_system_checklist_register
     ]
 
-    # Test if value "Systems" is already there
-    cell_value = get_sheet(wb, "Technical_Notes").range("F3")
-    # if cell_value is None:
-    if cell_value != "Systems".upper():
-        # Copy from PERSONAL.XLSB (using cached range)
-        get_cached_range("Data", "B1").copy(
-            get_sheet(wb, "Technical_Notes").range("F3")
-        )
-        # Call macro to fill in the dropdown formula
-        get_sheet(wb, "Technical_Notes").activate()
-        run_macro("put_systems_validation_formula")
+    # Get Technical_Notes sheet (optional - may not exist in all workbooks)
+    tn_sheet = get_sheet(wb, "Technical_Notes", required=False)
+
+    # Test if value "Systems" is already there (only if Technical_Notes exists)
+    if tn_sheet:
+        cell_value = tn_sheet.range("F3")
+        # if cell_value is None:
+        if cell_value != "Systems".upper():
+            # Copy from PERSONAL.XLSB (using cached range)
+            get_cached_range("Data", "B1").copy(tn_sheet.range("F3"))
+            # Call macro to fill in the dropdown formula
+            tn_sheet.activate()
+            run_macro("put_systems_validation_formula")
 
     # For general checklist
     # Clear previous data if any
@@ -2563,19 +2594,18 @@ def update_checklist(wb):
         system.upper() for system in cc.available_checklist_register
     ]
 
-    # Test if value "Checklists" is already there
-    cell_value = get_sheet(wb, "Technical_Notes").range("G3")
-    # if cell_value is None:
-    if cell_value != "Checklists".upper():
-        # Copy from PERSONAL.XLSB (using cached range)
-        get_cached_range("Data", "E1").copy(
-            get_sheet(wb, "Technical_Notes").range("G3")
-        )
-        # Call macro to fill in the dropdown formula
-        get_sheet(wb, "Technical_Notes").activate()
-        run_macro("put_checklists_validation_formula")
+    # Test if value "Checklists" is already there (only if Technical_Notes exists)
+    if tn_sheet:
+        cell_value = tn_sheet.range("G3")
+        # if cell_value is None:
+        if cell_value != "Checklists".upper():
+            # Copy from PERSONAL.XLSB (using cached range)
+            get_cached_range("Data", "E1").copy(tn_sheet.range("G3"))
+            # Call macro to fill in the dropdown formula
+            tn_sheet.activate()
+            run_macro("put_checklists_validation_formula")
 
-        get_sheet(wb, "Technical_Notes").range("F:G").autofit()
+            tn_sheet.range("F:G").autofit()
 
     # Add Num Scheme setting
     config = wb.sheets["Config"]
