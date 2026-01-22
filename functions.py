@@ -188,8 +188,76 @@ UPDATE_MESSAGE = (
     "There is now no restrction on lumpsum price to be '1 Lot'. Enjoy the flexibility!"
 )
 
-# Skipped sheets
-SKIP_SHEETS = ["Config", "Cover", "Summary", "Technical_Notes", "T&C"]
+# Skipped sheets (includes TN as alias for Technical_Notes)
+SKIP_SHEETS = ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C"]
+
+# Sheet name aliases - maps alternative names to canonical sheet names
+# Format: {"alias": "canonical_name"}
+SHEET_ALIASES = {
+    "TN": "Technical_Notes",
+}
+
+# Reverse mapping: canonical → list of aliases (built automatically)
+_CANONICAL_TO_ALIASES = {}
+for alias, canonical in SHEET_ALIASES.items():
+    _CANONICAL_TO_ALIASES.setdefault(canonical, []).append(alias)
+
+
+def resolve_sheet_name(name):
+    """
+    Resolve a sheet name alias to its canonical name.
+
+    Args:
+        name: Sheet name or alias (e.g., "TN" or "Technical_Notes")
+
+    Returns:
+        The canonical sheet name (e.g., "Technical_Notes")
+    """
+    return SHEET_ALIASES.get(name, name)
+
+
+def get_sheet(wb, name):
+    """
+    Get a sheet from a workbook, supporting aliases.
+
+    Tries the canonical name first, then any aliases. Works whether the
+    actual sheet in Excel is named "Technical_Notes" or "TN".
+
+    Args:
+        wb: xlwings Workbook object
+        name: Sheet name or alias (e.g., "TN" or "Technical_Notes")
+
+    Returns:
+        xlwings Sheet object
+    """
+    canonical_name = resolve_sheet_name(name)
+    sheet_names = wb.sheet_names
+
+    # Try canonical name first
+    if canonical_name in sheet_names:
+        return wb.sheets[canonical_name]
+
+    # Try aliases if canonical not found
+    for alias in _CANONICAL_TO_ALIASES.get(canonical_name, []):
+        if alias in sheet_names:
+            return wb.sheets[alias]
+
+    # Fall back to original name (will raise KeyError if not found)
+    return wb.sheets[name]
+
+
+def is_sheet_name(name, canonical):
+    """
+    Check if a sheet name matches a canonical name (including aliases).
+
+    Args:
+        name: Sheet name to check (could be an alias)
+        canonical: The canonical sheet name to match against
+
+    Returns:
+        True if name matches canonical (directly or via alias)
+    """
+    return resolve_sheet_name(name) == canonical
 
 
 def set_nitty_gritty(text):
@@ -1320,7 +1388,7 @@ def technical(wb):
                 ws.range("G:G").delete()
                 ws.range("AL:AL").column_width = 0
         wb.sheets["Config"].delete()
-        wb.sheets["Technical_Notes"].range("F:I").delete()
+        get_sheet(wb, "Technical_Notes").range("F:I").delete()
 
         # If T&C does not exist, do nothing.
         try:
@@ -1399,7 +1467,7 @@ def commercial(wb):
 
     wb.sheets["Summary"].range("G:X").delete()
     wb.sheets["Config"].delete()
-    wb.sheets["Technical_Notes"].range("F:I").delete()
+    get_sheet(wb, "Technical_Notes").range("F:I").delete()
     wb.sheets["Summary"].activate()
     file_name = "Commercial " + wb.name[:-4] + "xlsx"
     wb.save(Path(directory, file_name), password="")
@@ -2069,7 +2137,7 @@ def convert_legacy(wb):
         template.sheets["Technical_Notes"].copy(after=nb.sheets[-1])
         template.sheets["T&C"].copy(after=nb.sheets[-1])
         for sheet in nb.sheet_names:
-            if sheet in ["Summary", "Technical_Notes", "T&C"]:
+            if sheet in ["Summary", "Technical_Notes", "TN", "T&C"]:
                 # nb.sheets[sheet].range('C1').formula = '=Config!B29'
                 # nb.sheets[sheet].range('C2').formula = '=Config!B30'
                 # nb.sheets[sheet].range('C3').formula = '=Config!B32'
@@ -2169,7 +2237,7 @@ def page_setup(wb):
         sheet.page_setup.header_margin = 0.3  # in inches
         sheet.page_setup.footer_margin = 0.3  # in inches
         sheet.page_setup.fit_to_width = True
-        if sheet.name in ["Technical_Notes", "T&C"]:
+        if sheet.name in ["Technical_Notes", "TN", "T&C"]:
             sheet.range("A:A").column_width = 2
             sheet.range("B:B").autofit()
             sheet.range("C:C").column_width = 70
@@ -2461,13 +2529,15 @@ def update_checklist(wb):
     ]
 
     # Test if value "Systems" is already there
-    cell_value = wb.sheets["Technical_Notes"].range("F3")
+    cell_value = get_sheet(wb, "Technical_Notes").range("F3")
     # if cell_value is None:
     if cell_value != "Systems".upper():
         # Copy from PERSONAL.XLSB (using cached range)
-        get_cached_range("Data", "B1").copy(wb.sheets["Technical_Notes"].range("F3"))
+        get_cached_range("Data", "B1").copy(
+            get_sheet(wb, "Technical_Notes").range("F3")
+        )
         # Call macro to fill in the dropdown formula
-        wb.sheets["Technical_Notes"].activate()
+        get_sheet(wb, "Technical_Notes").activate()
         run_macro("put_systems_validation_formula")
 
     # For general checklist
@@ -2483,16 +2553,18 @@ def update_checklist(wb):
     ]
 
     # Test if value "Checklists" is already there
-    cell_value = wb.sheets["Technical_Notes"].range("G3")
+    cell_value = get_sheet(wb, "Technical_Notes").range("G3")
     # if cell_value is None:
     if cell_value != "Checklists".upper():
         # Copy from PERSONAL.XLSB (using cached range)
-        get_cached_range("Data", "E1").copy(wb.sheets["Technical_Notes"].range("G3"))
+        get_cached_range("Data", "E1").copy(
+            get_sheet(wb, "Technical_Notes").range("G3")
+        )
         # Call macro to fill in the dropdown formula
-        wb.sheets["Technical_Notes"].activate()
+        get_sheet(wb, "Technical_Notes").activate()
         run_macro("put_checklists_validation_formula")
 
-        wb.sheets["Technical_Notes"].range("F:G").autofit()
+        get_sheet(wb, "Technical_Notes").range("F:G").autofit()
 
 
 def update_format(wb):

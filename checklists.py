@@ -26,6 +26,7 @@ from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
 
 import checklist_collections as cc
+from functions import get_sheet
 
 # Global Variables
 LEFT_MARGIN = 70
@@ -549,7 +550,7 @@ def generate_proposal_checklist(
     color=lavender,
 ):
     # Get system names from the proposal
-    ws = wb.sheets["Technical_Notes"]
+    ws = get_sheet(wb, "Technical_Notes")
     last_row = ws.range("F1048576").end("up").row
     job_code = wb.sheets["Config"].range("B29").value
     job_title = ws.range("A1").value
@@ -736,7 +737,7 @@ def generate_general_checklist(
     wb,
 ):
     # Get system names from the proposal
-    ws = wb.sheets["Technical_Notes"]
+    ws = get_sheet(wb, "Technical_Notes")
     last_row = ws.range("G1048576").end("up").row
     data = ws.range(f"G4:G{last_row}").options(pd.DataFrame, index=False).value
     data.columns = ["Checklists"]
