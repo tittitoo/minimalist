@@ -183,7 +183,7 @@ RESOURCES = os.path.join(
 
 # To update the value upon updating of the template.
 LATEST_WB_VERSION = "R2"
-LATEST_MINOR_REVISION = "M2"
+LATEST_MINOR_REVISION = "M3"
 UPDATE_MESSAGE = (
     "There is now no restrction on lumpsum price to be '1 Lot'. Enjoy the flexibility!"
 )
@@ -2565,6 +2565,14 @@ def update_checklist(wb):
         run_macro("put_checklists_validation_formula")
 
         get_sheet(wb, "Technical_Notes").range("F:G").autofit()
+
+    # Add Num Scheme setting
+    config = wb.sheets["Config"]
+    config.range("A16").value = "Num Scheme"
+    config.range("B16").value = "Single"  # Default value
+    if sys.platform == "win32":
+        # Windows: Add dropdown validation
+        config.range("B16").api.Validation.Add(Type=3, Formula1="Single,Double")
 
 
 def update_format(wb):
