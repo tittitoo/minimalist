@@ -184,9 +184,7 @@ RESOURCES = os.path.join(
 # To update the value upon updating of the template.
 LATEST_WB_VERSION = "R2"
 LATEST_MINOR_REVISION = "M3"
-UPDATE_MESSAGE = (
-    "There is now no restrction on lumpsum price to be '1 Lot'. Enjoy the flexibility!"
-)
+UPDATE_MESSAGE = "Now you can choose the number scheme. Single or Double."
 
 # Skipped sheets (includes TN as alias for Technical_Notes)
 # Note: "Scratch" is handled case-insensitively via should_skip_sheet()
@@ -212,6 +210,7 @@ def should_skip_sheet(sheet_name):
     if sheet_name.lower() == "scratch":
         return True
     return False
+
 
 # Sheet name aliases - maps alternative names to canonical sheet names
 # Format: {"alias": "canonical_name"}
