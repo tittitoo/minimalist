@@ -3,6 +3,7 @@ Created so that python fucntions are available in Excel.
 © Thiha Aung (infowizard@gmail.com)
 """
 
+import sys
 import xlwings as xw  # type: ignore
 import functions
 import checklists
@@ -10,6 +11,18 @@ import checklists
 # import checklist_collections as cc
 
 # from reportlab.lib.colors import lightcyan, black, white, lightyellow, blue
+
+
+# Progress indicator helper functions
+def update_status(app, message):
+    """Update Excel status bar with message (cross-platform)"""
+    app.status_bar = message
+
+
+def set_busy_cursor(app, busy=True):
+    """Set cursor to hourglass (busy=True) or default (busy=False). Windows only."""
+    if sys.platform == "win32":
+        app.api.Cursor = 2 if busy else -4143  # xlWait=2, xlDefault=-4143
 
 
 class IsNotTemplateException(Exception):
@@ -46,7 +59,8 @@ def disable_screen_updating(func):
         try:
             app.screen_updating = False
             app.calculation = "manual"
-            app.status_bar = "Running please wait ..."
+            set_busy_cursor(app, busy=True)
+            update_status(app, "Running please wait ...")
             func(*args, **kwargs)
         except Exception as e:
             print(f"Error during function execution -> {e}")
@@ -58,7 +72,8 @@ def disable_screen_updating(func):
             app.calculate()
             # Restore screen updating last
             app.screen_updating = original_screen_updating
-            app.status_bar = "Ready"
+            set_busy_cursor(app, busy=False)
+            update_status(app, "Ready")
 
     return wrapper
 
@@ -67,12 +82,16 @@ def disable_screen_updating(func):
 @disable_screen_updating
 def fill_formula():
     wb = xw.Book.caller()
+    app = wb.app
     ws = wb.sheets.active
+    update_status(app, "Filling formulas...")
     functions.fill_formula(ws)
     # Added number_title so that it is also tied to ctrl+e shortcut
+    update_status(app, "Numbering titles...")
     count, step = functions.get_num_scheme(wb)
     functions.number_title(wb, count=count, step=step)
     # Reset font sizes to default (Arial 12 for data, 9 for headers)
+    update_status(app, "Formatting cells...")
     functions.format_cell_data_sheet(ws)
 
 
@@ -82,23 +101,34 @@ def fill_formula():
 @disable_screen_updating
 def fill_formula_wb():
     wb = xw.Book.caller()
+    app = wb.app
+    update_status(app, "Cleaning up empty rows...")
     functions.delete_extra_empty_row_wb(wb)
     # Calling twice as sometimes some rows are missed.
     functions.delete_extra_empty_row_wb(wb)
+    update_status(app, "Numbering titles...")
     count, step = functions.get_num_scheme(wb)
     functions.number_title(wb, count=count, step=step)
+    update_status(app, "Filling formulas...")
     functions.fill_formula_wb(wb)
+    update_status(app, "Formatting text...")
     functions.format_text(
         wb,
         indent_description=True,
         bullet_description=True,
         title_lineitem_or_description=True,
     )
+    update_status(app, "Formatting cells...")
     functions.format_cell_data(wb)
+    update_status(app, "Adjusting columns...")
     functions.adjust_columns_wb(wb)
+    update_status(app, "Applying conditional formatting...")
     functions.conditional_format_wb(wb)
+    update_status(app, "Filling subtotals...")
     functions.fill_lastrow(wb)
+    update_status(app, "Updating template version...")
     functions.update_template_version(wb)
+    update_status(app, "Recalculating...")
     # Force recalculation at the end to avoid stale value errors
     wb.app.calculate()
 
