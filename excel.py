@@ -56,12 +56,14 @@ def disable_screen_updating(func):
         # Store original settings
         original_calculation = app.calculation
         original_screen_updating = app.screen_updating
+        success = False
         try:
             app.screen_updating = False
             app.calculation = "manual"
             set_busy_cursor(app, busy=True)
             update_status(app, "Running please wait ...")
             func(*args, **kwargs)
+            success = True
         except Exception as e:
             print(f"Error during function execution -> {e}")
             raise
@@ -73,7 +75,8 @@ def disable_screen_updating(func):
             # Restore screen updating last
             app.screen_updating = original_screen_updating
             set_busy_cursor(app, busy=False)
-            update_status(app, "Ready")
+            if success:
+                update_status(app, "Ready")
 
     return wrapper
 
