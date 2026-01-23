@@ -2631,9 +2631,15 @@ def update_checklist(wb):
     # Add Num Scheme setting
     config = wb.sheets["Config"]
     config.range("A16").value = "Num Scheme"
-    config.range("B16").value = "Single"  # Default value
+    # Only set default if cell is empty (preserve user's existing choice)
+    if config.range("B16").value is None:
+        config.range("B16").value = "Single"
     if sys.platform == "win32":
-        # Windows: Add dropdown validation
+        # Windows: Add dropdown validation (delete existing first to avoid error)
+        try:
+            config.range("B16").api.Validation.Delete()
+        except Exception:
+            pass  # No existing validation to delete
         config.range("B16").api.Validation.Add(Type=3, Formula1="Single,Double")
 
 
