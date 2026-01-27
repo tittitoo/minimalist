@@ -1516,8 +1516,11 @@ def commercial(wb):
             wb.sheets[sheet].range("D:H").autofit()
             ws.range("AM:BD").delete()
             ws.range("I:AK").delete()
-            ws.range(f"AM1:AM{last_row}").value = ws.range(f"I1:I{last_row}").raw_value
+            ws = wb.sheets[sheet]  # Refresh stale reference after column deletions
+            col_i_values = ws.range(f"I1:I{last_row}").options(ndim=1).value
             ws.range("I:I").delete()
+            if col_i_values:
+                ws.range(f"AM1:AM{last_row}").value = [[v] for v in col_i_values]
             ws.range("AL:AL").column_width = 0
             # Call macros
             run_macro("conditional_format")
