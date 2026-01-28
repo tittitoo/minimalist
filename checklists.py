@@ -550,7 +550,12 @@ def generate_proposal_checklist(
     color=lavender,
 ):
     # Get system names from the proposal
-    ws = get_sheet(wb, "Technical_Notes")
+    ws = get_sheet(wb, "Technical_Notes", required=False)
+    if ws is None:
+        raise ValueError(
+            "Technical_Notes sheet is required for proposal checklists. "
+            "Please add the sheet or use a different checklist method."
+        )
     last_row = ws.range("F1048576").end("up").row
     job_code = wb.sheets["Config"].range("B29").value
     job_title = ws.range("A1").value
@@ -737,7 +742,12 @@ def generate_general_checklist(
     wb,
 ):
     # Get system names from the proposal
-    ws = get_sheet(wb, "Technical_Notes")
+    ws = get_sheet(wb, "Technical_Notes", required=False)
+    if ws is None:
+        raise ValueError(
+            "Technical_Notes sheet is required for general checklists. "
+            "Please add the sheet or use a different checklist method."
+        )
     last_row = ws.range("G1048576").end("up").row
     data = ws.range(f"G4:G{last_row}").options(pd.DataFrame, index=False).value
     data.columns = ["Checklists"]

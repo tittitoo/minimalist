@@ -25,6 +25,9 @@ from functions import (
     SHEET_ALIASES,
     resolve_sheet_name,
     is_sheet_name,
+    get_sheet,
+    sheet_exists,
+    should_skip_sheet,
 )
 
 
@@ -316,12 +319,48 @@ class TestSkipSheets(unittest.TestCase):
     """Test that SKIP_SHEETS constant is defined correctly."""
 
     def test_skip_sheets_contains_expected(self):
-        expected = ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C"]
+        expected = ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C", "Scratch"]
         for sheet in expected:
             self.assertIn(sheet, SKIP_SHEETS)
 
     def test_skip_sheets_is_list(self):
         self.assertIsInstance(SKIP_SHEETS, list)
+
+
+class TestShouldSkipSheet(unittest.TestCase):
+    """Test should_skip_sheet helper function for case-insensitive Scratch handling."""
+
+    def test_skips_standard_sheets(self):
+        """Standard sheets in SKIP_SHEETS should be skipped."""
+        for sheet in ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C"]:
+            self.assertTrue(should_skip_sheet(sheet), f"{sheet} should be skipped")
+
+    def test_skips_scratch_exact_case(self):
+        """Scratch with exact case should be skipped."""
+        self.assertTrue(should_skip_sheet("Scratch"))
+
+    def test_skips_scratch_lowercase(self):
+        """scratch (lowercase) should be skipped."""
+        self.assertTrue(should_skip_sheet("scratch"))
+
+    def test_skips_scratch_uppercase(self):
+        """SCRATCH (uppercase) should be skipped."""
+        self.assertTrue(should_skip_sheet("SCRATCH"))
+
+    def test_skips_scratch_mixed_case(self):
+        """ScRaTcH (mixed case) should be skipped."""
+        self.assertTrue(should_skip_sheet("ScRaTcH"))
+
+    def test_does_not_skip_system_sheets(self):
+        """System/product sheets should not be skipped."""
+        for sheet in ["CCTV", "Access Control", "Fire Alarm", "System1"]:
+            self.assertFalse(should_skip_sheet(sheet), f"{sheet} should NOT be skipped")
+
+    def test_does_not_skip_partial_scratch_match(self):
+        """Sheet names containing 'scratch' but not exactly 'scratch' should not be skipped."""
+        self.assertFalse(should_skip_sheet("Scratch2"))
+        self.assertFalse(should_skip_sheet("MyScratch"))
+        self.assertFalse(should_skip_sheet("Scratch_Notes"))
 
 
 class TestSheetAliases(unittest.TestCase):
@@ -357,6 +396,85 @@ class TestSheetAliases(unittest.TestCase):
         """is_sheet_name should return False for non-matching names."""
         self.assertFalse(is_sheet_name("Config", "Technical_Notes"))
         self.assertFalse(is_sheet_name("TN", "Config"))
+
+
+class MockWorkbook:
+    """Mock workbook for testing get_sheet and sheet_exists without Excel."""
+
+    def __init__(self, sheet_names_list):
+        self._sheet_names = sheet_names_list
+        self._sheets = {name: f"Sheet:{name}" for name in sheet_names_list}
+
+    @property
+    def sheet_names(self):
+        return self._sheet_names
+
+    @property
+    def sheets(self):
+        return self._sheets
+
+
+class TestGetSheetOptional(unittest.TestCase):
+    """Tests for get_sheet with required=False parameter."""
+
+    def test_get_sheet_returns_sheet_when_exists(self):
+        """get_sheet should return the sheet when it exists."""
+        wb = MockWorkbook(["Config", "Technical_Notes", "Summary"])
+        result = get_sheet(wb, "Technical_Notes")
+        self.assertEqual(result, "Sheet:Technical_Notes")
+
+    def test_get_sheet_returns_sheet_via_alias(self):
+        """get_sheet should find sheet via alias."""
+        wb = MockWorkbook(["Config", "TN", "Summary"])
+        result = get_sheet(wb, "Technical_Notes")
+        self.assertEqual(result, "Sheet:TN")
+
+    def test_get_sheet_required_true_raises_on_missing(self):
+        """get_sheet with required=True should raise KeyError when sheet missing."""
+        wb = MockWorkbook(["Config", "Summary"])
+        with self.assertRaises(KeyError):
+            get_sheet(wb, "Technical_Notes", required=True)
+
+    def test_get_sheet_required_false_returns_none_on_missing(self):
+        """get_sheet with required=False should return None when sheet missing."""
+        wb = MockWorkbook(["Config", "Summary"])
+        result = get_sheet(wb, "Technical_Notes", required=False)
+        self.assertIsNone(result)
+
+    def test_get_sheet_required_false_returns_sheet_when_exists(self):
+        """get_sheet with required=False should still return sheet when it exists."""
+        wb = MockWorkbook(["Config", "Technical_Notes", "Summary"])
+        result = get_sheet(wb, "Technical_Notes", required=False)
+        self.assertEqual(result, "Sheet:Technical_Notes")
+
+
+class TestSheetExists(unittest.TestCase):
+    """Tests for sheet_exists helper function."""
+
+    def test_sheet_exists_true_for_canonical_name(self):
+        """sheet_exists should return True when sheet exists by canonical name."""
+        wb = MockWorkbook(["Config", "Technical_Notes", "Summary"])
+        self.assertTrue(sheet_exists(wb, "Technical_Notes"))
+
+    def test_sheet_exists_true_for_alias(self):
+        """sheet_exists should return True when sheet exists by alias."""
+        wb = MockWorkbook(["Config", "TN", "Summary"])
+        self.assertTrue(sheet_exists(wb, "Technical_Notes"))
+
+    def test_sheet_exists_true_when_query_by_alias(self):
+        """sheet_exists should return True when queried by alias for existing sheet."""
+        wb = MockWorkbook(["Config", "Technical_Notes", "Summary"])
+        self.assertTrue(sheet_exists(wb, "TN"))
+
+    def test_sheet_exists_false_when_missing(self):
+        """sheet_exists should return False when sheet doesn't exist."""
+        wb = MockWorkbook(["Config", "Summary"])
+        self.assertFalse(sheet_exists(wb, "Technical_Notes"))
+
+    def test_sheet_exists_false_for_unknown_sheet(self):
+        """sheet_exists should return False for unknown sheet names."""
+        wb = MockWorkbook(["Config", "Summary"])
+        self.assertFalse(sheet_exists(wb, "Unknown_Sheet"))
 
 
 if __name__ == "__main__":
