@@ -1515,9 +1515,10 @@ def commercial(wb):
             )
             ws.range(f"G{last_row}").formula = "=SUM(G3:G" + str(last_row - 1) + ")"
             wb.sheets[sheet].range("D:H").autofit()
+            ws = wb.sheets[sheet]  # Refresh stale reference before column deletions
             ws.range("AM:BD").delete()
             ws.range("I:AK").delete()
-            ws = wb.sheets[sheet]  # Refresh stale reference after column deletions
+            ws = wb.sheets[sheet]  # Refresh again after column deletions
             col_i_values = ws.range(f"I1:I{last_row}").options(ndim=1).value
             ws.range("I:I").delete()
             if col_i_values:
