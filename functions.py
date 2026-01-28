@@ -169,6 +169,7 @@ def get_workbook_directory(wb):
 
         return str(project_dir), True
     else:
+        assert fullname is not None  # Guaranteed by is_cloud check above
         return os.path.dirname(fullname), False
 
 
