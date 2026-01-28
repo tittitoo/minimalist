@@ -1408,7 +1408,8 @@ def technical(wb):
                 ).raw_value
                 ws.range("AJ:AJ").delete()
                 ws.range("AL:AL").column_width = 0
-        wb.sheets["T&C"].delete()
+        if "T&C" in wb.sheet_names:
+            wb.sheets["T&C"].delete()
         prepare_to_print_technical(wb)
         wb.sheets["Summary"].activate()
         file_name = "Technical " + wb.name[11:-4] + "xlsx"
