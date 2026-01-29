@@ -5,9 +5,49 @@ Created so that python fucntions are available in Excel.
 
 import sys
 import time
+import tempfile
+from pathlib import Path
 import xlwings as xw  # type: ignore
 import functions
 import checklists
+
+# Lock file to prevent multiple simultaneous executions
+LOCK_FILE = Path(tempfile.gettempdir()) / "minimalist_running.lock"
+LOCK_TIMEOUT = 300  # 5 minutes - ignore stale locks older than this
+
+
+def is_script_running():
+    """Check if another instance of the script is already running."""
+    if not LOCK_FILE.exists():
+        return False
+    # Check if lock is stale (older than LOCK_TIMEOUT seconds)
+    try:
+        age = time.time() - LOCK_FILE.stat().st_mtime
+        if age > LOCK_TIMEOUT:
+            # Stale lock from crash - remove it
+            LOCK_FILE.unlink(missing_ok=True)
+            return False
+        return True
+    except Exception:
+        return False
+
+
+def acquire_lock():
+    """Create lock file to indicate script is running."""
+    try:
+        LOCK_FILE.touch()
+        return True
+    except Exception:
+        return False
+
+
+def release_lock():
+    """Remove lock file when script finishes."""
+    try:
+        LOCK_FILE.unlink(missing_ok=True)
+    except Exception:
+        pass
+
 
 # import checklist_collections as cc
 
@@ -88,50 +128,74 @@ def disable_screen_updating(func):
     "Disable excel screen updating and automatic calculation to improve performance"
 
     def wrapper(*args, **kwargs):
+        # Check if another instance is already running
+        if is_script_running():
+            try:
+                xw.apps.active.alert(
+                    "A script is already running. Please wait for it to finish."
+                )
+            except Exception:
+                pass
+            return
+
+        # Acquire lock before proceeding
+        acquire_lock()
+
         try:
-            app = xw.Book.caller().app
-        except KeyError:
-            # Workbook was renamed - try to get app from active instance
-            app = xw.apps.active
-        # Store original settings with retry
-        original_calculation = retry_com_operation(lambda: app.calculation)
-        original_screen_updating = retry_com_operation(lambda: app.screen_updating)
-        success = False
-        try:
-            retry_com_operation(lambda: setattr(app, "screen_updating", False))
-            retry_com_operation(lambda: setattr(app, "calculation", "manual"))
-            set_busy_cursor(app, busy=True)
-            update_status(app, "Running please wait ...")
-            func(*args, **kwargs)
-            success = True
-        except KeyError:
-            # Workbook was renamed during operation (e.g., commercial PDF) - this is expected
-            success = True
-        except Exception as e:
-            print(f"Error during function execution -> {e}")
-            raise
-        finally:
-            # Only restore settings if Excel is still available
-            if is_excel_available(app):
-                try:
-                    # Restore calculation mode first, then recalculate
-                    retry_com_operation(
-                        lambda: setattr(app, "calculation", original_calculation)
-                    )
-                    # Force full recalculation to avoid stale value errors
-                    retry_com_operation(lambda: app.calculate())
-                    # Restore screen updating last
-                    retry_com_operation(
-                        lambda: setattr(
-                            app, "screen_updating", original_screen_updating
+            try:
+                app = xw.Book.caller().app
+            except KeyError:
+                # Workbook was renamed - try to get app from active instance
+                app = xw.apps.active
+            if app is None:
+                release_lock()
+                return
+            # Store original settings with retry (default to safe values if None)
+            original_calculation = (
+                retry_com_operation(lambda: app.calculation) or "automatic"
+            )
+            original_screen_updating = retry_com_operation(lambda: app.screen_updating)
+            if original_screen_updating is None:
+                original_screen_updating = True
+            success = False
+            try:
+                retry_com_operation(lambda: setattr(app, "screen_updating", False))
+                retry_com_operation(lambda: setattr(app, "calculation", "manual"))
+                set_busy_cursor(app, busy=True)
+                update_status(app, "Running please wait ...")
+                func(*args, **kwargs)
+                success = True
+            except KeyError:
+                # Workbook was renamed during operation (e.g., commercial PDF) - this is expected
+                success = True
+            except Exception as e:
+                print(f"Error during function execution -> {e}")
+                raise
+            finally:
+                # Only restore settings if Excel is still available
+                if is_excel_available(app):
+                    try:
+                        # Restore calculation mode first, then recalculate
+                        retry_com_operation(
+                            lambda: setattr(app, "calculation", original_calculation)
                         )
-                    )
-                    set_busy_cursor(app, busy=False)
-                    if success:
-                        update_status(app, "Ready")
-                except Exception:
-                    # Cleanup failed but main operation succeeded - ignore
-                    pass
+                        # Force full recalculation to avoid stale value errors
+                        retry_com_operation(lambda: app.calculate())
+                        # Restore screen updating last
+                        retry_com_operation(
+                            lambda: setattr(
+                                app, "screen_updating", original_screen_updating
+                            )
+                        )
+                        set_busy_cursor(app, busy=False)
+                        if success:
+                            update_status(app, "Ready")
+                    except Exception:
+                        # Cleanup failed but main operation succeeded - ignore
+                        pass
+        finally:
+            # Always release the lock, even if an error occurred
+            release_lock()
 
     return wrapper
 
