@@ -13,23 +13,40 @@ import checklists
 
 # Lock file to prevent multiple simultaneous executions
 LOCK_FILE = Path(tempfile.gettempdir()) / "minimalist_running.lock"
+WARN_LOCK_FILE = Path(tempfile.gettempdir()) / "minimalist_warning.lock"
 LOCK_TIMEOUT = 300  # 5 minutes - ignore stale locks older than this
+WARN_LOCK_TIMEOUT = 30  # 30 seconds - warning popup should be dismissed by then
+
+
+def is_lock_stale(lock_path, timeout):
+    """Check if a lock file is stale (older than timeout seconds)."""
+    try:
+        age = time.time() - lock_path.stat().st_mtime
+        return age > timeout
+    except Exception:
+        return True
 
 
 def is_script_running():
     """Check if another instance of the script is already running."""
     if not LOCK_FILE.exists():
         return False
-    # Check if lock is stale (older than LOCK_TIMEOUT seconds)
-    try:
-        age = time.time() - LOCK_FILE.stat().st_mtime
-        if age > LOCK_TIMEOUT:
-            # Stale lock from crash - remove it
-            LOCK_FILE.unlink(missing_ok=True)
-            return False
-        return True
-    except Exception:
+    if is_lock_stale(LOCK_FILE, LOCK_TIMEOUT):
+        # Stale lock from crash - remove it
+        LOCK_FILE.unlink(missing_ok=True)
         return False
+    return True
+
+
+def is_warning_showing():
+    """Check if a warning popup is already being displayed."""
+    if not WARN_LOCK_FILE.exists():
+        return False
+    if is_lock_stale(WARN_LOCK_FILE, WARN_LOCK_TIMEOUT):
+        # Stale warning lock - remove it
+        WARN_LOCK_FILE.unlink(missing_ok=True)
+        return False
+    return True
 
 
 def acquire_lock():
@@ -45,6 +62,23 @@ def release_lock():
     """Remove lock file when script finishes."""
     try:
         LOCK_FILE.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def acquire_warn_lock():
+    """Create warning lock file to prevent multiple warning popups."""
+    try:
+        WARN_LOCK_FILE.touch()
+        return True
+    except Exception:
+        return False
+
+
+def release_warn_lock():
+    """Remove warning lock file after popup is dismissed."""
+    try:
+        WARN_LOCK_FILE.unlink(missing_ok=True)
     except Exception:
         pass
 
@@ -130,12 +164,17 @@ def disable_screen_updating(func):
     def wrapper(*args, **kwargs):
         # Check if another instance is already running
         if is_script_running():
-            try:
-                xw.apps.active.alert(
-                    "A script is already running. Please wait for it to finish."
-                )
-            except Exception:
-                pass
+            # Only show warning if not already showing (prevents multiple popups)
+            if not is_warning_showing():
+                acquire_warn_lock()
+                try:
+                    xw.apps.active.alert(
+                        "A script is already running. Please wait for it to finish."
+                    )
+                except Exception:
+                    pass
+                finally:
+                    release_warn_lock()
             return
 
         # Acquire lock before proceeding
