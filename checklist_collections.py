@@ -76,7 +76,7 @@ ikigai_checklist = [
 ]
 
 
-sales_checklist = [  # type:ignore
+sales_checklist = [  # type: ignore
     ("Job code (As registered in system)", 70, TEXTBOX_HEIGHT, "J12"),
     ("Project name (As registered in system)", 250, TEXTBOX_HEIGHT, ""),
     ("Infrastructure Type (Acronym registered in system)", 70, TEXTBOX_HEIGHT, ""),
@@ -173,7 +173,7 @@ the form as many times as necessary throughout the project tendering lifecycle.
 
 
 # Handover checklist
-rfqs = [  # type:ignore
+rfqs = [  # type: ignore
     """Produce the contract version of the costing sheet:
 (1) fix unit prices (FUP), 
 (2) update the latest cost (where applicable),
@@ -211,7 +211,7 @@ must be outside and historical reference emails must be in '00-Arc' inside this 
     "Clean the folder using 'bid clean'.",
 ]
 
-costing = [  # type:ignore
+costing = [  # type: ignore
     "Create the folder with the same project name in '@costing' folder.",
     """Create a folder called '00-MAIN' for main order and '01-VO', '02-VO' for
 subsequent orders inside the above created folder. For VO items, also include description,
@@ -222,35 +222,20 @@ e.g. '01-VO SET-TOP BOX'.
     {"Put in the latest CQ or commercial clarification.": ["NA", "Done", 40]},
 ]
 
-handover = [  # type:ignore
-    "Create a folder with the same project name in '@handover' folder.",
-    """Create a folder called '00-MAIN' for main order and '01-VO', '02-VO' for
-subsequent orders inside the above created folder. For VO items, also include description,
-e.g. '01-VO SET-TOP BOX'.
-""",
-    "Copy '00-ITB' folder in.",
-    "Create a new folder '01-PO' and keep the PO inside.",
-    "Copy '02-Technical' folder in.",
-    "Copy '03-Supplier' folder in.",
-    "Copy '04-Datasheet' folder in.",
-    "Create a folder called '05-Cost.'",
-    """Generate internal costing sheet from contract file and put in this folder.
+handover = [  # type: ignore
+    "Use 'bid ho' command to start the handover.",
+    """Generate internal costing sheet from contract file and put in 05-Cost folder.
 Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.
 """,
     {
-        "Put in enginnering cost estimator PDF in this folder.": [
+        "Put in enginnering cost estimator PDF in 05-Cost folder.": [
             "NA",
             "Done",
             40,
         ]
     },
     {
-        "Put in the latest CQ or commercial clarification in this folder.": [
-            "NA",
-            "Done",
-            40,
-        ],
-        "If drawing exists, create a folder called '06-Drawing' and copy the content from '05-Drawing' folder from '@rfqs'.": [
+        "Put in the latest CQ or commercial clarification in 05-Cost folder.": [
             "NA",
             "Done",
             40,
@@ -258,7 +243,7 @@ Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.
     },
 ]
 
-in_closing = [  # type:ignore
+in_closing = [  # type: ignore
     "Once all the preparation is done, let the manager review the folder content.",
     "After approval, send the link for '@handover' folder to project management side. Attention to project management head and cc 'Email Group - Project Energy <project@jason.com.sg>'.",
     "Send the link for '@costing' folder to sales support side.",
@@ -269,11 +254,11 @@ while working, and 'Printed' copy is a frozen information point, which serves au
 """,
 ]
 
-rfq_checklist = [  # type:ignore
+rfq_checklist = [  # type: ignore
     "Is there any AVL?",
 ]
 
-general = [  # type:ignore
+general = [  # type: ignore
     "Have you updated the date and revision number?",
     "Have you done final common sense check of all the numbers? Do they make sense?",
     {
@@ -299,7 +284,7 @@ general = [  # type:ignore
     ("What is the warranty period catered?", 300, TEXTBOX_HEIGHT, ""),
 ]
 
-engineering_services = [  # type:ignore
+engineering_services = [  # type: ignore
     ("Job code", 200, TEXTBOX_HEIGHT, ""),
     ("Project name", 200, TEXTBOX_HEIGHT, ""),
     ("Customer name", 200, TEXTBOX_HEIGHT, ""),
