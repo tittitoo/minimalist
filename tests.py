@@ -13,6 +13,8 @@ These tests don't require Excel - they test the pure Python/pandas logic.
 import unittest
 import pandas as pd
 import re
+import tempfile
+from pathlib import Path
 
 # Import functions to test
 from functions import (
@@ -28,6 +30,7 @@ from functions import (
     get_sheet,
     sheet_exists,
     should_skip_sheet,
+    _find_workbook_in_rfqs,
 )
 
 
@@ -475,6 +478,78 @@ class TestSheetExists(unittest.TestCase):
         """sheet_exists should return False for unknown sheet names."""
         wb = MockWorkbook(["Config", "Summary"])
         self.assertFalse(sheet_exists(wb, "Unknown_Sheet"))
+
+
+class TestFindWorkbookInRfqs(unittest.TestCase):
+    """Tests for _find_workbook_in_rfqs SharePoint folder lookup."""
+
+    def setUp(self):
+        """Create a temporary directory structure mimicking @rfqs."""
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.base_path = Path(self.temp_dir.name)
+
+    def tearDown(self):
+        """Clean up temporary directory."""
+        self.temp_dir.cleanup()
+
+    def _create_structure(self, *paths):
+        """Create files at given relative paths."""
+        for path in paths:
+            full_path = self.base_path / path
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            full_path.touch()
+
+    def test_finds_workbook_in_commercial_folder(self):
+        """Should find workbook in standard 01-Commercial location."""
+        self._create_structure("2026/ProjectABC/01-Commercial/JEC-2026-001-v1.xlsx")
+        result = _find_workbook_in_rfqs("JEC-2026-001-v1.xlsx", self.base_path)
+        self.assertEqual(result, self.base_path / "2026/ProjectABC/01-Commercial")
+
+    def test_finds_workbook_case_insensitive(self):
+        """Should match filenames case-insensitively."""
+        self._create_structure("2026/ProjectABC/01-Commercial/JEC-2026-001-v1.xlsx")
+        result = _find_workbook_in_rfqs("jec-2026-001-v1.XLSX", self.base_path)
+        self.assertEqual(result, self.base_path / "2026/ProjectABC/01-Commercial")
+
+    def test_returns_none_when_not_found(self):
+        """Should return None when workbook doesn't exist."""
+        self._create_structure("2026/ProjectABC/01-Commercial/other-file.xlsx")
+        result = _find_workbook_in_rfqs("nonexistent.xlsx", self.base_path)
+        self.assertIsNone(result)
+
+    def test_returns_shallowest_match(self):
+        """Should return shallowest folder when file exists at multiple depths."""
+        self._create_structure(
+            "2026/ProjectABC/test.xlsx",  # depth 2
+            "2026/ProjectABC/01-Commercial/test.xlsx",  # depth 3
+            "2026/ProjectABC/01-Commercial/subfolder/test.xlsx",  # depth 4
+        )
+        result = _find_workbook_in_rfqs("test.xlsx", self.base_path)
+        self.assertEqual(result, self.base_path / "2026/ProjectABC")
+
+    def test_searches_multiple_years(self):
+        """Should search across multiple year folders."""
+        self._create_structure("2025/OldProject/01-Commercial/legacy.xlsx")
+        result = _find_workbook_in_rfqs("legacy.xlsx", self.base_path)
+        self.assertEqual(result, self.base_path / "2025/OldProject/01-Commercial")
+
+    def test_handles_empty_base_path(self):
+        """Should return None when base path has no year folders."""
+        result = _find_workbook_in_rfqs("test.xlsx", self.base_path)
+        self.assertIsNone(result)
+
+    def test_respects_max_depth(self):
+        """Should not search beyond max depth of 5."""
+        # Create file at depth 6 (beyond max)
+        self._create_structure("2026/a/b/c/d/e/deep.xlsx")
+        result = _find_workbook_in_rfqs("deep.xlsx", self.base_path)
+        self.assertIsNone(result)
+
+    def test_finds_at_max_depth(self):
+        """Should find file at exactly max depth (5)."""
+        self._create_structure("2026/a/b/c/d/file.xlsx")  # depth 5
+        result = _find_workbook_in_rfqs("file.xlsx", self.base_path)
+        self.assertEqual(result, self.base_path / "2026/a/b/c/d")
 
 
 if __name__ == "__main__":
