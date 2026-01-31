@@ -5,6 +5,7 @@ However, I have hard-limited this to 1500 rows.
 The code will need to be updated if more rows are needed.
 """
 
+import getpass
 import os
 import re
 import sys
@@ -43,6 +44,9 @@ _MACRO_NB = None
 # Since PERSONAL.XLSB doesn't change during an Excel session, we cache range
 # references to avoid repeated workbook/sheet/range lookups on each copy operation.
 _PERSONAL_RANGE_CACHE = {}
+
+# Cache for SharePoint workbook directory lookups
+_WORKBOOK_DIR_CACHE: dict[str, tuple[str, bool]] = {}
 
 
 def get_macro_nb():
@@ -131,13 +135,111 @@ def apply_lastrow_border(row_range):
         get_cached_range("Design", "5:5").copy(row_range)
 
 
+def _get_rfq_base_path() -> Path | None:
+    """
+    Get the user-specific @rfqs base path based on the current user.
+
+    Returns:
+        Path to the @rfqs folder, or None if it doesn't exist.
+    """
+    username = getpass.getuser()
+
+    # User-specific path configurations
+    if username == "oliver":
+        base = (
+            Path.home()
+            / "OneDrive - Jason Electronics Pte Ltd"
+            / "Shared Documents"
+            / "@rfqs"
+        )
+    else:
+        # Default path for carol_lim and others
+        base = (
+            Path.home()
+            / "Jason Electronics Pte Ltd"
+            / "Bid Proposal - Documents"
+            / "@rfqs"
+        )
+
+    return base if base.exists() else None
+
+
+def _find_workbook_in_rfqs(workbook_name: str, base_path: Path) -> Path | None:
+    """
+    Search for a workbook in the @rfqs folder structure.
+
+    Searches year subfolders (2024/, 2025/, 2026/, etc.) up to 5 levels deep.
+    Returns the shallowest match if multiple are found.
+
+    Args:
+        workbook_name: The filename to search for (e.g., "JEC-2026-001-v1.xlsx")
+        base_path: The @rfqs base path to search in
+
+    Returns:
+        Path to the directory containing the workbook, or None if not found.
+    """
+    matches: list[tuple[int, Path]] = []  # (depth, parent_dir)
+    workbook_name_lower = workbook_name.lower()
+    max_depth = 5
+
+    # Get current year to search recent years first
+    current_year = datetime.now().year
+    year_folders = []
+
+    # Check years from current down to 2020
+    for year in range(current_year, 2019, -1):
+        year_path = base_path / str(year)
+        if year_path.is_dir() and not year_path.is_symlink():
+            year_folders.append(year_path)
+
+    # Use iterative BFS instead of recursion to avoid stack overflow
+    # Each item is (directory, depth)
+    for year_folder in year_folders:
+        queue: list[tuple[Path, int]] = [(year_folder, 1)]
+
+        while queue:
+            directory, depth = queue.pop(0)
+
+            if depth > max_depth:
+                continue
+
+            try:
+                for entry in directory.iterdir():
+                    # Skip symbolic links to avoid cycles
+                    if entry.is_symlink():
+                        continue
+
+                    if entry.is_file() and entry.name.lower() == workbook_name_lower:
+                        matches.append((depth, directory))
+                    elif entry.is_dir():
+                        queue.append((entry, depth + 1))
+            except (PermissionError, OSError):
+                # Skip directories we can't access
+                continue
+
+    if not matches:
+        return None
+
+    # Sort by depth (shallowest first)
+    matches.sort(key=lambda x: x[0])
+
+    if len(matches) > 1:
+        # Multiple matches found - alert user, use shallowest
+        print(
+            f"Note: Found {len(matches)} locations for '{workbook_name}'. Using: {matches[0][1]}"
+        )
+
+    return matches[0][1]
+
+
 def get_workbook_directory(wb):
     """
     Get the directory path for a workbook, handling SharePoint/OneDrive URLs.
 
     When a workbook is opened from SharePoint or OneDrive, wb.fullname may return
     a URL instead of a local file path, or may fail entirely. This function
-    handles both cases and returns the user's Downloads folder as a fallback.
+    first attempts to locate the workbook in the user's synced @rfqs folder,
+    then falls back to the Downloads folder.
 
     Args:
         wb: xlwings Workbook object
@@ -157,7 +259,14 @@ def get_workbook_directory(wb):
     is_cloud = fullname is None or fullname.startswith(("http://", "https://"))
 
     if is_cloud:
-        # Use Downloads folder as fallback for cloud files
+        # Try to find the workbook in the @rfqs folder first
+        rfq_base = _get_rfq_base_path()
+        if rfq_base is not None:
+            found_dir = _find_workbook_in_rfqs(wb.name, rfq_base)
+            if found_dir is not None:
+                return (str(found_dir), True)
+
+        # Fall back to Downloads folder for cloud files
         downloads = Path.home() / "Downloads"
 
         # Create a subdirectory for the project if possible
@@ -167,9 +276,11 @@ def get_workbook_directory(wb):
         # Create the directory if it doesn't exist
         project_dir.mkdir(parents=True, exist_ok=True)
 
-        return str(project_dir), True
+        print(f"Note: '{wb.name}' not found in @rfqs. Using: {project_dir}")
+        return (str(project_dir), True)
     else:
-        return os.path.dirname(fullname), False
+        assert fullname is not None  # Guaranteed by is_cloud check above
+        return (os.path.dirname(fullname), False)
 
 
 # Accounting number format
@@ -1372,11 +1483,6 @@ def technical(wb):
         )
         return
 
-    if is_cloud:
-        xw.apps.active.alert(  # type: ignore
-            f"File is on SharePoint/OneDrive.\nPDF will be saved to:\n{directory}"
-        )
-
     wb.sheets["Cover"].range("D39").value = "TECHNICAL PROPOSAL"
     wb.sheets["Cover"].range("D40").value = wb.sheets["Cover"].range("D40").value
 
@@ -1413,9 +1519,10 @@ def technical(wb):
         prepare_to_print_technical(wb)
         wb.sheets["Summary"].activate()
         file_name = "Technical " + wb.name[11:-4] + "xlsx"
-        wb.save(Path(directory, file_name), password="")
-        technical_wb = xw.Book(file_name)
-        print_technical(technical_wb)
+        full_path = Path(directory, file_name)
+        wb.save(full_path, password="")
+        pdf_path = full_path.with_suffix(".pdf")
+        print_technical(wb, pdf_path=str(pdf_path))
     else:
         wb.sheets["Cover"].range("C42:C47").value = (
             wb.sheets["Cover"].range("C42:C47").raw_value
@@ -1458,9 +1565,10 @@ def technical(wb):
         prepare_to_print_technical(wb)
         # wb.sheets["Summary"].activate()
         file_name = "Technical " + wb.name[:-4] + "xlsx"
-        wb.save(Path(directory, file_name), password="")
-        technical_wb = xw.Book(file_name)
-        print_technical(technical_wb)
+        full_path = Path(directory, file_name)
+        wb.save(full_path, password="")
+        pdf_path = full_path.with_suffix(".pdf")
+        print_technical(wb, pdf_path=str(pdf_path))
 
 
 def commercial(wb):
@@ -1472,11 +1580,6 @@ def commercial(wb):
             "The Commercial PDF file already exists!\n Please delete the file and try again."
         )
         return
-
-    if is_cloud:
-        xw.apps.active.alert(  # type: ignore
-            f"File is on SharePoint/OneDrive.\nPDF will be saved to:\n{directory}"
-        )
 
     """Takes a work book, set horizantal borders at pagebreaks."""
     # current_sheet = wb.sheets.active
@@ -1522,7 +1625,7 @@ def commercial(wb):
             col_i_values = ws.range(f"I1:I{last_row}").options(ndim=1).value
             ws.range("I:I").delete()
             if col_i_values:
-                ws.range(f"AM1:AM{last_row}").value = [[v] for v in col_i_values]
+                ws.range(f"AL1:AL{last_row}").value = [[v] for v in col_i_values]
             ws.range("AL:AL").column_width = 0
             # Call macros
             run_macro("conditional_format")
@@ -1536,10 +1639,13 @@ def commercial(wb):
         tn_sheet.range("F:I").delete()
     wb.sheets["Summary"].activate()
     file_name = "Commercial " + wb.name[:-4] + "xlsx"
-    wb.save(Path(directory, file_name), password="")
-    commercial_wb = xw.Book(file_name)
+    full_path = Path(directory, file_name)
+    wb.save(full_path, password="")
+    # Explicitly specify PDF path - don't rely on xlwings to figure it out
+    # (SharePoint sync can cause stale workbook path references)
+    pdf_path = full_path.with_suffix(".pdf")
     try:
-        commercial_wb.to_pdf(show=True)
+        wb.to_pdf(path=str(pdf_path), show=True)
     except Exception as e:
         # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
         # xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
@@ -1562,10 +1668,13 @@ def prepare_to_print_internal(wb):
     wb.sheets[current_sheet].activate()
 
 
-def print_technical(wb):
-    """The technical proposal will be written to the cwd."""
+def print_technical(wb, pdf_path=None):
+    """The technical proposal will be written to the specified path or cwd."""
     try:
-        wb.to_pdf(show=True)
+        if pdf_path:
+            wb.to_pdf(path=pdf_path, show=True)
+        else:
+            wb.to_pdf(show=True)
     except Exception:
         # The program does not override the existing file. The file needs to be removed if it exists.
         xw.apps.active.alert(  # type: ignore
@@ -1795,11 +1904,6 @@ def shaded(wb, shaded=True):
 def internal_costing(wb):
     directory, is_cloud = get_workbook_directory(wb)
 
-    if is_cloud:
-        xw.apps.active.alert(  # type: ignore
-            f"File is on SharePoint/OneDrive.\nFile will be saved to:\n{directory}"
-        )
-
     wb.sheets["Cover"].range("D39").value = "INTERNAL COSTING"
     wb.sheets["Cover"].range("C42:C47").value = (
         wb.sheets["Cover"].range("C42:C47").raw_value
@@ -1930,11 +2034,6 @@ def internal_costing(wb):
 
 def convert_legacy(wb):
     directory, is_cloud = get_workbook_directory(wb)
-
-    if is_cloud:
-        xw.apps.active.alert(  # type: ignore
-            f"File is on SharePoint/OneDrive.\nConverted file will be saved to:\n{directory}"
-        )
 
     if wb.name[-4:] == "xlsm":
         # Read and initialize values
