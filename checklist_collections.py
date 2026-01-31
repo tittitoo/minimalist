@@ -212,11 +212,7 @@ must be outside and historical reference emails must be in '00-Arc' inside this 
 ]
 
 costing = [  # type: ignore
-    "Create the folder with the same project name in '@costing' folder.",
-    """Create a folder called '00-MAIN' for main order and '01-VO', '02-VO' for
-subsequent orders inside the above created folder. For VO items, also include description,
-e.g. '01-VO SET-TOP BOX'.
-""",
+    "Use 'bid co' command to start the costing.",
     "Put in the latest commercial proposal PDF.",
     "Put in the contract version of the costing sheet.",
     {"Put in the latest CQ or commercial clarification.": ["NA", "Done", 40]},
@@ -224,18 +220,18 @@ e.g. '01-VO SET-TOP BOX'.
 
 handover = [  # type: ignore
     "Use 'bid ho' command to start the handover.",
-    """Generate internal costing sheet from contract file and put in 05-Cost folder.
+    """Generate internal costing sheet from contract file and put in '05-Cost' folder.
 Make sure 'COST' value is indicated in summary instead of 'MATERIAL' value.
 """,
     {
-        "Put in enginnering cost estimator PDF in 05-Cost folder.": [
+        "Put in enginnering cost estimator PDF in '05-Cost' folder.": [
             "NA",
             "Done",
             40,
         ]
     },
     {
-        "Put in the latest CQ or commercial clarification in 05-Cost folder.": [
+        "Put in the latest CQ or commercial clarification in '05-Cost' folder.": [
             "NA",
             "Done",
             40,
