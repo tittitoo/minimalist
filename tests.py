@@ -31,7 +31,10 @@ from functions import (
     sheet_exists,
     should_skip_sheet,
     _find_workbook_in_rfqs,
+    sanitize_config_string,
+    sanitize_config_date,
 )
+from datetime import datetime
 
 
 class TestSetNittyGritty(unittest.TestCase):
@@ -550,6 +553,56 @@ class TestFindWorkbookInRfqs(unittest.TestCase):
         self._create_structure("2026/a/b/c/d/file.xlsx")  # depth 5
         result = _find_workbook_in_rfqs("file.xlsx", self.base_path)
         self.assertEqual(result, self.base_path / "2026/a/b/c/d")
+
+
+class TestSanitizeConfigString(unittest.TestCase):
+    """Tests for sanitize_config_string function."""
+
+    def test_removes_newlines(self):
+        self.assertEqual(sanitize_config_string("Hello\nWorld"), "Hello World")
+
+    def test_removes_carriage_returns(self):
+        self.assertEqual(sanitize_config_string("Hello\rWorld"), "Hello World")
+
+    def test_collapses_double_spaces(self):
+        self.assertEqual(sanitize_config_string("Hello  World"), "Hello World")
+
+    def test_strips_whitespace(self):
+        self.assertEqual(sanitize_config_string("  Hello  "), "Hello")
+
+    def test_handles_none(self):
+        self.assertIsNone(sanitize_config_string(None))
+
+    def test_handles_non_string(self):
+        self.assertEqual(sanitize_config_string(123), 123)
+
+    def test_combined(self):
+        self.assertEqual(sanitize_config_string("  Hi\n  There  "), "Hi There")
+
+
+class TestSanitizeConfigDate(unittest.TestCase):
+    """Tests for sanitize_config_date function."""
+
+    def test_datetime_object(self):
+        self.assertEqual(sanitize_config_date(datetime(2024, 1, 15)), "2024-01-15")
+
+    def test_iso_unchanged(self):
+        self.assertEqual(sanitize_config_date("2024-01-15"), "2024-01-15")
+
+    def test_iso_with_whitespace(self):
+        self.assertEqual(sanitize_config_date("  2024-01-15  "), "2024-01-15")
+
+    def test_european_format(self):
+        self.assertEqual(sanitize_config_date("15/01/2024"), "2024-01-15")
+
+    def test_handles_none(self):
+        self.assertIsNone(sanitize_config_date(None))
+
+    def test_handles_empty_string(self):
+        self.assertEqual(sanitize_config_date(""), "")
+
+    def test_handles_non_string(self):
+        self.assertEqual(sanitize_config_date(12345), 12345)
 
 
 if __name__ == "__main__":

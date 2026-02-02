@@ -666,7 +666,58 @@ def fill_formula(sheet):
         ]
 
 
+def sanitize_config_string(value):
+    """Sanitize Config string: remove newlines, collapse spaces, strip whitespace."""
+    if not isinstance(value, str):
+        return value
+    text = value.replace("\n", " ").replace("\r", " ")
+    text = re.sub(" {2,}", " ", text)
+    return text.strip()
+
+
+def sanitize_config_date(value):
+    """Convert date to ISO format (yyyy-mm-dd). Uses day-first for ambiguous dates."""
+    if value is None or value == "":
+        return value
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d")
+    if not isinstance(value, str):
+        return value
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", value.strip()):
+        return value.strip()
+    from dateutil import parser as date_parser
+
+    try:
+        parsed = date_parser.parse(value, dayfirst=True)
+        return parsed.strftime("%Y-%m-%d")
+    except (ValueError, TypeError):
+        return value
+
+
+def sanitize_config_sheet(wb):
+    """Sanitize Config sheet cells B21-B32 before filling formulas."""
+    try:
+        config = wb.sheets["Config"]
+    except KeyError:
+        return
+    for row in range(21, 32):  # B21-B31 strings
+        cell = config.range(f"B{row}")
+        original = cell.value
+        sanitized = sanitize_config_string(original)
+        if sanitized != original:
+            cell.value = sanitized
+    # B32 date
+    cell = config.range("B32")
+    original = cell.value
+    sanitized = sanitize_config_date(original)
+    if sanitized != original:
+        cell.value = sanitized
+    # Disable word wrap for B21:B32
+    config.range("B21:B32").wrap_text = False
+
+
 def fill_formula_wb(wb):
+    sanitize_config_sheet(wb)
     for sheet in wb.sheets:
         fill_formula(sheet)
 
