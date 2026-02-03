@@ -1733,21 +1733,198 @@ def print_technical(wb, pdf_path=None):
         )
 
 
+def apply_conditional_format(sheet):
+    """
+    Apply conditional formatting to column C based on AL values.
+    Uses xlwings API - no sheet activation required.
+    """
+    col_c = sheet.range("C:C")
+
+    # Excel constants
+    xlExpression = 2
+    xlUnderlineStyleSingle = 2
+
+    # Clear existing conditional formats
+    col_c.api.FormatConditions.Delete()
+
+    # Rules in reverse priority order (last added = highest priority via SetFirstPriority)
+    rules = [
+        ("System", {"bold": True, "color": -7137279}),
+        ("Subsystem", {"bold": True, "color": -7137279}),
+        ("Title", {"bold": True}),
+        ("Subtitle", {"italic": True, "underline": xlUnderlineStyleSingle}),
+        ("Comment", {"italic": True, "color": -52732}),
+        ("Deleted", {"strikethrough": True}),
+    ]
+
+    for al_value, fmt in rules:
+        formula = f'=AL1="{al_value}"'
+        fc = col_c.api.FormatConditions.Add(Type=xlExpression, Formula1=formula)
+        fc.SetFirstPriority()
+        if fmt.get("bold"):
+            fc.Font.Bold = True
+        if fmt.get("italic"):
+            fc.Font.Italic = True
+        if fmt.get("underline"):
+            fc.Font.Underline = fmt["underline"]
+        if fmt.get("strikethrough"):
+            fc.Font.Strikethrough = True
+        if "color" in fmt:
+            fc.Font.Color = fmt["color"]
+        fc.StopIfTrue = True
+
+
+def apply_remove_h_borders(sheet):
+    """
+    Remove horizontal inside borders from the data range.
+    """
+    xlInsideHorizontal = 12
+    xlNone = -4142
+
+    # Find last row with data
+    last_row = sheet.range("A1").end("down").row
+    if last_row > 5:  # Ensure we have data
+        data_range = sheet.range(f"A3:H{last_row - 2}")
+        data_range.api.Borders(xlInsideHorizontal).LineStyle = xlNone
+
+
+def apply_format_column_border(sheet):
+    """
+    Apply column border formatting to the sheet.
+    """
+    # Excel constants
+    xlContinuous = 1
+    xlNone = -4142
+    xlThin = 2
+    xlDiagonalDown = 5
+    xlDiagonalUp = 6
+    xlEdgeLeft = 7
+    xlEdgeTop = 8
+    xlEdgeBottom = 9
+    xlEdgeRight = 10
+    xlInsideVertical = 11
+    xlInsideHorizontal = 12
+
+    COLOR_TEAL = -52732  # Dark teal color used in template
+
+    def clear_diagonals(rng):
+        rng.api.Borders(xlDiagonalDown).LineStyle = xlNone
+        rng.api.Borders(xlDiagonalUp).LineStyle = xlNone
+
+    def set_border(rng, edge, color=None, theme_color=None, tint=0, weight=xlThin):
+        border = rng.api.Borders(edge)
+        border.LineStyle = xlContinuous
+        border.Weight = weight
+        if color is not None:
+            border.Color = color
+            border.TintAndShade = 0
+        elif theme_color is not None:
+            border.ThemeColor = theme_color
+            border.TintAndShade = tint
+
+    def clear_border(rng, edge):
+        rng.api.Borders(edge).LineStyle = xlNone
+
+    # Column A: left=teal, right=theme4
+    col_a = sheet.range("A:A")
+    clear_diagonals(col_a)
+    set_border(col_a, xlEdgeLeft, color=COLOR_TEAL)
+    clear_border(col_a, xlEdgeTop)
+    clear_border(col_a, xlEdgeBottom)
+    set_border(col_a, xlEdgeRight, theme_color=4, tint=0.599993896298105)
+    clear_border(col_a, xlInsideVertical)
+
+    # Columns B-G: left and right = theme4
+    for col in ["B:B", "C:C", "D:D", "E:E", "F:F", "G:G"]:
+        rng = sheet.range(col)
+        clear_diagonals(rng)
+        set_border(rng, xlEdgeLeft, theme_color=4, tint=0.599993896298105)
+        clear_border(rng, xlEdgeTop)
+        clear_border(rng, xlEdgeBottom)
+        set_border(rng, xlEdgeRight, theme_color=4, tint=0.599993896298105)
+        clear_border(rng, xlInsideVertical)
+
+    # Column H: left=theme4, right=teal
+    col_h = sheet.range("H:H")
+    clear_diagonals(col_h)
+    set_border(col_h, xlEdgeLeft, theme_color=4, tint=0.599993896298105)
+    clear_border(col_h, xlEdgeTop)
+    clear_border(col_h, xlEdgeBottom)
+    set_border(col_h, xlEdgeRight, color=COLOR_TEAL)
+    clear_border(col_h, xlInsideVertical)
+
+    # Columns I:BD: inside borders with theme3
+    cols_ibd = sheet.range("I:BD")
+    clear_diagonals(cols_ibd)
+    clear_border(cols_ibd, xlEdgeRight)
+    border_v = cols_ibd.api.Borders(xlInsideVertical)
+    border_v.LineStyle = xlContinuous
+    border_v.ThemeColor = 3
+    border_v.TintAndShade = -0.249946592608417
+    border_v.Weight = xlThin
+    border_h = cols_ibd.api.Borders(xlInsideHorizontal)
+    border_h.LineStyle = xlContinuous
+    border_h.ThemeColor = 3
+    border_h.TintAndShade = -0.249946592608417
+    border_h.Weight = xlThin
+
+    # Row 1: clear all borders
+    row1 = sheet.range("1:1")
+    for edge in [
+        xlDiagonalDown,
+        xlDiagonalUp,
+        xlEdgeLeft,
+        xlEdgeTop,
+        xlEdgeBottom,
+        xlEdgeRight,
+        xlInsideVertical,
+        xlInsideHorizontal,
+    ]:
+        clear_border(row1, edge)
+
+    # Row 2: left, top, bottom = teal
+    row2 = sheet.range("2:2")
+    clear_diagonals(row2)
+    set_border(row2, xlEdgeLeft, color=COLOR_TEAL)
+    set_border(row2, xlEdgeTop, color=COLOR_TEAL)
+    set_border(row2, xlEdgeBottom, color=COLOR_TEAL)
+    clear_border(row2, xlEdgeRight)
+    clear_border(row2, xlInsideHorizontal)
+
+
 def conditional_format_wb(wb):
     """
-    Takes a workbook, and do conditional formatting.
-    Uses Python functions instead of VBA macros.
+    Apply conditional formatting to all sheets.
+    On Windows: Uses Python/xlwings API (no sheet activation, no focus stealing).
+    On macOS: Uses VBA macros (AppleScript doesn't support FormatConditions/Borders API).
     """
     current_sheet = wb.sheets.active
-    for sheet in wb.sheet_names:
-        if not should_skip_sheet(sheet):
-            wb.sheets[sheet].activate()
-            run_macro("conditional_format")
-            # Remove H borders in original excel
-            run_macro("remove_h_borders")
-            # Fix the columns border
-            run_macro("format_column_border")
-    wb.sheets[current_sheet].activate()
+    is_windows = sys.platform == "win32"
+
+    for sheet_name in wb.sheet_names:
+        if not should_skip_sheet(sheet_name):
+            sheet = wb.sheets[sheet_name]
+
+            if is_windows:
+                # Windows: use Python API (no sheet activation required)
+                try:
+                    apply_conditional_format(sheet)
+                    apply_remove_h_borders(sheet)
+                    apply_format_column_border(sheet)
+                except Exception:
+                    # Fallback to VBA if API fails
+                    sheet.activate()
+                    run_macro("conditional_format")
+                    run_macro("remove_h_borders")
+                    run_macro("format_column_border")
+            else:
+                # macOS: use VBA directly (AppleScript doesn't support these APIs)
+                sheet.activate()
+                run_macro("conditional_format")
+                run_macro("remove_h_borders")
+                run_macro("format_column_border")
+
+    current_sheet.activate()
 
 
 def fix_unit_price(wb):
