@@ -1524,7 +1524,7 @@ def prepare_to_print_technical(wb):
     wb.sheets[current_sheet].activate()
 
 
-def technical(wb):
+def technical(wb, show_pdf=True):
     directory, is_cloud = get_workbook_directory(wb)
     # Check if Technical PDF already exist
     temp_file_name = Path(directory, "Technical " + wb.name[:-4] + "pdf")
@@ -1573,7 +1573,7 @@ def technical(wb):
         full_path = Path(directory, file_name)
         wb.save(full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
-        print_technical(wb, pdf_path=str(pdf_path))
+        print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
     else:
         wb.sheets["Cover"].range("C42:C47").value = (
             wb.sheets["Cover"].range("C42:C47").raw_value
@@ -1619,10 +1619,10 @@ def technical(wb):
         full_path = Path(directory, file_name)
         wb.save(full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
-        print_technical(wb, pdf_path=str(pdf_path))
+        print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
 
 
-def commercial(wb):
+def commercial(wb, show_pdf=True):
     directory, is_cloud = get_workbook_directory(wb)
     # Check if Commercial PDF already exists
     temp_file_name = Path(directory, "Commercial " + wb.name[:-4] + "pdf")
@@ -1696,7 +1696,7 @@ def commercial(wb):
     # (SharePoint sync can cause stale workbook path references)
     pdf_path = full_path.with_suffix(".pdf")
     try:
-        wb.to_pdf(path=str(pdf_path), show=True)
+        wb.to_pdf(path=str(pdf_path), show=show_pdf)
     except Exception as e:
         # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
         # xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
@@ -1719,13 +1719,13 @@ def prepare_to_print_internal(wb):
     wb.sheets[current_sheet].activate()
 
 
-def print_technical(wb, pdf_path=None):
+def print_technical(wb, pdf_path=None, show_pdf=True):
     """The technical proposal will be written to the specified path or cwd."""
     try:
         if pdf_path:
-            wb.to_pdf(path=pdf_path, show=True)
+            wb.to_pdf(path=pdf_path, show=show_pdf)
         else:
-            wb.to_pdf(show=True)
+            wb.to_pdf(show=show_pdf)
     except Exception:
         # The program does not override the existing file. The file needs to be removed if it exists.
         xw.apps.active.alert(  # type: ignore

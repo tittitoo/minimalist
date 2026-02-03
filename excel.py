@@ -263,6 +263,8 @@ def fill_formula():
 def fill_formula_wb():
     wb = xw.Book.caller()
     app = wb.app
+    update_status(app, "Updating template version check...")
+    functions.update_template_version(wb)
     update_status(app, "Cleaning up empty rows...")
     functions.delete_extra_empty_row_wb(wb)
     # Calling twice as sometimes some rows are missed.
@@ -287,8 +289,6 @@ def fill_formula_wb():
     functions.conditional_format_wb(wb)
     update_status(app, "Filling subtotals...")
     functions.fill_lastrow(wb)
-    update_status(app, "Updating template version...")
-    functions.update_template_version(wb)
     update_status(app, "Recalculating...")
     # Force recalculation at the end to avoid stale value errors
     wb.app.calculate()
