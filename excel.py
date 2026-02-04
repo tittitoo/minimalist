@@ -9,7 +9,6 @@ import tempfile
 from pathlib import Path
 import xlwings as xw  # type: ignore
 import functions
-import checklists
 
 # Lock file to prevent multiple simultaneous executions
 LOCK_FILE = Path(tempfile.gettempdir()) / "minimalist_running.lock"
@@ -456,6 +455,8 @@ def delete_extra_empty_row():
 
 
 def leave_application_checklist():
+    import checklists
+
     checklists.leave_application_checklist()
 
 
@@ -468,12 +469,16 @@ def download_planner():
 
 
 def generate_sales_checklist():
+    import checklists
+
     checklists.generate_sales_checklist()
 
 
 @check_if_template
 @disable_screen_updating
 def generate_firmed_proposal_checklist():
+    import checklists
+
     wb = xw.Book.caller()
     checklists.generate_proposal_checklist(wb)
 
@@ -481,6 +486,8 @@ def generate_firmed_proposal_checklist():
 @check_if_template
 @disable_screen_updating
 def generate_budgetary_proposal_checklist():
+    import checklists
+
     wb = xw.Book.caller()
     checklists.generate_proposal_checklist(
         wb, proposal_type="budgetary", title="Budgetary Proposal Checklist"
@@ -497,6 +504,8 @@ def update_template_version():
 @check_if_template
 @disable_screen_updating
 def generate_handover_checklist():
+    import checklists
+
     wb = xw.Book.caller()
     checklists.generate_handover_checklist(wb)
 
@@ -504,5 +513,7 @@ def generate_handover_checklist():
 @check_if_template
 @disable_screen_updating
 def generate_general_checklist():
+    import checklists
+
     wb = xw.Book.caller()
     checklists.generate_general_checklist(wb)

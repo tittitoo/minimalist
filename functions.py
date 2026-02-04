@@ -14,7 +14,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import requests
 import xlwings as xw  # type: ignore
 import string
 
@@ -2261,6 +2260,8 @@ def internal_costing(wb):
 
 
 def convert_legacy(wb):
+    import requests
+
     directory, is_cloud = get_workbook_directory(wb)
 
     if wb.name[-4:] == "xlsm":
@@ -2773,6 +2774,8 @@ def download_file(path, filename, url):
     filename: filename with extension
     url: url to download
     """
+    import requests
+
     local_file_path = Path(path, filename)
     if not os.path.exists(local_file_path):
         response = requests.get(url)
