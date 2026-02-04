@@ -82,7 +82,7 @@ def run_fix_workbook(filepath: str) -> bool:
             click.echo("[ERROR] The excel file is not a recognized template.", err=True)
             return False
 
-        click.echo("Updating template version...")
+        click.echo("Updating template version check...")
         functions.update_template_version(wb)
 
         click.echo("Cleaning up empty rows...")

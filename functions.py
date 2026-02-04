@@ -2133,6 +2133,7 @@ def internal_costing(wb):
     directory, is_cloud = get_workbook_directory(wb)
 
     wb.sheets["Cover"].range("D39").value = "INTERNAL COSTING"
+    wb.sheets["Cover"].range("D40").value = wb.sheets["Cover"].range("D40").raw_value
     wb.sheets["Cover"].range("C42:C47").value = (
         wb.sheets["Cover"].range("C42:C47").raw_value
     )
