@@ -15,6 +15,9 @@ Run operations without Excel stealing focus.
 
 Usage:
     ./mini.py fix <file>                # Fill formulas and fix workbook
+    ./mini.py summary <file>            # Generate summary sheet
+    ./mini.py summary <file> --discount # Generate summary with discount
+    ./mini.py summary <file> --detail   # Generate summary with detail
     ./mini.py commercial <file>         # Generate commercial PDF (prompts to run fix first)
     ./mini.py technical <file>          # Generate technical PDF
 """
@@ -211,7 +214,7 @@ def cli() -> None:
     enable_cli_mode()
 
 
-@cli.command("fix_workbook")
+@cli.command("fix_workbook")  # pyright: ignore[reportFunctionMemberAccess]
 @click.argument("file", type=click.Path(exists=True))
 def fix_workbook_cmd(file):
     """Fill formulas and fix workbook."""
@@ -220,7 +223,7 @@ def fix_workbook_cmd(file):
     sys.exit(0 if success else 1)
 
 
-@cli.command("fix")
+@cli.command("fix")  # pyright: ignore[reportFunctionMemberAccess]
 @click.argument("file", type=click.Path(exists=True))
 def fix_cmd(file):
     """Alias for fix_workbook."""
@@ -229,7 +232,7 @@ def fix_cmd(file):
     sys.exit(0 if success else 1)
 
 
-@cli.command("commercial")
+@cli.command("commercial")  # pyright: ignore[reportFunctionMemberAccess]
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--fix", is_flag=True, help="Run fix_workbook first without prompting")
 def commercial_cmd(file, fix):
@@ -246,12 +249,60 @@ def commercial_cmd(file, fix):
     sys.exit(0 if success else 1)
 
 
-@cli.command("technical")
+@cli.command("technical")  # pyright: ignore[reportFunctionMemberAccess]
 @click.argument("file", type=click.Path(exists=True))
 def technical_cmd(file):
     """Generate technical PDF proposal."""
     filepath = str(Path(file).resolve())
     success = run_with_lock(run_technical, filepath)
+    sys.exit(0 if success else 1)
+
+
+def run_summary(filepath: str, discount: bool, detail: bool) -> bool:
+    """Run summary generation."""
+    start_time = time.perf_counter()
+    click.echo(f"Opening: {filepath}")
+    app, wb, created_app, original_screen_updating = open_workbook(filepath)
+
+    try:
+        if "Config" not in wb.sheet_names:
+            click.echo("[ERROR] The excel file is not a recognized template.", err=True)
+            return False
+
+        opts = []
+        if discount:
+            opts.append("discount")
+        if detail:
+            opts.append("detail")
+        opts_str = f" ({', '.join(opts)})" if opts else ""
+        click.echo(f"Generating summary{opts_str}...")
+
+        functions.summary(wb, discount=discount, detail=detail)
+
+        wb.save()
+        elapsed = time.perf_counter() - start_time
+        click.echo(f"[SUCCESS] Summary generated: {filepath}")
+        click.echo(f"[TIME] summary completed in {elapsed:.2f}s")
+        return True
+
+    except Exception as e:
+        click.echo(f"[ERROR] {e}", err=True)
+        return False
+    finally:
+        wb.close()
+        app.screen_updating = original_screen_updating
+        if created_app:
+            app.quit()
+
+
+@cli.command("summary")  # pyright: ignore[reportFunctionMemberAccess]
+@click.argument("file", type=click.Path(exists=True))
+@click.option("--discount", is_flag=True, help="Apply discount pricing")
+@click.option("--detail", is_flag=True, help="Include detailed breakdown")
+def summary_cmd(file, discount, detail):
+    """Generate summary sheet."""
+    filepath = str(Path(file).resolve())
+    success = run_with_lock(lambda f: run_summary(f, discount, detail), filepath)
     sys.exit(0 if success else 1)
 
 
