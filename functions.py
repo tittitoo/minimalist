@@ -1810,16 +1810,16 @@ def apply_format_column_border(sheet):
         rng.api.Borders(xlDiagonalDown).LineStyle = xlNone
         rng.api.Borders(xlDiagonalUp).LineStyle = xlNone
 
-    def set_border(rng, edge, color=None, theme_color=None, tint=0, weight=xlThin):
+    def set_border(rng, edge, color=None, theme_color=None, tint: float = 0.0, weight=xlThin):
         border = rng.api.Borders(edge)
         border.LineStyle = xlContinuous
-        border.Weight = weight
         if color is not None:
             border.Color = color
             border.TintAndShade = 0
         elif theme_color is not None:
             border.ThemeColor = theme_color
             border.TintAndShade = tint
+        border.Weight = weight
 
     def clear_border(rng, edge):
         rng.api.Borders(edge).LineStyle = xlNone
