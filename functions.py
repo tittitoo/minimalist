@@ -1810,7 +1810,9 @@ def apply_format_column_border(sheet):
         rng.api.Borders(xlDiagonalDown).LineStyle = xlNone
         rng.api.Borders(xlDiagonalUp).LineStyle = xlNone
 
-    def set_border(rng, edge, color=None, theme_color=None, tint: float = 0.0, weight=xlThin):
+    def set_border(
+        rng, edge, color=None, theme_color=None, tint: float = 0.0, weight=xlThin
+    ):
         border = rng.api.Borders(edge)
         border.LineStyle = xlContinuous
         if color is not None:
@@ -1894,8 +1896,9 @@ def apply_format_column_border(sheet):
 def conditional_format_wb(wb):
     """
     Apply conditional formatting to all sheets.
-    On Windows: Uses Python/xlwings API (no sheet activation, no focus stealing).
-    On macOS: Uses VBA macros (AppleScript doesn't support FormatConditions/Borders API).
+    On Windows: Uses Python/xlwings API for conditional_format only.
+    On macOS: Uses VBA macros (AppleScript doesn't support FormatConditions API).
+    remove_h_borders and format_column_border use VBA on both platforms.
     """
     current_sheet = wb.sheets.active
     is_windows = sys.platform == "win32"
@@ -1905,23 +1908,21 @@ def conditional_format_wb(wb):
             sheet = wb.sheets[sheet_name]
 
             if is_windows:
-                # Windows: use Python API (no sheet activation required)
+                # Windows: use Python API for conditional_format only
                 try:
                     apply_conditional_format(sheet)
-                    apply_remove_h_borders(sheet)
-                    apply_format_column_border(sheet)
                 except Exception:
-                    # Fallback to VBA if API fails
                     sheet.activate()
                     run_macro("conditional_format")
-                    run_macro("remove_h_borders")
-                    run_macro("format_column_border")
             else:
-                # macOS: use VBA directly (AppleScript doesn't support these APIs)
+                # macOS: use VBA (AppleScript doesn't support FormatConditions)
                 sheet.activate()
                 run_macro("conditional_format")
-                run_macro("remove_h_borders")
-                run_macro("format_column_border")
+
+            # Always use VBA for border formatting (Python version unreliable)
+            sheet.activate()
+            run_macro("remove_h_borders")
+            run_macro("format_column_border")
 
     current_sheet.activate()
 
