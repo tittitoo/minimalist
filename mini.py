@@ -211,7 +211,7 @@ def cli() -> None:
     enable_cli_mode()
 
 
-@cli.command("fix_workbook")  # pyright: ignore[reportFunctionMemberAccess]
+@cli.command("fix_workbook")
 @click.argument("file", type=click.Path(exists=True))
 def fix_workbook_cmd(file):
     """Fill formulas and fix workbook."""
@@ -220,7 +220,7 @@ def fix_workbook_cmd(file):
     sys.exit(0 if success else 1)
 
 
-@cli.command("fix")  # pyright: ignore[reportFunctionMemberAccess]
+@cli.command("fix")
 @click.argument("file", type=click.Path(exists=True))
 def fix_cmd(file):
     """Alias for fix_workbook."""
@@ -229,7 +229,7 @@ def fix_cmd(file):
     sys.exit(0 if success else 1)
 
 
-@cli.command("commercial")  # pyright: ignore[reportFunctionMemberAccess]
+@cli.command("commercial")
 @click.argument("file", type=click.Path(exists=True))
 @click.option("--fix", is_flag=True, help="Run fix_workbook first without prompting")
 def commercial_cmd(file, fix):
@@ -246,7 +246,7 @@ def commercial_cmd(file, fix):
     sys.exit(0 if success else 1)
 
 
-@cli.command("technical")  # pyright: ignore[reportFunctionMemberAccess]
+@cli.command("technical")
 @click.argument("file", type=click.Path(exists=True))
 def technical_cmd(file):
     """Generate technical PDF proposal."""
