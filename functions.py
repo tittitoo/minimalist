@@ -8,7 +8,9 @@ The code will need to be updated if more rows are needed.
 import getpass
 import os
 import re
+import shutil
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -132,6 +134,47 @@ def apply_lastrow_border(row_range):
         # macOS: AppleScript/VBA limitations prevent direct border manipulation.
         # Fall back to copying border style from PERSONAL.XLSB Design sheet.
         get_cached_range("Design", "5:5").copy(row_range)
+
+
+def _has_problematic_path_chars(path: Path) -> bool:
+    """Check if path contains characters that cause issues with macOS AppleScript."""
+    problematic_chars = ["@", "#", "%"]
+    path_str = str(path)
+    return any(char in path_str for char in problematic_chars)
+
+
+def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
+    """
+    Save workbook handling macOS AppleScript path limitations.
+
+    On macOS, paths with special characters (like @) cause AppleScript errors.
+    This function saves to ~/Downloads (which Excel has access to), then
+    moves to the final destination using Python.
+
+    Args:
+        wb: xlwings Workbook object
+        full_path: Target path for the saved file
+        password: Optional password for the saved file
+
+    Returns:
+        The final path where the file was saved
+    """
+    if sys.platform == "darwin" and _has_problematic_path_chars(full_path):
+        # macOS with problematic path - save to Downloads, then move
+        # Downloads folder is accessible by Excel without permission dialogs
+        downloads = Path.home() / "Downloads"
+        temp_name = f"~xltemp_{os.getpid()}_{full_path.name}"
+        temp_path = downloads / temp_name
+        wb.save(temp_path, password=password)
+        # Move to final destination using Python (handles special chars fine)
+        if full_path.exists():
+            full_path.unlink()  # Remove existing file if present
+        shutil.move(str(temp_path), str(full_path))
+        return full_path
+    else:
+        # Direct save works fine
+        wb.save(full_path, password=password)
+        return full_path
 
 
 def _get_rfq_base_path() -> Path | None:
@@ -1570,7 +1613,7 @@ def technical(wb, show_pdf=True):
         wb.sheets["Summary"].activate()
         file_name = "Technical " + wb.name[11:-4] + "xlsx"
         full_path = Path(directory, file_name)
-        wb.save(full_path, password="")
+        save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
     else:
@@ -1616,7 +1659,7 @@ def technical(wb, show_pdf=True):
         # wb.sheets["Summary"].activate()
         file_name = "Technical " + wb.name[:-4] + "xlsx"
         full_path = Path(directory, file_name)
-        wb.save(full_path, password="")
+        save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
 
@@ -1690,7 +1733,7 @@ def commercial(wb, show_pdf=True):
     wb.sheets["Summary"].activate()
     file_name = "Commercial " + wb.name[:-4] + "xlsx"
     full_path = Path(directory, file_name)
-    wb.save(full_path, password="")
+    save_workbook_safe(wb, full_path, password="")
     # Explicitly specify PDF path - don't rely on xlwings to figure it out
     # (SharePoint sync can cause stale workbook path references)
     pdf_path = full_path.with_suffix(".pdf")
@@ -2258,7 +2301,7 @@ def internal_costing(wb):
     prepare_to_print_internal(wb)
     wb.sheets["Summary"].activate()
     file_name = "Internal " + wb.name[:-4] + "xlsx"
-    wb.save(Path(directory, file_name), password="")
+    save_workbook_safe(wb, Path(directory, file_name), password="")
 
 
 def convert_legacy(wb):

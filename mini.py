@@ -18,7 +18,7 @@ Usage:
     ./mini.py summary <file>            # Generate summary sheet
     ./mini.py summary <file> --discount # Generate summary with discount
     ./mini.py summary <file> --detail   # Generate summary with detail
-    ./mini.py commercial <file>         # Generate commercial PDF (prompts to run fix first)
+    ./mini.py commercial <file>         # Generate commercial PDF
     ./mini.py technical <file>          # Generate technical PDF
 """
 
@@ -234,17 +234,9 @@ def fix_cmd(file):
 
 @cli.command("commercial")  # pyright: ignore[reportFunctionMemberAccess]
 @click.argument("file", type=click.Path(exists=True))
-@click.option("--fix", is_flag=True, help="Run fix_workbook first without prompting")
-def commercial_cmd(file, fix):
+def commercial_cmd(file):
     """Generate commercial PDF proposal."""
     filepath = str(Path(file).resolve())
-
-    run_fix = fix or click.confirm("Run fix_workbook first?", default=True)
-    if run_fix:
-        click.echo("Running fix_workbook first...")
-        if not run_with_lock(run_fix_workbook, filepath):
-            sys.exit(1)
-
     success = run_with_lock(run_commercial, filepath)
     sys.exit(0 if success else 1)
 
