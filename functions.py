@@ -9,6 +9,7 @@ import getpass
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from datetime import datetime
@@ -160,11 +161,15 @@ def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
         The final path where the file was saved
     """
     if sys.platform == "darwin" and _has_problematic_path_chars(full_path):
-        # macOS with problematic path - save to Downloads, then move
-        # Downloads folder is accessible by Excel without permission dialogs
+        # macOS with problematic path - save to Downloads, then move.
+        # Downloads folder is accessible by Excel without permission dialogs.
+        # Use the real filename (not a temp-prefixed name) so that wb.name in
+        # Excel stays correct for subsequent operations (e.g. technical() needs
+        # to see "Commercial ..." to pick the right code path).
         downloads = Path.home() / "Downloads"
-        temp_name = f"~xltemp_{os.getpid()}_{full_path.name}"
-        temp_path = downloads / temp_name
+        temp_path = downloads / full_path.name
+        if temp_path.exists():
+            temp_path.unlink()
         wb.save(temp_path, password=password)
         # Move to final destination using Python (handles special chars fine)
         if full_path.exists():
@@ -175,6 +180,34 @@ def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
         # Direct save works fine
         wb.save(full_path, password=password)
         return full_path
+
+
+def to_pdf_safe(wb, pdf_path: Path, show: bool = True) -> None:
+    """
+    Export workbook to PDF handling macOS AppleScript path limitations.
+
+    On macOS, paths with special characters (like @) cause AppleScript -50
+    errors in wb.to_pdf(). This function exports to ~/Downloads with a temp
+    name, moves the file to the final destination using Python, then
+    optionally opens the PDF at its real path.
+
+    Args:
+        wb: xlwings Workbook object
+        pdf_path: Target path for the PDF file
+        show: Whether to open the PDF after saving
+    """
+    if sys.platform == "darwin" and _has_problematic_path_chars(pdf_path):
+        downloads = Path.home() / "Downloads"
+        temp_name = f"~xltemp_{os.getpid()}_{pdf_path.name}"
+        temp_path = downloads / temp_name
+        wb.to_pdf(path=str(temp_path), show=False)
+        if pdf_path.exists():
+            pdf_path.unlink()
+        shutil.move(str(temp_path), str(pdf_path))
+        if show:
+            subprocess.Popen(["open", str(pdf_path)])
+    else:
+        wb.to_pdf(path=str(pdf_path), show=show)
 
 
 def _get_rfq_base_path() -> Path | None:
@@ -299,6 +332,13 @@ def get_workbook_directory(wb):
 
     # Check if it's a SharePoint/OneDrive URL or if fullname failed
     is_cloud = fullname is None or fullname.startswith(("http://", "https://"))
+
+    # Also treat as cloud/unknown if the path no longer exists on disk.
+    # This happens when save_workbook_safe() saved to ~/Downloads and moved
+    # the file to the real destination — the wb.fullname is then stale.
+    # Falling through to the @rfqs search recovers the correct directory.
+    if not is_cloud and fullname is not None and not Path(fullname).exists():
+        is_cloud = True
 
     if is_cloud:
         # Try to find the workbook in the @rfqs folder first
@@ -1749,7 +1789,7 @@ def commercial(wb, show_pdf=True):
     # (SharePoint sync can cause stale workbook path references)
     pdf_path = full_path.with_suffix(".pdf")
     try:
-        wb.to_pdf(path=str(pdf_path), show=show_pdf)
+        to_pdf_safe(wb, pdf_path, show=show_pdf)
     except Exception as e:
         # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
         # xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
@@ -1776,7 +1816,7 @@ def print_technical(wb, pdf_path=None, show_pdf=True):
     """The technical proposal will be written to the specified path or cwd."""
     try:
         if pdf_path:
-            wb.to_pdf(path=pdf_path, show=show_pdf)
+            to_pdf_safe(wb, Path(pdf_path), show=show_pdf)
         else:
             wb.to_pdf(show=show_pdf)
     except Exception:
