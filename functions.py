@@ -425,6 +425,14 @@ def get_sheet(wb, name, required=True):
     return wb.sheets[name]
 
 
+def delete_scratch_sheet(wb):
+    """Delete any Scratch sheet (case-insensitive) from the workbook."""
+    for sheet_name in list(wb.sheet_names):
+        if sheet_name.lower() == "scratch":
+            wb.sheets[sheet_name].delete()
+            break
+
+
 def sheet_exists(wb, name):
     """
     Check if a sheet exists in workbook (considering aliases).
@@ -1609,6 +1617,7 @@ def technical(wb, show_pdf=True):
                 ws.range("AL:AL").column_width = 0
         if "T&C" in wb.sheet_names:
             wb.sheets["T&C"].delete()
+        delete_scratch_sheet(wb)
         prepare_to_print_technical(wb)
         wb.sheets["Summary"].activate()
         file_name = "Technical " + wb.name[11:-4] + "xlsx"
@@ -1655,6 +1664,7 @@ def technical(wb, show_pdf=True):
             wb.sheets["T&C"].delete()
         except Exception:
             pass
+        delete_scratch_sheet(wb)
         prepare_to_print_technical(wb)
         # wb.sheets["Summary"].activate()
         file_name = "Technical " + wb.name[:-4] + "xlsx"
@@ -1727,6 +1737,7 @@ def commercial(wb, show_pdf=True):
 
     wb.sheets["Summary"].range("G:X").delete()
     wb.sheets["Config"].delete()
+    delete_scratch_sheet(wb)
     tn_sheet = get_sheet(wb, "Technical_Notes", required=False)
     if tn_sheet:
         tn_sheet.range("F:I").delete()
