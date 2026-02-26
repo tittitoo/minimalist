@@ -961,6 +961,11 @@ def hide_columns(sheet):
         sheet.range("A:A").column_width = 5
 
 
+def hide_columns_wb(wb):
+    for sheet in wb.sheets:
+        hide_columns(sheet)
+
+
 def summary(wb, discount=False, detail=False, simulation=True, discount_level=15):
     # Calculate first to ensure we read fresh values (not stale)
     wb.app.calculate()

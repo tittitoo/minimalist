@@ -119,6 +119,9 @@ def run_fix_workbook(filepath: str) -> bool:
         click.echo("Filling subtotals...")
         functions.fill_lastrow(wb)
 
+        click.echo("Hiding columns...")
+        functions.hide_columns_wb(wb)
+
         click.echo("Recalculating...")
         app.calculate()
 

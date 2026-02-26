@@ -288,6 +288,8 @@ def fill_formula_wb():
     functions.conditional_format_wb(wb)
     update_status(app, "Filling subtotals...")
     functions.fill_lastrow(wb)
+    update_status(app, "Hiding columns...")
+    functions.hide_columns_wb(wb)
     update_status(app, "Recalculating...")
     # Force recalculation at the end to avoid stale value errors
     wb.app.calculate()
