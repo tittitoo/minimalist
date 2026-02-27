@@ -2120,6 +2120,7 @@ def format_text(
     ] = "INCLUDED"
     systems.loc[systems["Scope"].isin(["option", "optional"]), "Scope"] = "OPTION"
     systems.loc[systems["Scope"] == "waived", "Scope"] = "WAIVED"
+    systems.loc[systems["Scope"] == "tba", "Scope"] = "TBA"
 
     # Apply title case to Lineitem and Description rows with short descriptions
     if title_lineitem_or_description:
