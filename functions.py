@@ -1202,7 +1202,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 "• Total project price does not include prices for optional items set out in the detailed bill of material."
             )
             sheet.range("C" + str(offset + 7)).value = (
-                "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+                "• Items marked as 'INCLUDED' or 'WAIVED' are included in the scope of supply without price impact."
             )
 
             # Write back the discount
@@ -1259,10 +1259,10 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 '="• All the prices are in " & Config!B12 & " excluding GST."'
             )
             sheet.range("C" + str(offset + 4)).value = (
-                "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
+                "• Total project price does not include items marked 'OPTION' or 'REMOVED' in the detailed bill of material."
             )
             sheet.range("C" + str(offset + 5)).value = (
-                "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+                "• Items marked as 'INCLUDED' or 'WAIVED' are included in the scope of supply without price impact."
             )
 
     else:
@@ -1428,7 +1428,7 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 "• Total project price does not include prices for optional items set out in the detailed bill of material."
             )
             sheet.range("C" + str(offset + 7)).value = (
-                "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+                "• Items marked as 'INCLUDED' or 'WAIVED' are included in the scope of supply without price impact."
             )
 
             # Write back the discount
@@ -1486,10 +1486,10 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
                 '="• All the prices are in " & Config!B12 & " excluding GST."'
             )
             sheet.range("C" + str(offset + 4)).value = (
-                "• Total project price does not include items marked 'OPTION' in the detailed bill of material."
+                "• Total project price does not include items marked 'OPTION' or 'REMOVED' in the detailed bill of material."
             )
             sheet.range("C" + str(offset + 5)).value = (
-                "• Items marked as 'INCLUDED' are included in the scope of supply without price impact."
+                "• Items marked as 'INCLUDED' or 'WAIVED' are included in the scope of supply without price impact."
             )
 
     # Calculate all formulas written to summary sheet to avoid stale values
