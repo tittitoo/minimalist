@@ -27,7 +27,7 @@ FORMULAS = {
     "N": '=IF(K3<>"",K3*(1-M3),"")',
 
     # O: SCD (Subtotal Cost after Discount)
-    "O": '=IF(AND(D3<>"", K3<>"",H3<>"OPTION"),D3*N3,"")',
+    "O": '=IF(AND(D3<>"", K3<>"",H3<>"OPTION",H3<>"REMOVED"),D3*N3,"")',
 
     # Q: Exchange rate
     "Q": '=IF(J3<>"", INDEX(Config!$B$2:$B$10, XMATCH(J3, Config!$A$2:$A$10, 0))/INDEX(Config!$B$2:$B$10, XMATCH(Config!$B$12, Config!$A$2:$A$10, 0)), "")',
@@ -36,28 +36,28 @@ FORMULAS = {
     "R": '=IF(AND(D3<>"", K3<>""), N3*Q3,"")',
 
     # S: SCDQ (Subtotal Cost after Discount in Quoted currency)
-    "S": '=IF(AND(D3<>"", K3<>"", H3<>"OPTION", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
+    "S": '=IF(AND(D3<>"", K3<>"", H3<>"OPTION", H3<>"REMOVED", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
 
     # T: BUCQ (Base Unit Cost in Quoted currency) - includes escalations
     "T": '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")',
 
     # U: BSCQ (Base Subtotal Cost in Quoted currency)
-    "U": '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
+    "U": '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
 
     # V: Default escalation
-    "V": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$L$1, ""))',
+    "V": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), S3*$L$1, ""))',
 
     # W: Warranty escalation
-    "W": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$N$1, ""))',
+    "W": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), S3*$N$1, ""))',
 
     # X: Freight escalation
-    "X": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$P$1, ""))',
+    "X": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), S3*$P$1, ""))',
 
     # Y: Special escalation
-    "Y": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$R$1, ""))',
+    "Y": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), S3*$R$1, ""))',
 
     # Z: Risk calculation
-    "Z": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), U3-(S3+V3+W3+X3+Y3), ""))',
+    "Z": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), U3-(S3+V3+W3+X3+Y3), ""))',
 
     # AA: Margin reference
     "AA": '=IF(AND(D3<>"",K3<>""),$J$1,"")',
@@ -66,31 +66,31 @@ FORMULAS = {
     "AC": '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")',
 
     # AD: RSPQ (Recommended Subtotal Price in Quoted currency)
-    "AD": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")',
+    "AD": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")',
 
     # AE: UPLS (Unit Price Lumpsum)
     "AE": '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")',
 
     # AF: SPLS (Subtotal Price Lumpsum)
-    "AF": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
+    "AF": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
 
     # AG: Profit
-    "AG": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")',
+    "AG": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"REMOVED",AF3<>""),AF3-U3,"")',
 
     # AH: Margin percentage
     "AH": '=IF(AND(AG3<>"", AG3<>0), AG3/AF3, "")',
 
     # AI: Total price per item
-    "AI": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"), D3*AE3, "")',
+    "AI": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"REMOVED"), D3*AE3, "")',
 
     # F: Unit Price (display)
-    "F": '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))',
+    "F": '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(H3="REMOVED", "", IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3)))',
 
     # G: Subtotal Price (display)
-    "G": '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")',
+    "G": '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED"), D3*F3,"")',
 
     # L: Subtotal Cost
-    "L": '=IF(AND(D3<>"",K3<>"",H3<>"OPTION"),D3*K3,"")',
+    "L": '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",H3<>"REMOVED"),D3*K3,"")',
 
     # AL: Format field (row type detection)
     "AL": '=IF(C4<>"",IF(AND(A4<>"",C4<>""),"Title", IF(B4<>"","Lineitem", IF(LEFT(C4,3)="***","Comment", IF(AND(A4="",B4="",C3="", C5<>"",D5<>""), "Subtitle", IF(AND(A4="",B4="",C3="", C5=""), "Subsystem", "Description"))))),"")',
@@ -105,25 +105,25 @@ FORMULAS = {
     "AP": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(S4:INDEX(S4:S1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))',
 
     # AQ: TCDQL (Total Cost after Discount in Quoted currency Lumpsum) - Material cost
-    "AQ": '=IF(AND(ISNUMBER(D3), ISNUMBER(AP3), H3<>"OPTION"), D3*AP3, "")',
+    "AQ": '=IF(AND(ISNUMBER(D3), ISNUMBER(AP3), H3<>"OPTION", H3<>"REMOVED"), D3*AP3, "")',
 
     # AR: BSCQL (Base Subtotal Cost in Quoted currency Lumpsum)
     "AR": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(U4:INDEX(U4:U1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))',
 
     # AS: BTCQL (Base Total Cost in Quoted currency Lumpsum) - Base cost
-    "AS": '=IF(AND(ISNUMBER(D3), ISNUMBER(AR3), H3<>"OPTION"), D3*AR3, "")',
+    "AS": '=IF(AND(ISNUMBER(D3), ISNUMBER(AR3), H3<>"OPTION", H3<>"REMOVED"), D3*AR3, "")',
 
     # AT: SSPL (Subtotal Selling Price Lumpsum)
     "AT": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AF4:INDEX(AF4:AF1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))',
 
     # AU: TSPL (Total Selling Price Lumpsum) - Selling price
-    "AU": '=IF(AND(ISNUMBER(D3), H3<>"WAIVED", H3<>"INCLUDED", H3<>"OPTION", ISNUMBER(AT3)), D3*AT3, "")',
+    "AU": '=IF(AND(ISNUMBER(D3), H3<>"WAIVED", H3<>"INCLUDED", H3<>"OPTION", H3<>"REMOVED", ISNUMBER(AT3)), D3*AT3, "")',
 
     # AV: Total Profit
     "AV": '=IF(AND(ISNUMBER(D3), ISNUMBER(AS3), ISNUMBER(AU3)), AU3-AS3, "")',
 
     # AW: Grand Margin
-    "AW": '=IF(AND(H3<>"OPTION", ISNUMBER(D3), ISNUMBER(AU3), AU3<>0, ISNUMBER(AV3)), AV3/AU3, "")',
+    "AW": '=IF(AND(H3<>"OPTION", H3<>"REMOVED", ISNUMBER(D3), ISNUMBER(AU3), AU3<>0, ISNUMBER(AV3)), AV3/AU3, "")',
 }
 
 
@@ -145,6 +145,7 @@ class TestCostFormulas(unittest.TestCase):
         formula = FORMULAS["O"]
         self.assertIn("D3*N3", formula)
         self.assertIn('H3<>"OPTION"', formula)
+        self.assertIn('H3<>"REMOVED"', formula)
 
     def test_formula_Q_exchange_rate(self):
         """Q: Exchange rate lookup from Config sheet"""
@@ -163,6 +164,7 @@ class TestCostFormulas(unittest.TestCase):
         formula = FORMULAS["S"]
         self.assertIn("D3*R3", formula)
         self.assertIn('H3<>"OPTION"', formula)
+        self.assertIn('H3<>"REMOVED"', formula)
         # Check parent title OPTION check
         self.assertIn('INDEX($H$1:H2, XMATCH("Title"', formula)
 
@@ -229,10 +231,11 @@ class TestPricingFormulas(unittest.TestCase):
         """AD: Recommended Subtotal Price = Qty * RUPQ"""
         formula = FORMULAS["AD"]
         self.assertIn("D3*AC3", formula)
-        # Should exclude OPTION, INCLUDED, WAIVED
+        # Should exclude OPTION, INCLUDED, WAIVED, REMOVED
         self.assertIn('H3<>"OPTION"', formula)
         self.assertIn('H3<>"INCLUDED"', formula)
         self.assertIn('H3<>"WAIVED"', formula)
+        self.assertIn('H3<>"REMOVED"', formula)
 
     def test_formula_AE_UPLS(self):
         """AE: Unit Price Lumpsum - uses fixed price if available"""
@@ -252,6 +255,8 @@ class TestPricingFormulas(unittest.TestCase):
         self.assertIn('AL3="Title"', formula)
         self.assertIn('AL3="Lineitem"', formula)
         self.assertIn('AK3="Lumpsum"', formula)
+        # REMOVED items must show no unit price
+        self.assertIn('H3="REMOVED"', formula)
 
     def test_formula_G_subtotal_price_display(self):
         """G: Subtotal Price for display"""
@@ -260,6 +265,7 @@ class TestPricingFormulas(unittest.TestCase):
         self.assertIn('H3<>"OPTION"', formula)
         self.assertIn('H3<>"INCLUDED"', formula)
         self.assertIn('H3<>"WAIVED"', formula)
+        self.assertIn('H3<>"REMOVED"', formula)
 
 
 class TestProfitFormulas(unittest.TestCase):
@@ -415,7 +421,7 @@ class TestCriticalPricingLogic(unittest.TestCase):
         self.assertIn("1+$L$1+$N$1+$P$1+$R$1", formula)
 
     def test_option_items_excluded_from_totals(self):
-        """OPTION items must be excluded from calculations"""
+        """OPTION and REMOVED items must be excluded from calculations"""
         # These formulas should check for OPTION
         option_sensitive = ["O", "S", "U", "AD", "AF", "G", "L", "AQ", "AS", "AU"]
         for col in option_sensitive:
@@ -423,6 +429,11 @@ class TestCriticalPricingLogic(unittest.TestCase):
                 'OPTION',
                 FORMULAS[col],
                 f"Formula {col} should check for OPTION status"
+            )
+            self.assertIn(
+                'REMOVED',
+                FORMULAS[col],
+                f"Formula {col} should check for REMOVED status"
             )
 
 
@@ -455,11 +466,11 @@ class TestFormulasMatchSource(unittest.TestCase):
         # Check each formula exists in the function
         formulas_to_check = {
             "N": '=IF(K3<>"",K3*(1-M3),"")',
-            "O": '=IF(AND(D3<>"", K3<>"",H3<>"OPTION"),D3*N3,"")',
+            "O": '=IF(AND(D3<>"", K3<>"",H3<>"OPTION",H3<>"REMOVED"),D3*N3,"")',
             "R": '=IF(AND(D3<>"", K3<>""), N3*Q3,"")',
-            "L": '=IF(AND(D3<>"",K3<>"",H3<>"OPTION"),D3*K3,"")',
+            "L": '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",H3<>"REMOVED"),D3*K3,"")',
             "AC": '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")',
-            "AG": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")',
+            "AG": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"REMOVED",AF3<>""),AF3-U3,"")',
             "AH": '=IF(AND(AG3<>"", AG3<>0), AG3/AF3, "")',
         }
 
@@ -478,13 +489,13 @@ class TestFormulasMatchSource(unittest.TestCase):
         # F: Unit Price shown to customer
         self.assertEqual(
             FORMULAS["F"],
-            '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))'
+            '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(H3="REMOVED", "", IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3)))'
         )
 
         # G: Subtotal Price shown to customer
         self.assertEqual(
             FORMULAS["G"],
-            '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
+            '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED"), D3*F3,"")'
         )
 
         # AC: Recommended Unit Price calculation

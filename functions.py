@@ -648,7 +648,7 @@ def fill_formula(sheet):
         sheet.range("N3:O" + lr).formula = [
             [
                 '=IF(K3<>"",K3*(1-M3),"")',  # N: UCD
-                '=IF(AND(D3<>"", K3<>"",H3<>"OPTION"),D3*N3,"")',  # O: SCD
+                '=IF(AND(D3<>"", K3<>"",H3<>"OPTION",H3<>"REMOVED"),D3*N3,"")',  # O: SCD
             ]
         ]
 
@@ -660,21 +660,21 @@ def fill_formula(sheet):
                 # R: UCDQ
                 '=IF(AND(D3<>"", K3<>""), N3*Q3,"")',
                 # S: SCDQ
-                '=IF(AND(D3<>"", K3<>"", H3<>"OPTION", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
+                '=IF(AND(D3<>"", K3<>"", H3<>"OPTION", H3<>"REMOVED", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
                 # T: BUCQ
                 '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")',
                 # U: BSCQ
-                '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
+                '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
                 # V: Default escalation
-                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$L$1, ""))',
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), S3*$L$1, ""))',
                 # W: Warranty
-                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$N$1, ""))',
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AQ3*$N$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), S3*$N$1, ""))',
                 # X: Freight
-                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$P$1, ""))',
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AQ3*$P$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), S3*$P$1, ""))',
                 # Y: Special
-                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), S3*$R$1, ""))',
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AQ3*$R$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), S3*$R$1, ""))',
                 # Z: Risk
-                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION"), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION"), U3-(S3+V3+W3+X3+Y3), ""))',
+                '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AS3-(AQ3+V3+W3+X3+Y3), IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), U3-(S3+V3+W3+X3+Y3), ""))',
                 # AA: Margin reference
                 '=IF(AND(D3<>"",K3<>""),$J$1,"")',
             ]
@@ -686,17 +686,17 @@ def fill_formula(sheet):
                 # AC: RUPQ
                 '=IF(AND(D3<>"",K3<>""),CEILING(T3/(1-AA3), 1),"")',
                 # AD: RSPQ
-                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")',
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")',
                 # AE: UPLS
                 '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")',
                 # AF: SPLS
-                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
                 # AG: Profit
-                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED",AF3<>""),AF3-U3,"")',
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"REMOVED",AF3<>""),AF3-U3,"")',
                 # AH: Margin %
                 '=IF(AND(AG3<>"", AG3<>0), AG3/AF3, "")',
                 # AI: Total price
-                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION"), D3*AE3, "")',
+                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"REMOVED"), D3*AE3, "")',
             ]
         ]
 
@@ -704,15 +704,15 @@ def fill_formula(sheet):
         sheet.range("F3:G" + lr).formula = [
             [
                 # F: Unit Price
-                '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3))',
+                '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(H3="REMOVED", "", IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3)))',
                 # G: Subtotal Price
-                '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")',
+                '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED"), D3*F3,"")',
             ]
         ]
 
         # L: Subtotal Cost (single column)
         sheet.range("L3:L" + lr).formula = (
-            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION"),D3*K3,"")'
+            '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",H3<>"REMOVED"),D3*K3,"")'
         )
 
         # AL: Format field (special handling - values and formulas)
@@ -739,19 +739,19 @@ def fill_formula(sheet):
                 # AP: SCDQL
                 '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(S4:INDEX(S4:S1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), R3, ""))',
                 # AQ: TCDQL (material cost)
-                '=IF(AND(ISNUMBER(D3), ISNUMBER(AP3), H3<>"OPTION"), D3*AP3, "")',
+                '=IF(AND(ISNUMBER(D3), ISNUMBER(AP3), H3<>"OPTION", H3<>"REMOVED"), D3*AP3, "")',
                 # AR: BSCQL
                 '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(U4:INDEX(U4:U1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), T3, ""))',
                 # AS: BTCQL (base cost)
-                '=IF(AND(ISNUMBER(D3), ISNUMBER(AR3), H3<>"OPTION"), D3*AR3, "")',
+                '=IF(AND(ISNUMBER(D3), ISNUMBER(AR3), H3<>"OPTION", H3<>"REMOVED"), D3*AR3, "")',
                 # AT: SSPL
                 '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>""), SUM(AF4:INDEX(AF4:AF1500, XMATCH("Title", AL4:AL1500, 0, 1)-1)), IF(AND(AL3="Lineitem", AK3="Unit Price"), AE3, ""))',
                 # AU: TSPL (selling price)
-                '=IF(AND(ISNUMBER(D3), H3<>"WAIVED", H3<>"INCLUDED", H3<>"OPTION", ISNUMBER(AT3)), D3*AT3, "")',
+                '=IF(AND(ISNUMBER(D3), H3<>"WAIVED", H3<>"INCLUDED", H3<>"OPTION", H3<>"REMOVED", ISNUMBER(AT3)), D3*AT3, "")',
                 # AV: Total Profit
                 '=IF(AND(ISNUMBER(D3), ISNUMBER(AS3), ISNUMBER(AU3)), AU3-AS3, "")',
                 # AW: Grand Margin
-                '=IF(AND(H3<>"OPTION", ISNUMBER(D3), ISNUMBER(AU3), AU3<>0, ISNUMBER(AV3)), AV3/AU3, "")',
+                '=IF(AND(H3<>"OPTION", H3<>"REMOVED", ISNUMBER(D3), ISNUMBER(AU3), AU3<>0, ISNUMBER(AV3)), AV3/AU3, "")',
             ]
         ]
 
@@ -1093,31 +1093,31 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
             '="TOTAL PROJECT (" & Config!B12 & ")"'
         )
         sheet.range("D" + str(offset + 1)).formula = (
-            "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ")"
+            "=SUMIFS(D20:D" + str(offset) + ",E20:E" + str(offset) + ',"<>OPTION",E20:E' + str(offset) + ',"<>REMOVED")'
         )
         sheet.range("E" + str(offset + 1)).formula = (
             "=IF(COUNTIF(E20:E" + str(offset) + ',"OPTION"), "Excluding Option", "")'
         )
         sheet.range("H" + str(offset + 1)).formula = (
-            "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ")"
+            "=SUMIFS(H20:H" + str(offset) + ",E20:E" + str(offset) + ',"<>OPTION",E20:E' + str(offset) + ',"<>REMOVED")'
         )
         sheet.range("I" + str(offset + 1)).formula = (
-            "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",I20:I' + str(offset) + ")"
+            "=SUMIFS(I20:I" + str(offset) + ",E20:E" + str(offset) + ',"<>OPTION",E20:E' + str(offset) + ',"<>REMOVED")'
         )
         sheet.range("J" + str(offset + 1)).formula = (
-            "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",J20:J' + str(offset) + ")"
+            "=SUMIFS(J20:J" + str(offset) + ",E20:E" + str(offset) + ',"<>OPTION",E20:E' + str(offset) + ',"<>REMOVED")'
         )
         sheet.range("K" + str(offset + 1)).formula = (
-            "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",K20:K' + str(offset) + ")"
+            "=SUMIFS(K20:K" + str(offset) + ",E20:E" + str(offset) + ',"<>OPTION",E20:E' + str(offset) + ',"<>REMOVED")'
         )
         sheet.range("L" + str(offset + 1)).formula = (
-            "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",L20:L' + str(offset) + ")"
+            "=SUMIFS(L20:L" + str(offset) + ",E20:E" + str(offset) + ',"<>OPTION",E20:E' + str(offset) + ',"<>REMOVED")'
         )
         sheet.range("M" + str(offset + 1)).formula = (
-            "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",M20:M' + str(offset) + ")"
+            "=SUMIFS(M20:M" + str(offset) + ",E20:E" + str(offset) + ',"<>OPTION",E20:E' + str(offset) + ',"<>REMOVED")'
         )
         sheet.range("N" + str(offset + 1)).formula = (
-            "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",N20:N' + str(offset) + ")"
+            "=SUMIFS(N20:N" + str(offset) + ",E20:E" + str(offset) + ',"<>OPTION",E20:E' + str(offset) + ',"<>REMOVED")'
         )
         sheet.range("O" + str(offset + 1)).formula = (
             "=IF(N"
@@ -1338,13 +1338,13 @@ def summary(wb, discount=False, detail=False, simulation=True, discount_level=15
             '="TOTAL PROJECT (" & Config!B12 & ")"'
         )
         sheet.range("D" + str(offset + 1)).formula = (
-            "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",D20:D' + str(offset) + ")"
+            "=SUMIFS(D20:D" + str(offset) + ",E20:E" + str(offset) + ',"<>OPTION",E20:E' + str(offset) + ',"<>REMOVED")'
         )
         sheet.range("E" + str(offset + 1)).formula = (
             "=IF(COUNTIF(E20:E" + str(offset) + ',"OPTION"), "Excluding Option", "")'
         )
         sheet.range("H" + str(offset + 1)).formula = (
-            "=SUMIF(E20:E" + str(offset) + ',"<>OPTION",H20:H' + str(offset) + ")"
+            "=SUMIFS(H20:H" + str(offset) + ",E20:E" + str(offset) + ',"<>OPTION",E20:E' + str(offset) + ',"<>REMOVED")'
         )
         sheet.range("I" + str(offset + 1)).formula = (
             "=IF(H"
@@ -2121,6 +2121,7 @@ def format_text(
     systems.loc[systems["Scope"].isin(["option", "optional"]), "Scope"] = "OPTION"
     systems.loc[systems["Scope"] == "waived", "Scope"] = "WAIVED"
     systems.loc[systems["Scope"] == "tba", "Scope"] = "TBA"
+    systems.loc[systems["Scope"] == "removed", "Scope"] = "REMOVED"
 
     # Apply title case to Lineitem and Description rows with short descriptions
     if title_lineitem_or_description:
@@ -2558,6 +2559,8 @@ def convert_legacy(wb):
                 "inclusive",
             ]:
                 systems.at[idx, "Scope"] = "INCLUDED"
+            if str(systems.loc[idx, "Subtotal Price"]).lower() == "removed":
+                systems.at[idx, "Scope"] = "REMOVED"
 
         # Cleaning data
         for idx in systems.index:
