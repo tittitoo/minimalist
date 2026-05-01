@@ -9,7 +9,6 @@ import tempfile
 from pathlib import Path
 import xlwings as xw  # type: ignore
 import functions
-import checklists
 
 # Lock file to prevent multiple simultaneous executions
 LOCK_FILE = Path(tempfile.gettempdir()) / "minimalist_running.lock"
@@ -263,6 +262,8 @@ def fill_formula():
 def fill_formula_wb():
     wb = xw.Book.caller()
     app = wb.app
+    update_status(app, "Updating template version check...")
+    functions.update_template_version(wb)
     update_status(app, "Cleaning up empty rows...")
     functions.delete_extra_empty_row_wb(wb)
     # Calling twice as sometimes some rows are missed.
@@ -287,8 +288,8 @@ def fill_formula_wb():
     functions.conditional_format_wb(wb)
     update_status(app, "Filling subtotals...")
     functions.fill_lastrow(wb)
-    update_status(app, "Updating template version...")
-    functions.update_template_version(wb)
+    update_status(app, "Hiding columns...")
+    functions.hide_columns_wb(wb)
     update_status(app, "Recalculating...")
     # Force recalculation at the end to avoid stale value errors
     wb.app.calculate()
@@ -456,6 +457,8 @@ def delete_extra_empty_row():
 
 
 def leave_application_checklist():
+    import checklists
+
     checklists.leave_application_checklist()
 
 
@@ -468,12 +471,16 @@ def download_planner():
 
 
 def generate_sales_checklist():
+    import checklists
+
     checklists.generate_sales_checklist()
 
 
 @check_if_template
 @disable_screen_updating
 def generate_firmed_proposal_checklist():
+    import checklists
+
     wb = xw.Book.caller()
     checklists.generate_proposal_checklist(wb)
 
@@ -481,6 +488,8 @@ def generate_firmed_proposal_checklist():
 @check_if_template
 @disable_screen_updating
 def generate_budgetary_proposal_checklist():
+    import checklists
+
     wb = xw.Book.caller()
     checklists.generate_proposal_checklist(
         wb, proposal_type="budgetary", title="Budgetary Proposal Checklist"
@@ -497,6 +506,8 @@ def update_template_version():
 @check_if_template
 @disable_screen_updating
 def generate_handover_checklist():
+    import checklists
+
     wb = xw.Book.caller()
     checklists.generate_handover_checklist(wb)
 
@@ -504,5 +515,7 @@ def generate_handover_checklist():
 @check_if_template
 @disable_screen_updating
 def generate_general_checklist():
+    import checklists
+
     wb = xw.Book.caller()
     checklists.generate_general_checklist(wb)
