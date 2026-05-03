@@ -81,25 +81,25 @@ class TestSetCommaSpace(unittest.TestCase):
 
 
 class TestSetX(unittest.TestCase):
-    """Tests for set_x function that normalizes 'x' notation."""
+    """Tests for set_x function that normalizes quantity notation to 'N ×' format."""
 
-    def test_20x_becomes_20_x(self):
-        self.assertEqual(set_x("20x items"), "20 x items")
+    def test_number_first_lowercase(self):
+        self.assertEqual(set_x("20x items"), "20 × items")
 
-    def test_30X_becomes_30_x(self):
-        self.assertEqual(set_x("30X items"), "30 x items")
+    def test_number_first_uppercase(self):
+        self.assertEqual(set_x("30X items"), "30 × items")
 
-    def test_x20_becomes_x_20(self):
-        self.assertEqual(set_x("x20 items"), "x 20 items")
+    def test_symbol_first_lowercase_flipped(self):
+        self.assertEqual(set_x("x20 items"), "20 × items")
 
-    def test_X30_becomes_x_30(self):
-        self.assertEqual(set_x("X30 items"), "x 30 items")
+    def test_symbol_first_uppercase_flipped(self):
+        self.assertEqual(set_x("X30 items"), "30 × items")
 
-    def test_20_X_becomes_20_x(self):
-        self.assertEqual(set_x("20 X items"), "20 x items")
+    def test_number_first_with_space(self):
+        self.assertEqual(set_x("20 X items"), "20 × items")
 
-    def test_X_20_becomes_x_20(self):
-        self.assertEqual(set_x("X 20 items"), "x 20 items")
+    def test_symbol_first_with_space_flipped(self):
+        self.assertEqual(set_x("X 20 items"), "20 × items")
 
     def test_preserves_hyphenated(self):
         # 20x- should not be changed (hyphen follows)

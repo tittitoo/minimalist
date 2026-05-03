@@ -592,32 +592,20 @@ def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
 
 
 def set_x(text):
-    """Function to replace description such as 1x, 20x, 10X ,
-    x1, x20, X20 into 1 x, 20 x, 10 x, x 1, x 20, X 10 etc."""
-    # For cases such as 20x, 30X. Allows if followed by -
-    x = re.compile(r"\d+x(?!-)|\d+X(?!-)")
-    if x.search(text):
-        substring = re.findall(r"(\d+x|\d+X)", text)
-        for word in substring:
-            text = re.sub(word, (word[:-1] + " x"), text)
-    # For cases such as x20, X30
-    x = re.compile(r"(x\d+|X\d+)")
-    if x.search(text):
-        substring = re.findall(r"(x\d+|X\d+)", text)
-        for word in substring:
-            text = re.sub(word, ("x " + word[1:]), text)
-    # For cases such as 20 X, 30 X
-    x = re.compile(r"(\d+ X)")
-    if x.search(text):
-        substring = re.findall(r"(\d+ X)", text)
-        for word in substring:
-            text = re.sub(word, (word[:-1] + "x"), text)
-    # For cases such as X 20, X 30
-    x = re.compile(r"(X \d+)")
-    if x.search(text):
-        substring = re.findall(r"(X \d+)", text)
-        for word in substring:
-            text = re.sub(word, ("x" + word[1:]), text)
+    """Normalize quantity notation to 'N ×' format using the multiplication sign.
+
+    All variants (1x, 20X, x1, X 20, x20, etc.) are converted to 'N ×',
+    e.g. '2x items' and 'x2 items' both become '2 × items'.
+    Hyphenated cases like '20x-connector' are left unchanged.
+    """
+    # Number-first: 20x, 30X (not followed by -)
+    text = re.sub(r"(\d+)[xX](?!-)", r"\1 ×", text)
+    # Symbol-first: x20, X30 — flip to number-first
+    text = re.sub(r"[xX](\d+)", r"\1 ×", text)
+    # Number-first with space: 20 x, 20 X
+    text = re.sub(r"(\d+) [xX](?!\S)", r"\1 ×", text)
+    # Symbol-first with space: x 20, X 20 — flip to number-first
+    text = re.sub(r"[xX] (\d+)", r"\1 ×", text)
     return text
 
 
