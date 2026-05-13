@@ -648,11 +648,11 @@ def fill_formula(sheet):
                 # R: UCDQ
                 '=IF(AND(D3<>"", K3<>""), N3*Q3,"")',
                 # S: SCDQ
-                '=IF(AND(D3<>"", K3<>"", H3<>"OPTION", H3<>"REMOVED", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
+                '=IF(AND(D3>0, K3<>"", H3<>"OPTION", H3<>"REMOVED", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
                 # T: BUCQ
                 '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")',
                 # U: BSCQ
-                '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
+                '=IF(AND(D3>0,K3<>"",H3<>"OPTION",H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
                 # V: Default escalation
                 '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), S3*$L$1, ""))',
                 # W: Warranty
@@ -678,13 +678,13 @@ def fill_formula(sheet):
                 # AE: UPLS
                 '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")',
                 # AF: SPLS
-                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
+                '=IF(AND(D3>0,K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
                 # AG: Profit
                 '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"REMOVED",AF3<>""),AF3-U3,"")',
                 # AH: Margin %
                 '=IF(AND(AG3<>"", AG3<>0), AG3/AF3, "")',
                 # AI: Total price
-                '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"REMOVED"), D3*AE3, "")',
+                '=IF(AND(D3>0,K3<>"", H3<>"OPTION", H3<>"REMOVED"), D3*AE3, "")',
             ]
         ]
 

@@ -36,13 +36,13 @@ FORMULAS = {
     "R": '=IF(AND(D3<>"", K3<>""), N3*Q3,"")',
 
     # S: SCDQ (Subtotal Cost after Discount in Quoted currency)
-    "S": '=IF(AND(D3<>"", K3<>"", H3<>"OPTION", H3<>"REMOVED", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
+    "S": '=IF(AND(D3>0, K3<>"", H3<>"OPTION", H3<>"REMOVED", INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*R3, "")',
 
     # T: BUCQ (Base Unit Cost in Quoted currency) - includes escalations
     "T": '=IF(AND(D3<>"",K3<>""), (R3*(1+$L$1+$N$1+$P$1+$R$1))/(1-0.05),"")',
 
     # U: BSCQ (Base Subtotal Cost in Quoted currency)
-    "U": '=IF(AND(D3<>"",K3<>"",H3<>"OPTION",H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
+    "U": '=IF(AND(D3>0,K3<>"",H3<>"OPTION",H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*T3, "")',
 
     # V: Default escalation
     "V": '=IF(AND(AL3="Title", ISNUMBER(D3), E3<>"", H3<>"OPTION", H3<>"REMOVED"), AQ3*$L$1, IF(AND(AL3="Lineitem", AK3="Unit Price", H3<>"OPTION", H3<>"REMOVED"), S3*$L$1, ""))',
@@ -72,7 +72,7 @@ FORMULAS = {
     "AE": '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")',
 
     # AF: SPLS (Subtotal Price Lumpsum)
-    "AF": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
+    "AF": '=IF(AND(D3>0,K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
 
     # AG: Profit
     "AG": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"REMOVED",AF3<>""),AF3-U3,"")',
@@ -81,7 +81,7 @@ FORMULAS = {
     "AH": '=IF(AND(AG3<>"", AG3<>0), AG3/AF3, "")',
 
     # AI: Total price per item
-    "AI": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"REMOVED"), D3*AE3, "")',
+    "AI": '=IF(AND(D3>0,K3<>"", H3<>"OPTION", H3<>"REMOVED"), D3*AE3, "")',
 
     # F: Unit Price (display)
     "F": '=IF(AND(AL3="Title", ISNUMBER(AJ3)), AJ3, IF(H3="REMOVED", "", IF(AND(AL3="Lineitem", AK3="Lumpsum", H3<>"OPTION"), "", AE3)))',
