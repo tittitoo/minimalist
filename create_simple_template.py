@@ -184,22 +184,19 @@ ws.page_margins = PageMargins(
 ws.freeze_panes = "A6"         # freeze entity header when viewing in Excel
 ws.print_title_rows = "1:5"    # repeat entity header on every printed page / PDF page
 
-# Pre-style all 8 data columns (rows 23–320) with top-alignment.
+# Pre-style all 8 data columns.
 # xlwings value writes don't disturb cell formatting, so these persist at runtime.
 # On Mac, xlwings vertical_alignment silently fails — template pre-styling is the fix.
-_col_aligns = [
-    ("right",  "top"),   # A  No.
-    ("center", "top"),   # B  SN
-    ("left",   "top"),   # C  Description
-    ("right",  "top"),   # D  Qty / totals labels
-    ("center", "top"),   # E  Unit
-    ("right",  "top"),   # F  Unit Price
-    ("right",  "top"),   # G  Total
-    ("center", "top"),   # H  Scope
-]
-for _r in range(_META_START, _META_START + 320):
-    for _ci, (h, v) in enumerate(_col_aligns, 1):
-        ws.cell(row=_r, column=_ci).alignment = align(h, v=v)
+# Rows 9–20 (metadata + dynamic header area): center vertical alignment so the
+# header row is always middle-aligned regardless of which row Python picks.
+# Rows 21+ (BOQ data area): top alignment for wrapped multi-line descriptions.
+_col_h = ["right", "center", "left", "right", "center", "right", "right", "center"]
+for _r in range(_META_START, _HDR_ROW + 1):       # rows 9–20: center
+    for _ci, h in enumerate(_col_h, 1):
+        ws.cell(row=_r, column=_ci).alignment = align(h, v="center")
+for _r in range(_DATA_ROW, _META_START + 320):    # rows 21–328: top
+    for _ci, h in enumerate(_col_h, 1):
+        ws.cell(row=_r, column=_ci).alignment = align(h, v="top")
 
 # Footer: centered "Page X of Y", Arial 10
 ws.oddFooter.center.text = '&"Arial,Regular"&10Page &P of &N'
