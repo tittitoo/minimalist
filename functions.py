@@ -210,6 +210,61 @@ def to_pdf_safe(wb, pdf_path: Path, show: bool = True) -> None:
         wb.to_pdf(path=str(pdf_path), show=show)
 
 
+def open_workbook_safe(app, full_path: Path):
+    """
+    Open a workbook handling macOS AppleScript path limitations.
+
+    On macOS, xlwings' Books.open() uses the appscript bridge which can fail on
+    paths with special characters (@, #, %) or when Excel is in certain states.
+    This function uses osascript subprocess on Mac (more reliable) and direct
+    Books.open() on Windows.
+    """
+    if sys.platform == "darwin":
+        return _open_workbook_mac(app, full_path)
+    return app.books.open(str(full_path))
+
+
+def _open_workbook_mac(app, full_path: Path):
+    """
+    Open a workbook on macOS using osascript, bypassing the xlwings appscript bridge.
+
+    If the path has problematic characters (@ etc.), copies to ~/Downloads first so
+    Excel can access it.  Returns the xlwings Book object.
+    """
+    if _has_problematic_path_chars(full_path):
+        downloads = Path.home() / "Downloads"
+        open_path = downloads / full_path.name
+        if open_path.exists():
+            open_path.unlink()
+        shutil.copy2(str(full_path), str(open_path))
+    else:
+        open_path = full_path
+
+    posix = str(open_path).replace('"', '\\"')
+    script = (
+        'tell application "Microsoft Excel"\n'
+        f'  set wb to open workbook workbook file name POSIX file "{posix}"\n'
+        '  return name of wb\n'
+        'end tell'
+    )
+    result = subprocess.run(
+        ["osascript", "-e", script],
+        capture_output=True, text=True, timeout=60,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Cannot open workbook '{open_path}': {result.stderr.strip()}"
+        )
+    wb_name = result.stdout.strip()
+    # Locate the xlwings Book handle by the exact name Excel assigned.
+    for name_try in (wb_name, open_path.stem, open_path.name):
+        try:
+            return app.books[name_try]
+        except (KeyError, Exception):
+            continue
+    raise KeyError(f"Workbook opened via osascript but not findable: {open_path}")
+
+
 def _get_rfq_base_path() -> Path | None:
     """
     Get the user-specific @rfqs base path based on the current user.
@@ -381,7 +436,7 @@ UPDATE_MESSAGE = "Now you can choose the number scheme. Single or Double."
 
 # Skipped sheets (includes TN as alias for Technical_Notes)
 # Note: "Scratch" is handled case-insensitively via should_skip_sheet()
-SKIP_SHEETS = ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C", "Scratch"]
+SKIP_SHEETS = ["Config", "Cover", "Summary", "Technical_Notes", "TN", "T&C", "Scratch", "Proposal"]
 
 
 def should_skip_sheet(sheet_name):
@@ -1817,6 +1872,498 @@ def print_technical(wb, pdf_path=None, show_pdf=True):
         xw.apps.active.alert(  # type: ignore
             "The PDF file already exists!\n Please delete the file and try again."
         )
+
+
+# ---------------------------------------------------------------------------
+# Simple Proposal helpers
+# ---------------------------------------------------------------------------
+
+# Entity-specific company information keyed by Config!B14 / Cover!B14 dropdown value
+_SIMPLE_ENTITY_DATA = {
+    "Jason Energy Pte. Ltd.": {
+        "name": "JASON ENERGY PTE. LTD.",
+        "address": "194 Pandan Loop · #06-05 PanTech Business Hub · Singapore 128383",
+        "contact": "TEL: +65 6477 7700 · FAX: +65 6872 1800 · www.jason.com.sg · Co. Reg. No. 201304398E",
+    },
+    "Jason Electronics (Pte) Ltd": {
+        "name": "JASON ELECTRONICS (PTE) LTD",
+        "address": "194 Pandan Loop · #06-04 PanTech Business Hub · Singapore 128383",
+        "contact": "TEL: +65 6477 7700 · FAX: +65 6872 1800 · www.jason.com.sg · Co. Reg. No. 197800377K",
+    },
+}
+_SIMPLE_ENTITY_DEFAULT = "Jason Electronics (Pte) Ltd"
+
+# Fixed row anchors in Template_simple.xlsx (must match create_simple_template.py)
+# Rows 1–5 are the repeat block (print_title_rows="1:5"):
+#   1=entity name, 2=address, 3=contact, 4=blue rule, 5=spacer
+_ST_ENTITY_ROW   = 1
+_ST_ADDRESS_ROW  = 2
+_ST_CONTACT_ROW  = 3
+_ST_TYPE_ROW     = 7   # proposal type ("COMMERCIAL PROPOSAL") — data area, page 1 only
+_ST_META_START   = 9   # Metadata block starts here
+
+# Metadata field map: (template_row, label, Config cell B21–B32)
+# All 12 Config fields B21–B32 are now mapped; B25/B27/B31 were previously skipped.
+_ST_META_FIELDS = [
+    (_ST_META_START +  0, "Attention to:",    "B21"),
+    (_ST_META_START +  1, "Designation:",     "B22"),
+    (_ST_META_START +  2, "Customer:",        "B23"),
+    (_ST_META_START +  3, "Client Reference:","B24"),
+    (_ST_META_START +  4, "Ref Doc No:",      "B25"),
+    (_ST_META_START +  5, "Project Name:",    "B26"),
+    (_ST_META_START +  6, "Sales:",           "B28"),
+    (_ST_META_START +  7, "Jason Ref:",       "B29"),
+    (_ST_META_START +  8, "Revision Num:",    "B30"),
+    (_ST_META_START +  9, "Date:",            "B32"),
+]
+# These give the MAXIMUM header/data positions (all 10 fields filled).
+# Actual positions are computed at runtime after filtering empty fields.
+_ST_TABLE_HDR  = _ST_META_START + len(_ST_META_FIELDS) + 1   # row 20 (max)
+_ST_DATA_START = _ST_TABLE_HDR + 1                            # row 21 (max)
+
+ACCOUNTING_COMMA = "#,##0.00"
+ACCOUNTING_PAREN = "#,##0.00;(#,##0.00)"   # negative shown as (111), not -111
+
+
+def _format_iso_date(val):
+    """Return val as YYYY-MM-DD string if it is a date/datetime; else return as-is."""
+    if val is not None and hasattr(val, "strftime"):
+        return val.strftime("%Y-%m-%d")
+    return val
+
+
+def _get_tools_path() -> Path | None:
+    """Return the local sync path of SharePoint @tools, or None if not found."""
+    username = getpass.getuser()
+    if username == "oliver":
+        p = Path.home() / "OneDrive - Jason Electronics Pte Ltd" / "Shared Documents" / "@tools"
+    elif username == "carol_lim":
+        p = Path.home() / "Jason Electronics Pte Ltd" / "Bid Proposal - @tools"
+    else:
+        p = Path.home() / "Jason Electronics Pte Ltd" / "Bid Proposal - Documents" / "@tools"
+    return p if p.exists() else None
+
+
+def _find_simple_template(source_dir: str) -> Path | None:
+    """
+    Locate Template_simple.xlsx.
+
+    Search order:
+      1. Same directory as the source project file
+      2. SharePoint @tools/resources/
+    """
+    local = Path(source_dir) / "Template_simple.xlsx"
+    if local.exists():
+        return local
+    tools = _get_tools_path()
+    if tools:
+        shared = tools / "resources" / "Template_simple.xlsx"
+        if shared.exists():
+            return shared
+    return None
+
+
+def _sp_cell(ws, row, col_letter):
+    """Return an xlwings Range for (row, col_letter) without sheet activation."""
+    return ws.range(f"{col_letter}{row}")
+
+
+_JASON_BLUE = (0, 91, 191)     # #005BBF — Jason Blue
+_COMMENT_GREY = (127, 127, 127)  # mid-grey for comment rows
+
+
+def _sp_apply_row_fmt(ws, row, fmt_type, mode, desc=None):
+    """Apply per-row formatting based on AL format type."""
+    row_range = ws.range(f"{row}:{row}")
+    if fmt_type == "System":
+        row_range.font.bold = True
+        row_range.font.color = _JASON_BLUE
+    elif fmt_type == "Subsystem":
+        row_range.font.bold = True
+    elif fmt_type == "Title":
+        row_range.font.bold = True
+    elif fmt_type == "Subtitle":
+        row_range.font.italic = True
+        if sys.platform == "win32":
+            row_range.api.Font.Underline = 2  # xlUnderlineStyleSingle
+    elif fmt_type == "Comment":
+        row_range.font.italic = True
+        if desc and str(desc).startswith("***"):
+            row_range.font.color = _JASON_BLUE
+        else:
+            row_range.font.color = _COMMENT_GREY
+
+
+def _sp_write_column_header(ps, hdr_row, mode, currency):
+    """Write and style the BOQ column header row (blue fill, white bold text)."""
+    labels = [
+        "No.", "SN", "Description", "Qty", "Unit",
+        f"Unit Price ({currency})" if mode == "commercial" else "",
+        f"Total ({currency})" if mode == "commercial" else "",
+        "Scope",
+    ]
+    rng = ps.range(f"A{hdr_row}:H{hdr_row}")
+    rng.value = [labels]
+    rng.color = _JASON_BLUE
+    rng.font.color = (255, 255, 255)
+    rng.font.bold = True
+    rng.font.name = "Aptos"
+    rng.font.size = 9
+    rng.row_height = 17
+
+
+def simple_proposal(wb, mode="commercial", show_pdf=True):
+    """
+    Generate a compact single-page proposal using Template_simple.xlsx.
+
+    Reads from the source workbook without modifying it.  Fills a copy of
+    Template_simple.xlsx with entity header, metadata, BOQ, and T&C, then
+    exports XLSX + PDF to the same directory as the source file.
+
+    mode: 'commercial' (with pricing, auto-detects discount) or 'technical'
+    Output: "Commercial [name].xlsx/.pdf" or "Technical [name].xlsx/.pdf"
+    """
+    directory, is_cloud = get_workbook_directory(wb)
+
+    prefix = "Technical " if mode == "technical" else "Commercial "
+    base_name = wb.name[:-5] if wb.name.endswith(".xlsx") else wb.name[:-4]
+    output_xlsx = Path(directory) / f"{prefix}{base_name}.xlsx"
+    output_pdf  = output_xlsx.with_suffix(".pdf")
+
+    existing = [f.name for f in (output_xlsx, output_pdf) if f.is_file()]
+    if existing:
+        xw.apps.active.alert(  # type: ignore
+            "Output file(s) already exist — please delete before regenerating:\n\n"
+            + "\n".join(f"  • {name}" for name in existing)
+        )
+        return
+
+    # Require exactly one system sheet
+    system_sheets = [s for s in wb.sheet_names if not should_skip_sheet(s)]
+    if len(system_sheets) != 1:
+        xw.apps.active.alert(  # type: ignore
+            f"Simple Proposal requires exactly one system sheet. "
+            f"Found {len(system_sheets)}: {', '.join(system_sheets) or 'none'}.\n"
+            "Use Commercial Proposal or Technical Proposal for multi-sheet workbooks."
+        )
+        return
+
+    # Locate Template_simple.xlsx
+    tmpl_path = _find_simple_template(directory)
+    if tmpl_path is None:
+        xw.apps.active.alert(  # type: ignore
+            "Template_simple.xlsx not found.\n"
+            "Place it in the same folder as the project file, "
+            "or in SharePoint @tools/resources/."
+        )
+        return
+
+    wb.app.calculate()
+
+    # -----------------------------------------------------------------------
+    # Read source data
+    # -----------------------------------------------------------------------
+    src_ws  = wb.sheets[system_sheets[0]]
+    config  = wb.sheets["Config"]
+
+    currency = config.range("B12").value or "SGD"
+    if mode == "technical":
+        proposal_title = "TECHNICAL PROPOSAL"
+    else:
+        proposal_title = config.range("B13").value or "COMMERCIAL PROPOSAL"
+
+    # Entity: Config!B14 dropdown
+    try:
+        entity_key = config.range("B14").value or _SIMPLE_ENTITY_DEFAULT
+    except Exception:
+        entity_key = _SIMPLE_ENTITY_DEFAULT
+    entity_info = _SIMPLE_ENTITY_DATA.get(entity_key, _SIMPLE_ENTITY_DATA[_SIMPLE_ENTITY_DEFAULT])
+
+    # BOQ data (columns A–H + AL)
+    last_row = max(src_ws.range("C1500").end("up").row, src_ws.range("G1500").end("up").row)
+    rows_ah  = src_ws.range(f"A3:H{last_row}").options(ndim=2).value
+    al_vals  = src_ws.range(f"AL3:AL{last_row}").options(ndim=1).value
+
+    # T&C lines: column B = letter (A, B, C…), column C = text; starts at row 5
+    tc_lines = []
+    tc_sheet = get_sheet(wb, "T&C", required=False)
+    if tc_sheet:
+        tc_last = tc_sheet.range("C1500").end("up").row
+        if tc_last >= 5:
+            bc_raw = tc_sheet.range(f"B5:C{tc_last}").options(ndim=2).value
+            for row_bc in bc_raw:
+                letter, text = row_bc[0], row_bc[1]
+                if text:
+                    tc_lines.append(f"({letter})  {text}" if letter else text)
+
+    # Auto-detect discount from Summary (commercial mode only)
+    discount_amount = None
+    has_discount = False
+    if mode == "commercial" and "Summary" in wb.sheet_names:
+        disc_row = 1 + 19 + 3  # system_count=1, start_row=19 → row 23
+        label_cell = wb.sheets["Summary"].range(f"C{disc_row}").value
+        if label_cell in ("SPECIAL DISCOUNT", "SPECIAL PROJECT DISCOUNT"):
+            val = wb.sheets["Summary"].range(f"D{disc_row}").value
+            if val is not None and val != 0:
+                discount_amount = val
+                has_discount = True
+
+    # -----------------------------------------------------------------------
+    # Copy template and open it in the same Excel instance
+    # -----------------------------------------------------------------------
+    shutil.copy2(str(tmpl_path), str(output_xlsx))
+
+    app = wb.app
+    out_wb = open_workbook_safe(app, output_xlsx)
+    try:
+        ps = out_wb.sheets["Proposal"]
+
+        # -------------------------------------------------------------------
+        # Fill header rows 1–3: batch write (1 AppleScript call)
+        # -------------------------------------------------------------------
+        ps.range(f"A{_ST_ENTITY_ROW}:A{_ST_CONTACT_ROW}").value = [
+            [entity_info["name"]],
+            [entity_info["address"]],
+            [entity_info["contact"]],
+        ]
+
+        # -------------------------------------------------------------------
+        # Proposal type (row 7, data area — page 1 only)
+        # -------------------------------------------------------------------
+        ps.range(f"C{_ST_TYPE_ROW}").value = proposal_title
+
+        # -------------------------------------------------------------------
+        # Metadata: only fields with non-empty Config values; no padding.
+        # Header row written dynamically after the last filled field.
+        # -------------------------------------------------------------------
+        # Clear the max possible metadata + template header area (stale content/fill)
+        ps.range(f"A{_ST_META_START}:H{_ST_TABLE_HDR}").clear_contents()
+        ps.range(f"A{_ST_TABLE_HDR}:H{_ST_TABLE_HDR}").color = None
+
+        cfg_block = config.range("B21:B32").options(ndim=1).value or []
+        active_meta = []
+        for (_, lbl, cfg_cell) in _ST_META_FIELDS:
+            cfg_row_idx = int(cfg_cell[1:]) - 21   # "B21"→0, "B32"→11
+            raw = cfg_block[cfg_row_idx] if cfg_row_idx < len(cfg_block) else None
+            if raw is None:
+                continue
+            val_str = str(raw).strip()
+            if not val_str:
+                continue
+            if lbl == "Date:":
+                val_str = _format_iso_date(raw) or val_str
+            active_meta.append((lbl, val_str))
+
+        if active_meta:
+            meta_vals = [[f"{lbl} {val}"] for lbl, val in active_meta]
+            meta_end = _ST_META_START + len(active_meta) - 1
+            meta_rng = ps.range(f"C{_ST_META_START}:C{meta_end}")
+            meta_rng.value = meta_vals
+            meta_rng.number_format = "@"
+            meta_rng.wrap_text = False
+
+        # Dynamic header: 1 spacer row after last meta row, then blue header
+        hdr_row = _ST_META_START + len(active_meta) + 1
+        data_start = hdr_row + 1
+        _sp_write_column_header(ps, hdr_row, mode, currency)
+
+        # Repeat entity header (rows 1–5) on every page (Windows COM only)
+        if sys.platform == "win32":
+            try:
+                ps.api.PageSetup.PrintTitleRows = "$1:$5"
+            except Exception:
+                pass
+
+        # -------------------------------------------------------------------
+        # BOQ: build data in Python first, then write in one batch call.
+        # Column layout: A=No B=SN C=Description D=Qty E=Unit F=UP G=Total H=Scope
+        # Rows needing special font (System/Title/Subtitle/Comment) are tracked
+        # separately and formatted after the bulk write.
+        # -------------------------------------------------------------------
+        r = data_start
+        num_fmt = ACCOUNTING_COMMA
+
+        ps.range(f"C{r}").clear_contents()   # clear template placeholder
+
+        boq_rows = []      # 2-D list for batch write
+        fmt_pending = []   # [(row, fmt_type, desc)] for rows needing font changes
+
+        for i, row_data in enumerate(rows_ah):
+            no, sn, desc, qty, unit, up, sp, scope = row_data
+            fmt = al_vals[i] if al_vals else None
+
+            # Preserve intentional empty rows (spacers between items)
+            if not desc and not no:
+                boq_rows.append([None] * 8)
+                r += 1
+                continue
+
+            # Column A in source: integers = main item number; strings = sub-number (.1, .2)
+            if no is None:
+                no_disp = None
+            elif isinstance(no, str):
+                no_disp = no.strip() or None          # ".1", ".2", ".3" etc.
+            elif isinstance(no, (int, float)) and no:
+                no_disp = str(int(no))                # 1, 2, 3 etc.
+            else:
+                no_disp = None
+
+            # Column B (SN): integer sub-item numbers within a group
+            if sn is None:
+                sn_disp = None
+            elif isinstance(sn, str):
+                sn_disp = sn.strip() or None
+            elif isinstance(sn, (int, float)) and sn:
+                sn_disp = str(int(sn))
+            else:
+                sn_disp = None
+
+            if mode == "commercial":
+                boq_rows.append([no_disp, sn_disp, desc, qty, unit, up, sp, scope])
+            else:
+                boq_rows.append([no_disp, sn_disp, desc, qty, unit, None, None, scope])
+
+            if fmt in ("System", "Subsystem", "Title", "Subtitle", "Comment"):
+                fmt_pending.append((r, fmt, desc))
+
+            r += 1
+
+        data_end = r - 1
+
+        if boq_rows:
+            # One call writes all BOQ rows at once
+            ps.range(f"A{data_start}:H{data_end}").value = boq_rows
+            # One call wraps the entire description column
+            ps.range(f"C{data_start}:C{data_end}").wrap_text = True
+            # One call applies price format to both price columns
+            if mode == "commercial":
+                ps.range(f"F{data_start}:G{data_end}").number_format = ACCOUNTING_COMMA
+
+        # Apply font/colour only for rows that need it (skips Description/Lineitem)
+        for (row_r, fmt, desc) in fmt_pending:
+            _sp_apply_row_fmt(ps, row_r, fmt, mode, desc=desc)
+
+        # -------------------------------------------------------------------
+        # Totals block (commercial only)
+        # Labels written to D so they sit adjacent to the amounts in G,
+        # overflowing naturally through the empty E and F cells.
+        # -------------------------------------------------------------------
+        if mode == "commercial":
+            total_row = r
+            d_total = ps.range(f"D{total_row}")
+            d_total.value = f"TOTAL  ({currency})"
+            d_total.font.bold = True
+            d_total.wrap_text = False
+            ps.range(f"G{total_row}").formula = f"=SUMIF(G{data_start}:G{data_end},\">0\")"
+            ps.range(f"G{total_row}").number_format = num_fmt
+            ps.range(f"G{total_row}").font.bold = True
+            r += 1
+
+            if has_discount:
+                disc_row_r = r
+                d_disc = ps.range(f"D{disc_row_r}")
+                d_disc.value = "SPECIAL DISCOUNT"
+                d_disc.wrap_text = False
+                ps.range(f"G{disc_row_r}").value = discount_amount
+                ps.range(f"G{disc_row_r}").number_format = ACCOUNTING_PAREN
+                r += 1
+
+                after_row = r
+                d_after = ps.range(f"D{after_row}")
+                d_after.value = f"AFTER DISCOUNT  ({currency})"
+                d_after.font.bold = True
+                d_after.wrap_text = False
+                ps.range(f"G{after_row}").formula = f"=G{total_row}+G{disc_row_r}"
+                ps.range(f"G{after_row}").number_format = num_fmt
+                ps.range(f"G{after_row}").font.bold = True
+                r += 1
+
+        # -------------------------------------------------------------------
+        # T&C section — batch write title + all lines in two range calls
+        # -------------------------------------------------------------------
+        if tc_lines:
+            r += 1  # spacer
+            tc_title_row = r
+            ps.range(f"C{tc_title_row}").value = "TERMS & CONDITIONS"
+            ps.range(f"C{tc_title_row}").font.bold = True
+            r += 1
+            tc_start = r
+            ps.range(f"C{tc_start}").value = [[line] for line in tc_lines]
+            tc_end = tc_start + len(tc_lines) - 1
+            ps.range(f"C{tc_start}:C{tc_end}").wrap_text = True
+            r = tc_end + 1
+
+        # -------------------------------------------------------------------
+        # Standardize body font: Arial 12 for BOQ/totals/T&C, Arial 10 for metadata.
+        # Row 19 (column header) and rows 1–5 (entity branding) excluded.
+        # Setting name/size independently preserves bold/italic/color already applied.
+        # -------------------------------------------------------------------
+        # Proposal type (row 7) + metadata spacer area → Arial 12
+        ps.range(f"A{_ST_TYPE_ROW}:H{hdr_row - 1}").font.name = "Arial"
+        ps.range(f"A{_ST_TYPE_ROW}:H{hdr_row - 1}").font.size = 12
+        # BOQ + totals + T&C → Arial 12
+        ps.range(f"A{data_start}:H{r - 1}").font.name = "Arial"
+        ps.range(f"A{data_start}:H{r - 1}").font.size = 12
+        # Metadata rows: combined "Label Value" in C → Arial 10, not bold
+        if active_meta:
+            _meta_end = _ST_META_START + len(active_meta) - 1
+            ps.range(f"C{_ST_META_START}:C{_meta_end}").font.name = "Arial"
+            ps.range(f"C{_ST_META_START}:C{_meta_end}").font.size = 10
+            ps.range(f"C{_ST_META_START}:C{_meta_end}").font.bold = False
+
+        # Top-align all columns so numbers/qty/scope sit at the top of wrapped rows
+        ps.range(f"A{data_start}:H{r - 1}").vertical_alignment = "top"
+        # Right-align No. column (A) so sub-numbers (.1) and integers align flush right
+        if sys.platform == "win32":
+            try:
+                ps.range(f"A{data_start}:A{r - 1}").api.HorizontalAlignment = -4152
+            except Exception:
+                pass
+
+        # Autofit row heights based on final content and font sizes
+        if data_end >= data_start:
+            ps.range(f"A{data_start}:H{data_end}").rows.autofit()
+
+        # Autofit Unit Price / Total column widths (commercial only; numbers now Arial 12)
+        if mode == "commercial":
+            ps.range("F:G").columns.autofit()
+
+        # -------------------------------------------------------------------
+        # Technical mode: remove price columns and redistribute their width.
+        # F(11) + G(12) = 23 units freed; given to C(+13→68) and H(+10→18)
+        # so total page width stays at 105 — logos remain within print boundary.
+        # -------------------------------------------------------------------
+        if mode == "technical":
+            ps.range("F:G").column_width = 0
+            ps.range("C:C").column_width = 68
+            ps.range("H:H").column_width = 18
+
+        # -------------------------------------------------------------------
+        # Print area and page setup
+        # -------------------------------------------------------------------
+        ps.page_setup.print_area = f"A1:H{r - 1}"
+        ps.page_setup.fit_to_width = True
+        ps.page_setup.center_horizontally = True
+        # Footer: "Page X of Y" centered, Arial 10 (template also carries this)
+        try:
+            ps.api.PageSetup.CenterFooter = '&"Arial,Regular"&10Page &P of &N'
+        except Exception:
+            pass
+
+        # -------------------------------------------------------------------
+        # Save XLSX and export PDF
+        # -------------------------------------------------------------------
+        save_workbook_safe(out_wb, output_xlsx)
+        try:
+            to_pdf_safe(out_wb, output_pdf, show=show_pdf)
+        except Exception as e:
+            xw.apps.active.alert(f"PDF export error: {e}")  # type: ignore
+
+    finally:
+        try:
+            out_wb.close()
+        except Exception:
+            pass
 
 
 def apply_conditional_format(sheet):
