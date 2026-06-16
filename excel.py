@@ -435,6 +435,20 @@ def internal_costing():
     functions.internal_costing(wb)
 
 
+@check_if_template
+@disable_screen_updating
+def simple_commercial():
+    wb = xw.Book.caller()
+    functions.simple_proposal(wb, mode="commercial")
+
+
+@check_if_template
+@disable_screen_updating
+def simple_technical():
+    wb = xw.Book.caller()
+    functions.simple_proposal(wb, mode="technical")
+
+
 def convert_legacy():
     wb = xw.Book.caller()
     functions.convert_legacy(wb)
