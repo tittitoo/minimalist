@@ -387,7 +387,7 @@ def _find_workbook_in_rfqs(workbook_name: str, base_path: Path) -> Path | None:
     return matches[0][1]
 
 
-_COLOR_DEBUG_LOG = Path(tempfile.gettempdir()) / "minimalist_color_debug.txt"
+_COLOR_DEBUG_LOG = Path.home() / "minimalist_color_debug.txt"
 
 
 def _resolve_workbook_path(wb) -> "Path | None":
