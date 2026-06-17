@@ -374,6 +374,28 @@ def _find_workbook_in_rfqs(workbook_name: str, base_path: Path) -> Path | None:
     return matches[0][1]
 
 
+def _resolve_workbook_path(wb) -> "Path | None":
+    """Return the local .xlsx path for wb, handling SharePoint/OneDrive URLs."""
+    try:
+        p = Path(wb.fullname)
+        if p.exists() and p.suffix.lower() == ".xlsx":
+            return p
+    except Exception:
+        pass
+    # fullname was a URL or stale — search @rfqs for the synced copy
+    try:
+        rfq_base = _get_rfq_base_path()
+        if rfq_base is not None:
+            found_dir = _find_workbook_in_rfqs(wb.name, rfq_base)
+            if found_dir is not None:
+                p = Path(found_dir) / wb.name
+                if p.exists():
+                    return p
+    except Exception:
+        pass
+    return None
+
+
 def get_workbook_directory(wb):
     """
     Get the directory path for a workbook, handling SharePoint/OneDrive URLs.
@@ -2121,9 +2143,9 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
     try:
         import openpyxl as _openpyxl
         import xml.etree.ElementTree as _ET
-        src_path = Path(wb.fullname)
-        if src_path.exists() and src_path.suffix.lower() == ".xlsx":
-            _oxl_wb = _openpyxl.load_workbook(str(src_path), data_only=True)
+        src_path = _resolve_workbook_path(wb)
+        if src_path is not None:
+            _oxl_wb = _openpyxl.load_workbook(str(src_path.resolve()), data_only=True)
 
             # Build theme color index (0=dk1,1=lt1,2=dk2,3=lt2,4-9=accent1-6,…)
             _theme_colors = {}
