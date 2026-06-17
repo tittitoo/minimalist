@@ -2493,9 +2493,10 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         ps.range("E:E").column_width = 5
         ps.range("H:H").column_width = 8
         if mode == "commercial":
-            # Width based on "Unit Price (XXX)" / "Total (XXX)" at Aptos 9pt bold
-            f_width = max(round(len(f"Unit Price ({currency})") * 0.82), 12)
-            g_width = max(round(len(f"Total ({currency})") * 0.82), 10)
+            # Width based on header label with a floor that fits 7-digit totals
+            # in parentheses format e.g. "(9,999,999.00)" needs ~14 units.
+            f_width = max(round(len(f"Unit Price ({currency})") * 0.82), 14)
+            g_width = max(round(len(f"Total ({currency})") * 0.82), 14)
             ps.range("F:F").column_width = f_width
             ps.range("G:G").column_width = g_width
 
