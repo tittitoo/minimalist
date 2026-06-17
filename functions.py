@@ -2215,9 +2215,10 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 continue
             right_active.append((lbl_str, val_str))
 
+        right_meta_col = "D" if mode == "technical" else "F"
         if right_active:
             right_end = _ST_META_START + len(right_active) - 1
-            right_rng = ps.range(f"F{_ST_META_START}:F{right_end}")
+            right_rng = ps.range(f"{right_meta_col}{_ST_META_START}:{right_meta_col}{right_end}")
             right_rng.value = [[f"{lbl} {val}"] for lbl, val in right_active]
             right_rng.number_format = "@"
             right_rng.wrap_text = False
@@ -2376,9 +2377,10 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             ps.range(f"C{_ST_META_START}:C{_left_end}").font.bold = False
         if right_active:
             _right_end = _ST_META_START + len(right_active) - 1
-            ps.range(f"F{_ST_META_START}:F{_right_end}").font.name = "Arial"
-            ps.range(f"F{_ST_META_START}:F{_right_end}").font.size = 10
-            ps.range(f"F{_ST_META_START}:F{_right_end}").font.bold = False
+            _right_meta_rng = ps.range(f"{right_meta_col}{_ST_META_START}:{right_meta_col}{_right_end}")
+            _right_meta_rng.font.name = "Arial"
+            _right_meta_rng.font.size = 10
+            _right_meta_rng.font.bold = False
         # T&C items → Arial 10 (smaller than BOQ to subordinate them)
         if tc_lines:
             ps.range(f"C{tc_start}:C{tc_end}").font.size = 10
@@ -2421,6 +2423,10 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             ps.range("F:G").column_width = 0
             ps.range("C:C").column_width = 68
             ps.range("H:H").column_width = 18
+            # Left-align D metadata rows so text overflows right (template pre-styles D as right)
+            if right_active:
+                _right_end = _ST_META_START + len(right_active) - 1
+                ps.range(f"D{_ST_META_START}:D{_right_end}").horizontal_alignment = "left"
 
         # -------------------------------------------------------------------
         # Print area and page setup
