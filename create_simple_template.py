@@ -143,7 +143,7 @@ LEFT_META_LABELS = [
 RIGHT_META_LABELS = [
     "Sales:",
     "Jason Ref:",
-    "Revision Num:",
+    "Revision:",
     "Date:",
 ]
 _META_START = 9

@@ -2187,6 +2187,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             "sales manager": "Sales:",
             "jason ref num": "Jason Ref:",
             "jason ref":     "Jason Ref:",
+            "revision num":  "Revision:",
         }
         right_raw = config.range("A28:B35").options(ndim=2).value or []
         right_active = []
