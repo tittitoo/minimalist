@@ -2153,7 +2153,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
     _SRC_COLOR_EXCEL_COLS = [2, 3, 4, 5]   # openpyxl column numbers for B–E
     _SRC_COLOR_OUT_COLS   = ["B", "C", "D", "E"]
     src_colors = {}
-    _tmp_src = Path(tempfile.gettempdir()) / f"_minimalist_src_{wb.name}"
+    _tmp_src = Path.home() / "Downloads" / f"_minimalist_src_{wb.name}"
     try:
         import openpyxl as _openpyxl
         import xml.etree.ElementTree as _ET
