@@ -390,22 +390,30 @@ def _find_workbook_in_rfqs(workbook_name: str, base_path: Path) -> Path | None:
 def _resolve_workbook_path(wb) -> "Path | None":
     """Return the local .xlsx path for wb, handling SharePoint/OneDrive URLs."""
     try:
-        p = Path(wb.fullname)
+        fullname = wb.fullname
+        print(f"[color] wb.fullname = {fullname!r}")
+        p = Path(fullname)
         if p.exists() and p.suffix.lower() == ".xlsx":
+            print(f"[color] source found via fullname: {p}")
             return p
-    except Exception:
-        pass
+        print(f"[color] fullname path not found on disk, trying @rfqs search")
+    except Exception as e:
+        print(f"[color] wb.fullname error: {e}")
     # fullname was a URL or stale — search @rfqs for the synced copy
     try:
         rfq_base = _get_rfq_base_path()
+        print(f"[color] rfq_base = {rfq_base}")
         if rfq_base is not None:
             found_dir = _find_workbook_in_rfqs(wb.name, rfq_base)
+            print(f"[color] found_dir = {found_dir}")
             if found_dir is not None:
                 p = Path(found_dir) / wb.name
                 if p.exists():
+                    print(f"[color] source found via @rfqs: {p}")
                     return p
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[color] @rfqs search error: {e}")
+    print(f"[color] source file not found — font colors will not be carried over")
     return None
 
 
@@ -2220,8 +2228,9 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                     if _rgb:
                         src_colors[(_ri, _ci)] = _rgb
             _oxl_wb.close()
-    except Exception:
-        pass  # unsaved file or cloud path — skip silently
+            print(f"[color] extracted {len(src_colors)} colored cells from source")
+    except Exception as _e:
+        print(f"[color] openpyxl read error: {_e}")  # unsaved file or cloud path
 
     # T&C lines: column B = letter (A, B, C…), column C = text; starts at row 5
     tc_lines = []
