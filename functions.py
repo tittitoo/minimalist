@@ -2100,13 +2100,12 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         )
         return
 
-    # Require exactly one system sheet
     system_sheets = [s for s in wb.sheet_names if not should_skip_sheet(s)]
-    if len(system_sheets) != 1:
+    if not (1 <= len(system_sheets) <= 2):
         xw.apps.active.alert(  # type: ignore
-            f"Simple Proposal requires exactly one system sheet. "
+            f"Simple Proposal supports one or two system sheets. "
             f"Found {len(system_sheets)}: {', '.join(system_sheets) or 'none'}.\n"
-            "Use Commercial Proposal or Technical Proposal for multi-sheet workbooks."
+            "Use Commercial Proposal or Technical Proposal for workbooks with more sheets."
         )
         return
 
@@ -2125,7 +2124,6 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
     # -----------------------------------------------------------------------
     # Read source data
     # -----------------------------------------------------------------------
-    src_ws  = wb.sheets[system_sheets[0]]
     config  = wb.sheets["Config"]
 
     currency = config.range("B12").value or "SGD"
@@ -2141,21 +2139,10 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         entity_key = _SIMPLE_ENTITY_DEFAULT
     entity_info = _SIMPLE_ENTITY_DATA.get(entity_key, _SIMPLE_ENTITY_DATA[_SIMPLE_ENTITY_DEFAULT])
 
-    # BOQ data (columns A–H + AL)
-    last_row = max(src_ws.range("C1500").end("up").row, src_ws.range("G1500").end("up").row)
-    rows_ah  = src_ws.range(f"A3:H{last_row}").options(ndim=2).value
-    al_vals  = src_ws.range(f"AL3:AL{last_row}").options(ndim=1).value
-
-    # Read font colors from columns B–E directly via xlwings.
-    # Excel already holds the workbook in memory (local or OneDrive), so we read
-    # directly instead of saving a temp copy — avoids macOS sandbox issues and the
-    # SaveAs-rename side-effect that corrupted output filenames.
+    # Collect BOQ data and font colors per sheet.
     # Maps (row_idx, col_offset) -> (R, G, B); col_offset 0=B,1=C,2=D,3=E.
-    # Optimisation: check column C first; only read B/D/E for rows where C is colored,
-    # since most rows have default (black/auto) text. Special-format rows are skipped
-    # because they receive programmatic colors anyway.
+    # Optimisation: check column C first; only read B/D/E for rows where C is colored.
     _SRC_COLOR_OUT_COLS = ["B", "C", "D", "E"]
-    src_colors = {}
     _special_fmts_color = {"System", "Subsystem", "Title", "Subtitle", "Comment"}
 
     def _xlw_to_rgb(v):
@@ -2173,30 +2160,38 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 return None
         return None if (r, g, b) in ((0, 0, 0), (255, 255, 255)) else (r, g, b)
 
-    try:
-        for _ri, _row_data in enumerate(rows_ah):
-            _no, _desc = _row_data[0], _row_data[2]
-            if not _desc and not _no:
-                continue  # spacer row
-            _al = al_vals[_ri] if al_vals else None
-            _no_has_val = _no is not None and (
-                (isinstance(_no, str) and _no.strip()) or
-                (isinstance(_no, (int, float)) and _no)
-            )
-            if _al in ("Comment", "Subtitle") and _no_has_val:
-                _al = "Title"
-            if _al in _special_fmts_color:
-                continue  # programmatic color — no need to read
-            _c_rgb = _xlw_to_rgb(src_ws.range(f"C{_ri + 3}").font.color)
-            if _c_rgb is None:
-                continue  # C is default — skip B/D/E too (saves 3 calls per row)
-            src_colors[(_ri, 1)] = _c_rgb
-            for _ci, _ltr in [(0, "B"), (2, "D"), (3, "E")]:
-                _rgb = _xlw_to_rgb(src_ws.range(f"{_ltr}{_ri + 3}").font.color)
-                if _rgb:
-                    src_colors[(_ri, _ci)] = _rgb
-    except Exception:
-        pass
+    sheets_data = []   # [(rows_ah, al_vals, sheet_colors), ...]
+    for _sname in system_sheets:
+        _src_ws = wb.sheets[_sname]
+        _last_row = max(_src_ws.range("C1500").end("up").row, _src_ws.range("G1500").end("up").row)
+        _rows_ah = _src_ws.range(f"A3:H{_last_row}").options(ndim=2).value or []
+        _al_vals = _src_ws.range(f"AL3:AL{_last_row}").options(ndim=1).value or []
+        _sheet_colors = {}
+        try:
+            for _ri, _row_data in enumerate(_rows_ah):
+                _no, _desc = _row_data[0], _row_data[2]
+                if not _desc and not _no:
+                    continue
+                _al = _al_vals[_ri] if _al_vals else None
+                _no_has_val = _no is not None and (
+                    (isinstance(_no, str) and _no.strip()) or
+                    (isinstance(_no, (int, float)) and _no)
+                )
+                if _al in ("Comment", "Subtitle") and _no_has_val:
+                    _al = "Title"
+                if _al in _special_fmts_color:
+                    continue
+                _c_rgb = _xlw_to_rgb(_src_ws.range(f"C{_ri + 3}").font.color)
+                if _c_rgb is None:
+                    continue
+                _sheet_colors[(_ri, 1)] = _c_rgb
+                for _ci, _ltr in [(0, "B"), (2, "D"), (3, "E")]:
+                    _rgb = _xlw_to_rgb(_src_ws.range(f"{_ltr}{_ri + 3}").font.color)
+                    if _rgb:
+                        _sheet_colors[(_ri, _ci)] = _rgb
+        except Exception:
+            pass
+        sheets_data.append((_rows_ah, _al_vals, _sheet_colors))
 
     # T&C lines: column B = letter (A, B, C…), column C = text; starts at row 5
     tc_lines = []
@@ -2214,7 +2209,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
     discount_amount = None
     has_discount = False
     if mode == "commercial" and "Summary" in wb.sheet_names:
-        disc_row = 1 + 19 + 3  # system_count=1, start_row=19 → row 23
+        disc_row = len(system_sheets) + 19 + 3
         label_cell = wb.sheets["Summary"].range(f"C{disc_row}").value
         if label_cell in ("SPECIAL DISCOUNT", "SPECIAL PROJECT DISCOUNT"):
             val = wb.sheets["Summary"].range(f"D{disc_row}").value
@@ -2336,54 +2331,59 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         fmt_pending = []   # [(row, fmt_type, desc)] for rows needing font changes
         color_pending = [] # [(row, col_letter, rgb)] source colors to carry over
 
-        for i, row_data in enumerate(rows_ah):
-            no, sn, desc, qty, unit, up, sp, scope = row_data
-            fmt = al_vals[i] if al_vals else None
-
-            # Preserve intentional empty rows (spacers between items)
-            if not desc and not no:
-                boq_rows.append([None] * 8)
+        for sheet_idx, (rows_ah, al_vals, src_colors) in enumerate(sheets_data):
+            if sheet_idx > 0:
+                boq_rows.append([None] * 8)   # one empty row between sheets
                 r += 1
-                continue
 
-            # Column A in source: integers = main item number; strings = sub-number (.1, .2)
-            if no is None:
-                no_disp = None
-            elif isinstance(no, str):
-                no_disp = no.strip() or None          # ".1", ".2", ".3" etc.
-            elif isinstance(no, (int, float)) and no:
-                no_disp = str(int(no))                # 1, 2, 3 etc.
-            else:
-                no_disp = None
+            for i, row_data in enumerate(rows_ah):
+                no, sn, desc, qty, unit, up, sp, scope = row_data
+                fmt = al_vals[i] if al_vals else None
 
-            # Column B (SN): integer sub-item numbers within a group
-            if sn is None:
-                sn_disp = None
-            elif isinstance(sn, str):
-                sn_disp = sn.strip() or None
-            elif isinstance(sn, (int, float)) and sn:
-                sn_disp = str(int(sn))
-            else:
-                sn_disp = None
+                # Preserve intentional empty rows (spacers between items)
+                if not desc and not no:
+                    boq_rows.append([None] * 8)
+                    r += 1
+                    continue
 
-            if mode == "commercial":
-                boq_rows.append([no_disp, sn_disp, desc, qty, unit, up, sp, scope])
-            else:
-                boq_rows.append([no_disp, sn_disp, desc, qty, unit, None, None, scope])
+                # Column A in source: integers = main item number; strings = sub-number (.1, .2)
+                if no is None:
+                    no_disp = None
+                elif isinstance(no, str):
+                    no_disp = no.strip() or None          # ".1", ".2", ".3" etc.
+                elif isinstance(no, (int, float)) and no:
+                    no_disp = str(int(no))                # 1, 2, 3 etc.
+                else:
+                    no_disp = None
 
-            # Numbered rows (No. column has a value) that the source marks as
-            # Comment or Subtitle are section-level headers — render as Title
-            # (bold black) so they look consistent in the simple proposal.
-            if fmt in ("Comment", "Subtitle") and no_disp:
-                fmt = "Title"
-            if fmt in ("System", "Subsystem", "Title", "Subtitle", "Comment"):
-                fmt_pending.append((r, fmt, desc))
-            elif src_colors:
-                for _ci, _col_letter in enumerate(_SRC_COLOR_OUT_COLS):
-                    if (i, _ci) in src_colors:
-                        color_pending.append((r, _col_letter, src_colors[(i, _ci)]))
+                # Column B (SN): integer sub-item numbers within a group
+                if sn is None:
+                    sn_disp = None
+                elif isinstance(sn, str):
+                    sn_disp = sn.strip() or None
+                elif isinstance(sn, (int, float)) and sn:
+                    sn_disp = str(int(sn))
+                else:
+                    sn_disp = None
 
-            r += 1
+                if mode == "commercial":
+                    boq_rows.append([no_disp, sn_disp, desc, qty, unit, up, sp, scope])
+                else:
+                    boq_rows.append([no_disp, sn_disp, desc, qty, unit, None, None, scope])
+
+                # Numbered rows (No. column has a value) that the source marks as
+                # Comment or Subtitle are section-level headers — render as Title
+                # (bold black) so they look consistent in the simple proposal.
+                if fmt in ("Comment", "Subtitle") and no_disp:
+                    fmt = "Title"
+                if fmt in ("System", "Subsystem", "Title", "Subtitle", "Comment"):
+                    fmt_pending.append((r, fmt, desc))
+                elif src_colors:
+                    for _ci, _col_letter in enumerate(_SRC_COLOR_OUT_COLS):
+                        if (i, _ci) in src_colors:
+                            color_pending.append((r, _col_letter, src_colors[(i, _ci)]))
+
+                r += 1
 
         data_end = r - 1
 
