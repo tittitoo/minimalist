@@ -2360,7 +2360,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             d_total.value = f"TOTAL  ({currency})"
             d_total.font.bold = True
             d_total.wrap_text = False
-            ps.range(f"G{total_row}").formula = f"=SUMIF(G{data_start}:G{data_end},\">0\")"
+            ps.range(f"G{total_row}").formula = f"=SUM(G{data_start}:G{data_end})"
             ps.range(f"G{total_row}").number_format = num_fmt
             ps.range(f"G{total_row}").font.bold = True
             r += 1
