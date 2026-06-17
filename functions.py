@@ -2114,31 +2114,76 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
     # Read font colors from columns B–E via openpyxl (pure Python, no xlwings round-trips).
     # Maps (row_idx, col_offset) -> (R, G, B); col_offset 0=B,1=C,2=D,3=E.
-    # Only captures explicit RGB colors; theme/automatic colors are skipped.
+    # Handles RGB, indexed, and theme colors (including tinted theme colors).
     _SRC_COLOR_EXCEL_COLS = [2, 3, 4, 5]   # openpyxl column numbers for B–E
     _SRC_COLOR_OUT_COLS   = ["B", "C", "D", "E"]
     src_colors = {}
     try:
         import openpyxl as _openpyxl
+        import xml.etree.ElementTree as _ET
         src_path = Path(wb.fullname)
         if src_path.exists() and src_path.suffix.lower() == ".xlsx":
             _oxl_wb = _openpyxl.load_workbook(str(src_path), data_only=True)
+
+            # Build theme color index (0=dk1,1=lt1,2=dk2,3=lt2,4-9=accent1-6,…)
+            _theme_colors = {}
+            try:
+                if _oxl_wb.loaded_theme:
+                    _ns = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
+                    _troot = _ET.fromstring(_oxl_wb.loaded_theme)
+                    _scheme = _troot.find(".//a:clrScheme", _ns)
+                    if _scheme is not None:
+                        for _tidx, _child in enumerate(_scheme):
+                            for _cel in _child:
+                                _hex6 = (_cel.get("val") or _cel.get("lastClr") or "")[-6:]
+                                if _hex6:
+                                    _theme_colors[_tidx] = _hex6.upper()
+                                break
+            except Exception:
+                pass
+
+            def _clr_to_rgb(clr):
+                """Return (R,G,B) for any openpyxl Color, or None if black/white/auto."""
+                if clr is None:
+                    return None
+                try:
+                    if clr.type == "rgb" and clr.rgb:
+                        _h = clr.rgb[-6:].upper()
+                    elif clr.type == "indexed":
+                        from openpyxl.styles.colors import COLOR_INDEX
+                        _idx = int(clr.indexed)
+                        _h = COLOR_INDEX[_idx][-6:].upper() if _idx < len(COLOR_INDEX) else None
+                    elif clr.type == "theme" and clr.theme is not None:
+                        _h = _theme_colors.get(int(clr.theme))
+                        if _h:
+                            _tint = getattr(clr, "tint", 0) or 0
+                            _r = int(_h[0:2], 16)
+                            _g = int(_h[2:4], 16)
+                            _b = int(_h[4:6], 16)
+                            if _tint > 0:
+                                _r = int(_r + (255 - _r) * _tint)
+                                _g = int(_g + (255 - _g) * _tint)
+                                _b = int(_b + (255 - _b) * _tint)
+                            elif _tint < 0:
+                                _r = int(_r * (1 + _tint))
+                                _g = int(_g * (1 + _tint))
+                                _b = int(_b * (1 + _tint))
+                            _h = f"{_r:02X}{_g:02X}{_b:02X}"
+                    else:
+                        _h = None
+                    if not _h or _h in ("000000", "FFFFFF"):
+                        return None
+                    return (int(_h[0:2], 16), int(_h[2:4], 16), int(_h[4:6], 16))
+                except Exception:
+                    return None
+
             _oxl_ws = _oxl_wb[system_sheets[0]]
             for _ri in range(len(rows_ah)):
                 for _ci, _col_num in enumerate(_SRC_COLOR_EXCEL_COLS):
                     _cell = _oxl_ws.cell(row=_ri + 3, column=_col_num)
-                    try:
-                        _clr = _cell.font.color
-                        if _clr and _clr.type == "rgb" and _clr.rgb:
-                            _hex = _clr.rgb[-6:].upper()
-                            if _hex != "000000":
-                                src_colors[(_ri, _ci)] = (
-                                    int(_hex[0:2], 16),
-                                    int(_hex[2:4], 16),
-                                    int(_hex[4:6], 16),
-                                )
-                    except Exception:
-                        pass
+                    _rgb = _clr_to_rgb(_cell.font.color)
+                    if _rgb:
+                        src_colors[(_ri, _ci)] = _rgb
             _oxl_wb.close()
     except Exception:
         pass  # unsaved file or cloud path — skip silently
