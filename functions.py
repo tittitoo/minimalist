@@ -2112,6 +2112,37 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
     rows_ah  = src_ws.range(f"A3:H{last_row}").options(ndim=2).value
     al_vals  = src_ws.range(f"AL3:AL{last_row}").options(ndim=1).value
 
+    # Read font colors from columns B–E via openpyxl (pure Python, no xlwings round-trips).
+    # Maps (row_idx, col_offset) -> (R, G, B); col_offset 0=B,1=C,2=D,3=E.
+    # Only captures explicit RGB colors; theme/automatic colors are skipped.
+    _SRC_COLOR_EXCEL_COLS = [2, 3, 4, 5]   # openpyxl column numbers for B–E
+    _SRC_COLOR_OUT_COLS   = ["B", "C", "D", "E"]
+    src_colors = {}
+    try:
+        import openpyxl as _openpyxl
+        src_path = Path(wb.fullname)
+        if src_path.exists() and src_path.suffix.lower() == ".xlsx":
+            _oxl_wb = _openpyxl.load_workbook(str(src_path), data_only=True)
+            _oxl_ws = _oxl_wb[system_sheets[0]]
+            for _ri in range(len(rows_ah)):
+                for _ci, _col_num in enumerate(_SRC_COLOR_EXCEL_COLS):
+                    _cell = _oxl_ws.cell(row=_ri + 3, column=_col_num)
+                    try:
+                        _clr = _cell.font.color
+                        if _clr and _clr.type == "rgb" and _clr.rgb:
+                            _hex = _clr.rgb[-6:].upper()
+                            if _hex != "000000":
+                                src_colors[(_ri, _ci)] = (
+                                    int(_hex[0:2], 16),
+                                    int(_hex[2:4], 16),
+                                    int(_hex[4:6], 16),
+                                )
+                    except Exception:
+                        pass
+            _oxl_wb.close()
+    except Exception:
+        pass  # unsaved file or cloud path — skip silently
+
     # T&C lines: column B = letter (A, B, C…), column C = text; starts at row 5
     tc_lines = []
     tc_sheet = get_sheet(wb, "T&C", required=False)
@@ -2248,6 +2279,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
         boq_rows = []      # 2-D list for batch write
         fmt_pending = []   # [(row, fmt_type, desc)] for rows needing font changes
+        color_pending = [] # [(row, col_letter, rgb)] source colors to carry over
 
         for i, row_data in enumerate(rows_ah):
             no, sn, desc, qty, unit, up, sp, scope = row_data
@@ -2291,6 +2323,10 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 fmt = "Title"
             if fmt in ("System", "Subsystem", "Title", "Subtitle", "Comment"):
                 fmt_pending.append((r, fmt, desc))
+            elif src_colors:
+                for _ci, _col_letter in enumerate(_SRC_COLOR_OUT_COLS):
+                    if (i, _ci) in src_colors:
+                        color_pending.append((r, _col_letter, src_colors[(i, _ci)]))
 
             r += 1
 
@@ -2308,6 +2344,10 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # Apply font/colour only for rows that need it (skips Description/Lineitem)
         for (row_r, fmt, desc) in fmt_pending:
             _sp_apply_row_fmt(ps, row_r, fmt, mode, desc=desc)
+
+        # Carry over explicit source colors for Description/Lineitem rows (B–E only)
+        for (row_r, col_letter, rgb) in color_pending:
+            ps.range(f"{col_letter}{row_r}").font.color = rgb
 
         # -------------------------------------------------------------------
         # Totals block (commercial only)
