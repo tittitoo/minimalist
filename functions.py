@@ -284,9 +284,22 @@ def _get_rfq_base_path() -> Path | None:
     Returns:
         Path to the @rfqs folder, or None if it doesn't exist.
     """
+    # Mac: OneDrive for Business syncs to ~/Library/CloudStorage/OneDrive-*/
+    # Search all OneDrive folders there for "Bid Proposal - Documents/@rfqs".
+    if sys.platform == "darwin":
+        cloud_base = Path.home() / "Library" / "CloudStorage"
+        if cloud_base.exists():
+            try:
+                for od_dir in sorted(cloud_base.iterdir()):
+                    candidate = od_dir / "Bid Proposal - Documents" / "@rfqs"
+                    if candidate.exists():
+                        return candidate
+            except PermissionError:
+                pass
+
     username = getpass.getuser()
 
-    # User-specific path configurations
+    # Windows user-specific path configurations
     if username == "oliver":
         base = (
             Path.home()
