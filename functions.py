@@ -2318,7 +2318,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # separately and formatted after the bulk write.
         # -------------------------------------------------------------------
         r = data_start
-        num_fmt = ACCOUNTING_COMMA
+        num_fmt = ACCOUNTING_PAREN
 
         ps.range(f"C{r}").clear_contents()   # clear template placeholder
 
@@ -2384,7 +2384,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             ps.range(f"C{data_start}:C{data_end}").wrap_text = True
             # One call applies price format to both price columns
             if mode == "commercial":
-                ps.range(f"F{data_start}:G{data_end}").number_format = ACCOUNTING_COMMA
+                ps.range(f"F{data_start}:G{data_end}").number_format = ACCOUNTING_PAREN
 
         # Apply font/colour only for rows that need it (skips Description/Lineitem)
         for (row_r, fmt, desc) in fmt_pending:
