@@ -136,7 +136,7 @@ LEFT_META_LABELS = [
     "Attention to:",
     "Designation:",
     "Customer:",
-    "Client Reference:",
+    "Client Ref:",
     "Ref Doc No:",
     "Project:",
 ]

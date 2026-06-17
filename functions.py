@@ -1920,7 +1920,7 @@ _ST_META_FIELDS = [
     (_ST_META_START +  0, "Attention to:",    "B21"),
     (_ST_META_START +  1, "Designation:",     "B22"),
     (_ST_META_START +  2, "Customer:",        "B23"),
-    (_ST_META_START +  3, "Client Reference:","B24"),
+    (_ST_META_START +  3, "Client Ref:",      "B24"),
     (_ST_META_START +  4, "Ref Doc No:",      "B25"),
     (_ST_META_START +  5, "Project:",         "B26"),
     (_ST_META_START +  6, "Sales:",           "B28"),
