@@ -206,10 +206,10 @@ _col_h = ["right", "center", "left", "right", "center", "right", "right", "cente
 for _r in range(_META_START, _HDR_ROW + 1):       # rows 9–16: center vertical
     for _ci, h in enumerate(_col_h, 1):
         ws.cell(row=_r, column=_ci).alignment = align(h, v="center")
-# Column F in metadata rows overrides right→left so right-column text overflows into G/H.
-# Exclude _HDR_ROW itself — that row holds the column header "Unit Price (USD)" which
-# should stay right-aligned to match the numbers below it.
-for _r in range(_META_START, _HDR_ROW):
+# Column F left-override: only the rows where RIGHT_META_LABELS are written (9–12).
+# Keeping the override tight means any row beyond row 12 (spacer, header, BOQ) keeps
+# the right alignment from the main _col_h loop — including "Unit Price (USD)".
+for _r in range(_META_START, _META_START + len(RIGHT_META_LABELS)):
     ws.cell(row=_r, column=6).alignment = align("left", v="center")
 for _r in range(_DATA_ROW, _META_START + 320):    # rows 17–328: top vertical
     for _ci, h in enumerate(_col_h, 1):
