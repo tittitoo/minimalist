@@ -2010,6 +2010,7 @@ def _sp_write_column_header(ps, hdr_row, mode, currency):
     rng.font.name = "Aptos"
     rng.font.size = 9
     rng.row_height = 17
+    rng.vertical_alignment = "center"   # Windows; Mac relies on template pre-styling
 
 
 def simple_proposal(wb, mode="commercial", show_pdf=True):
