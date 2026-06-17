@@ -977,8 +977,8 @@ def adjust_columns(sheet):
         sheet.range("A:A").column_width = 5
         sheet.range("B:B").autofit()
         sheet.range("C:C").column_width = 55
-        sheet.range("C:C").rows.autofit()
         sheet.range("C:C").wrap_text = True
+        sheet.range("C:C").rows.autofit()
         sheet.range("D:H").autofit()
 
 
@@ -1010,8 +1010,8 @@ def hide_columns(sheet):
         sheet.range("I:I").wrap_text = False
         sheet.range("J:K").autofit()
         sheet.range("C:C").column_width = 55
-        sheet.range("C:C").rows.autofit()
         sheet.range("C:C").wrap_text = True
+        sheet.range("C:C").rows.autofit()
         sheet.range("B:B").autofit()
         sheet.range("A:A").column_width = 5
 
@@ -1661,9 +1661,9 @@ def prepare_to_print_technical(wb):
         if not should_skip_sheet(sheet):
             last_row = wb.sheets[sheet].range("C1500").end("up").row
             wb.sheets[sheet].activate()
-            wb.sheets[sheet].range("C:C").autofit()
             wb.sheets[sheet].range("C:C").column_width = 60
             wb.sheets[sheet].range("C:C").wrap_text = True
+            wb.sheets[sheet].range("C:C").rows.autofit()
             wb.sheets[sheet].range("D:F").autofit()
             # Adjust the last two rows so that unwanted pagebreak can be prevented
             wb.sheets[sheet].range(f"{last_row+1}:{last_row+1}").delete()
@@ -1813,9 +1813,9 @@ def commercial(wb, show_pdf=True):
             ws.range(f"A3:AL{last_row}").value = ws.range(f"A3:AL{last_row}").raw_value
             ws.range("A:A").column_width = 4
             ws.range("B:B").autofit()
-            ws.range("C:C").autofit()
             ws.range("C:C").column_width = 55
-            # wb.sheets[sheet].range('C:C').wrap_text =
+            ws.range("C:C").wrap_text = True
+            ws.range("C:C").rows.autofit()
             ws.range(f"G3:G{last_row-1}").formula = (
                 '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
             )
