@@ -138,7 +138,7 @@ LEFT_META_LABELS = [
     "Customer:",
     "Client Reference:",
     "Ref Doc No:",
-    "Project Name:",
+    "Project:",
 ]
 RIGHT_META_LABELS = [
     "Sales:",

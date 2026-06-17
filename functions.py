@@ -1922,7 +1922,7 @@ _ST_META_FIELDS = [
     (_ST_META_START +  2, "Customer:",        "B23"),
     (_ST_META_START +  3, "Client Reference:","B24"),
     (_ST_META_START +  4, "Ref Doc No:",      "B25"),
-    (_ST_META_START +  5, "Project Name:",    "B26"),
+    (_ST_META_START +  5, "Project:",         "B26"),
     (_ST_META_START +  6, "Sales:",           "B28"),
     (_ST_META_START +  7, "Jason Ref:",       "B29"),
     (_ST_META_START +  8, "Revision Num:",    "B30"),
@@ -2183,6 +2183,11 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
         # Right column: dynamic from Config A28:B35 (label from A, value from B)
         _EXCLUDE_RIGHT = {"comn site", "comm site"}
+        _RENAME_RIGHT  = {
+            "sales manager": "Sales:",
+            "jason ref num": "Jason Ref:",
+            "jason ref":     "Jason Ref:",
+        }
         right_raw = config.range("A28:B35").options(ndim=2).value or []
         right_active = []
         for row_ab in right_raw:
@@ -2190,12 +2195,16 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             if not a_lbl or b_val is None:
                 continue
             lbl_str = str(a_lbl).strip()
-            if not lbl_str or lbl_str.lower().rstrip(": ") in _EXCLUDE_RIGHT:
+            if not lbl_str:
                 continue
+            key = lbl_str.lower().rstrip(": ")
+            if key in _EXCLUDE_RIGHT:
+                continue
+            lbl_str = _RENAME_RIGHT.get(key, lbl_str.rstrip())
             val_str = _format_iso_date(b_val) or str(b_val).strip()
             if not val_str:
                 continue
-            right_active.append((lbl_str.rstrip(), val_str))
+            right_active.append((lbl_str, val_str))
 
         if right_active:
             right_end = _ST_META_START + len(right_active) - 1
