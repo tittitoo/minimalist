@@ -2236,6 +2236,11 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             else:
                 boq_rows.append([no_disp, sn_disp, desc, qty, unit, None, None, scope])
 
+            # Numbered rows (No. column has a value) that the source marks as
+            # Comment or Subtitle are section-level headers — render as Title
+            # (bold black) so they look consistent in the simple proposal.
+            if fmt in ("Comment", "Subtitle") and no_disp:
+                fmt = "Title"
             if fmt in ("System", "Subsystem", "Title", "Subtitle", "Comment"):
                 fmt_pending.append((r, fmt, desc))
 
