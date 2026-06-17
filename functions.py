@@ -2030,6 +2030,14 @@ def _sp_write_column_header(ps, hdr_row, mode, currency):
     rng.font.size = 9
     rng.row_height = 17
     rng.vertical_alignment = "center"   # Windows; Mac relies on template pre-styling
+    # Right-align Unit Price and Total headers to match the numbers below them.
+    # Mac relies on template pre-styling (row 16 excluded from left override).
+    if sys.platform == "win32":
+        try:
+            ps.range(f"F{hdr_row}").api.HorizontalAlignment = -4152  # xlRight
+            ps.range(f"G{hdr_row}").api.HorizontalAlignment = -4152
+        except Exception:
+            pass
 
 
 def simple_proposal(wb, mode="commercial", show_pdf=True):
