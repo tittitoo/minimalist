@@ -12,7 +12,8 @@ Page 1 layout:
   Row  6     Spacer
   Row  7     Proposal type        ("COMMERCIAL PROPOSAL" / "TECHNICAL PROPOSAL")
   Row  8     Spacer
-  Rows 9–17  Metadata             C = label (bold), D = value (overflows E/F/G)
+  Rows 9–14  Metadata left         C = "Label Value" (Attention to … Project Name)
+  Rows 9–12  Metadata right        F = "Label Value" from Config A28:B35 (overflows G/H)
   Row  18    Spacer
   Row  19    Column header        (blue fill, white bold text; Python updates F/G with currency)
   Row  20+   BOQ data
@@ -127,34 +128,45 @@ c.alignment = align()
 # ROW 8 — Spacer
 ws.row_dimensions[8].height = 5
 
-# ROWS 9–20 — Metadata (12 fields, all Config B21–B32)
-# Python writes "Label:   Value" combined text into column C at runtime.
-META_LABELS = [
+# ROWS 9–16 — Metadata two-column layout
+# Left (C): 6 fields from Config B21–B26
+# Right (F): dynamic fields from Config A28:B35 (max 4 visible)
+# Python writes "Label Value" combined text at runtime.
+LEFT_META_LABELS = [
     "Attention to:",
     "Designation:",
     "Customer:",
     "Client Reference:",
     "Ref Doc No:",
     "Project Name:",
+]
+RIGHT_META_LABELS = [
     "Sales:",
     "Jason Ref:",
     "Revision Num:",
     "Date:",
 ]
 _META_START = 9
-for i, label in enumerate(META_LABELS):
+for i, label in enumerate(LEFT_META_LABELS):
     row = _META_START + i
     ws.row_dimensions[row].height = 14
-    c_label = ws.cell(row=row, column=3)
-    c_label.value = label
-    c_label.font = af(BODY, bold=False, size=10)
-    c_label.alignment = align()
+    c = ws.cell(row=row, column=3)   # column C
+    c.value = label
+    c.font = af(BODY, bold=False, size=10)
+    c.alignment = align()
+
+for i, label in enumerate(RIGHT_META_LABELS):
+    row = _META_START + i
+    c = ws.cell(row=row, column=6)   # column F
+    c.value = label
+    c.font = af(BODY, bold=False, size=10)
+    c.alignment = align("left")      # left so text overflows right into G/H
 
 # Derived row numbers (must match functions.py constants)
-_META_END    = _META_START + len(META_LABELS) - 1   # 20
-_SPACER2_ROW = _META_END + 1                         # 21
-_HDR_ROW     = _SPACER2_ROW + 1                      # 22
-_DATA_ROW    = _HDR_ROW + 1                          # 23
+_META_END    = _META_START + len(LEFT_META_LABELS) - 1   # 14
+_SPACER2_ROW = _META_END + 1                               # 15
+_HDR_ROW     = _SPACER2_ROW + 1                            # 16
+_DATA_ROW    = _HDR_ROW + 1                                # 17
 
 # ROW _SPACER2_ROW — Spacer before column header (Python writes header dynamically)
 ws.row_dimensions[_SPACER2_ROW].height = 6
@@ -191,10 +203,13 @@ ws.print_title_rows = "1:5"    # repeat entity header on every printed page / PD
 # header row is always middle-aligned regardless of which row Python picks.
 # Rows 21+ (BOQ data area): top alignment for wrapped multi-line descriptions.
 _col_h = ["right", "center", "left", "right", "center", "right", "right", "center"]
-for _r in range(_META_START, _HDR_ROW + 1):       # rows 9–20: center
+for _r in range(_META_START, _HDR_ROW + 1):       # rows 9–16: center vertical
     for _ci, h in enumerate(_col_h, 1):
         ws.cell(row=_r, column=_ci).alignment = align(h, v="center")
-for _r in range(_DATA_ROW, _META_START + 320):    # rows 21–328: top
+# Column F in metadata rows overrides right→left so right-column text overflows into G/H
+for _r in range(_META_START, _HDR_ROW + 1):
+    ws.cell(row=_r, column=6).alignment = align("left", v="center")
+for _r in range(_DATA_ROW, _META_START + 320):    # rows 17–328: top vertical
     for _ci, h in enumerate(_col_h, 1):
         ws.cell(row=_r, column=_ci).alignment = align(h, v="top")
 

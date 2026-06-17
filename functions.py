@@ -1928,10 +1928,12 @@ _ST_META_FIELDS = [
     (_ST_META_START +  8, "Revision Num:",    "B30"),
     (_ST_META_START +  9, "Date:",            "B32"),
 ]
-# These give the MAXIMUM header/data positions (all 10 fields filled).
+# First 6 fields go in left column (C); last 4 are replaced by dynamic read from Config A28:B35.
+_ST_META_LEFT_COUNT = 6
+# Maximum header/data positions (all 6 left fields filled, 1 spacer, header).
 # Actual positions are computed at runtime after filtering empty fields.
-_ST_TABLE_HDR  = _ST_META_START + len(_ST_META_FIELDS) + 1   # row 20 (max)
-_ST_DATA_START = _ST_TABLE_HDR + 1                            # row 21 (max)
+_ST_TABLE_HDR  = _ST_META_START + _ST_META_LEFT_COUNT + 1   # row 16 (max)
+_ST_DATA_START = _ST_TABLE_HDR + 1                           # row 17 (max)
 
 ACCOUNTING_COMMA = "#,##0.00"
 ACCOUNTING_PAREN = "#,##0.00;(#,##0.00)"   # negative shown as (111), not -111
@@ -2151,37 +2153,59 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         ps.range(f"C{_ST_TYPE_ROW}").value = proposal_title
 
         # -------------------------------------------------------------------
-        # Metadata: only fields with non-empty Config values; no padding.
-        # Header row written dynamically after the last filled field.
+        # Metadata: two-column layout.
+        #   Left  (C): Attention to, Designation, Customer, Client Ref, Ref Doc No, Project Name
+        #   Right (F): dynamic — reads Config A28:B35, skips blanks and "Comm Site"
+        # Header row written dynamically after the taller of the two columns.
         # -------------------------------------------------------------------
-        # Clear the max possible metadata + template header area (stale content/fill)
         ps.range(f"A{_ST_META_START}:H{_ST_TABLE_HDR}").clear_contents()
         ps.range(f"A{_ST_TABLE_HDR}:H{_ST_TABLE_HDR}").color = None
 
+        # Left column: hardcoded fields from Config B21–B26
         cfg_block = config.range("B21:B32").options(ndim=1).value or []
-        active_meta = []
-        for (_, lbl, cfg_cell) in _ST_META_FIELDS:
-            cfg_row_idx = int(cfg_cell[1:]) - 21   # "B21"→0, "B32"→11
+        left_active = []
+        for (_, lbl, cfg_cell) in _ST_META_FIELDS[:_ST_META_LEFT_COUNT]:
+            cfg_row_idx = int(cfg_cell[1:]) - 21
             raw = cfg_block[cfg_row_idx] if cfg_row_idx < len(cfg_block) else None
             if raw is None:
                 continue
             val_str = str(raw).strip()
             if not val_str:
                 continue
-            if lbl == "Date:":
-                val_str = _format_iso_date(raw) or val_str
-            active_meta.append((lbl, val_str))
+            left_active.append((lbl, val_str))
 
-        if active_meta:
-            meta_vals = [[f"{lbl} {val}"] for lbl, val in active_meta]
-            meta_end = _ST_META_START + len(active_meta) - 1
-            meta_rng = ps.range(f"C{_ST_META_START}:C{meta_end}")
-            meta_rng.value = meta_vals
-            meta_rng.number_format = "@"
-            meta_rng.wrap_text = False
+        if left_active:
+            left_end = _ST_META_START + len(left_active) - 1
+            left_rng = ps.range(f"C{_ST_META_START}:C{left_end}")
+            left_rng.value = [[f"{lbl} {val}"] for lbl, val in left_active]
+            left_rng.number_format = "@"
+            left_rng.wrap_text = False
 
-        # Dynamic header: 1 spacer row after last meta row, then blue header
-        hdr_row = _ST_META_START + len(active_meta) + 1
+        # Right column: dynamic from Config A28:B35 (label from A, value from B)
+        _EXCLUDE_RIGHT = {"comn site", "comm site"}
+        right_raw = config.range("A28:B35").options(ndim=2).value or []
+        right_active = []
+        for row_ab in right_raw:
+            a_lbl, b_val = row_ab[0], row_ab[1]
+            if not a_lbl or b_val is None:
+                continue
+            lbl_str = str(a_lbl).strip()
+            if not lbl_str or lbl_str.lower().rstrip(": ") in _EXCLUDE_RIGHT:
+                continue
+            val_str = _format_iso_date(b_val) or str(b_val).strip()
+            if not val_str:
+                continue
+            right_active.append((lbl_str.rstrip(), val_str))
+
+        if right_active:
+            right_end = _ST_META_START + len(right_active) - 1
+            right_rng = ps.range(f"F{_ST_META_START}:F{right_end}")
+            right_rng.value = [[f"{lbl} {val}"] for lbl, val in right_active]
+            right_rng.number_format = "@"
+            right_rng.wrap_text = False
+
+        # Dynamic header: 1 spacer row after the taller column, then blue header
+        hdr_row = _ST_META_START + max(len(left_active), len(right_active)) + 1
         data_start = hdr_row + 1
         _sp_write_column_header(ps, hdr_row, mode, currency)
 
@@ -2326,12 +2350,17 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # BOQ + totals + T&C → Arial 12
         ps.range(f"A{data_start}:H{r - 1}").font.name = "Arial"
         ps.range(f"A{data_start}:H{r - 1}").font.size = 12
-        # Metadata rows: combined "Label Value" in C → Arial 10, not bold
-        if active_meta:
-            _meta_end = _ST_META_START + len(active_meta) - 1
-            ps.range(f"C{_ST_META_START}:C{_meta_end}").font.name = "Arial"
-            ps.range(f"C{_ST_META_START}:C{_meta_end}").font.size = 10
-            ps.range(f"C{_ST_META_START}:C{_meta_end}").font.bold = False
+        # Metadata rows: Arial 10, not bold
+        if left_active:
+            _left_end = _ST_META_START + len(left_active) - 1
+            ps.range(f"C{_ST_META_START}:C{_left_end}").font.name = "Arial"
+            ps.range(f"C{_ST_META_START}:C{_left_end}").font.size = 10
+            ps.range(f"C{_ST_META_START}:C{_left_end}").font.bold = False
+        if right_active:
+            _right_end = _ST_META_START + len(right_active) - 1
+            ps.range(f"F{_ST_META_START}:F{_right_end}").font.name = "Arial"
+            ps.range(f"F{_ST_META_START}:F{_right_end}").font.size = 10
+            ps.range(f"F{_ST_META_START}:F{_right_end}").font.bold = False
         # T&C items → Arial 10 (smaller than BOQ to subordinate them)
         if tc_lines:
             ps.range(f"C{tc_start}:C{tc_end}").font.size = 10
