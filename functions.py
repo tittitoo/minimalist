@@ -177,8 +177,20 @@ def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
         shutil.move(str(temp_path), str(full_path))
         return full_path
     else:
-        # Direct save works fine
-        wb.save(full_path, password=password)
+        # On Windows with OneDrive/SharePoint, SaveAs to the same path the
+        # workbook is already open at fails with COM error -2146827284
+        # ("Cannot access").  Detect this by comparing the open workbook's
+        # filename to the target; if they match and no password change is
+        # needed, use in-place Save() which always works.
+        try:
+            already_at_target = (wb.name == full_path.name)
+        except Exception:
+            already_at_target = False
+
+        if already_at_target and not password:
+            wb.save()
+        else:
+            wb.save(full_path, password=password)
         return full_path
 
 
