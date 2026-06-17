@@ -387,33 +387,39 @@ def _find_workbook_in_rfqs(workbook_name: str, base_path: Path) -> Path | None:
     return matches[0][1]
 
 
+_COLOR_DEBUG_LOG = Path(tempfile.gettempdir()) / "minimalist_color_debug.txt"
+
+
 def _resolve_workbook_path(wb) -> "Path | None":
     """Return the local .xlsx path for wb, handling SharePoint/OneDrive URLs."""
+    lines = []
     try:
         fullname = wb.fullname
-        print(f"[color] wb.fullname = {fullname!r}")
+        lines.append(f"wb.fullname = {fullname!r}")
         p = Path(fullname)
         if p.exists() and p.suffix.lower() == ".xlsx":
-            print(f"[color] source found via fullname: {p}")
+            lines.append(f"source found via fullname: {p}")
+            _COLOR_DEBUG_LOG.write_text("\n".join(lines))
             return p
-        print(f"[color] fullname path not found on disk, trying @rfqs search")
+        lines.append("fullname path not found on disk, trying @rfqs search")
     except Exception as e:
-        print(f"[color] wb.fullname error: {e}")
-    # fullname was a URL or stale — search @rfqs for the synced copy
+        lines.append(f"wb.fullname error: {e}")
     try:
         rfq_base = _get_rfq_base_path()
-        print(f"[color] rfq_base = {rfq_base}")
+        lines.append(f"rfq_base = {rfq_base}")
         if rfq_base is not None:
             found_dir = _find_workbook_in_rfqs(wb.name, rfq_base)
-            print(f"[color] found_dir = {found_dir}")
+            lines.append(f"found_dir = {found_dir}")
             if found_dir is not None:
                 p = Path(found_dir) / wb.name
                 if p.exists():
-                    print(f"[color] source found via @rfqs: {p}")
+                    lines.append(f"source found via @rfqs: {p}")
+                    _COLOR_DEBUG_LOG.write_text("\n".join(lines))
                     return p
     except Exception as e:
-        print(f"[color] @rfqs search error: {e}")
-    print(f"[color] source file not found — font colors will not be carried over")
+        lines.append(f"@rfqs search error: {e}")
+    lines.append("source file not found — font colors will not be carried over")
+    _COLOR_DEBUG_LOG.write_text("\n".join(lines))
     return None
 
 
@@ -2228,9 +2234,11 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                     if _rgb:
                         src_colors[(_ri, _ci)] = _rgb
             _oxl_wb.close()
-            print(f"[color] extracted {len(src_colors)} colored cells from source")
+            with open(_COLOR_DEBUG_LOG, "a") as _f:
+                _f.write(f"\nextracted {len(src_colors)} colored cells: {list(src_colors.items())[:10]}")
     except Exception as _e:
-        print(f"[color] openpyxl read error: {_e}")  # unsaved file or cloud path
+        with open(_COLOR_DEBUG_LOG, "a") as _f:
+            _f.write(f"\nopenpyxl read error: {_e}")
 
     # T&C lines: column B = letter (A, B, C…), column C = text; starts at row 5
     tc_lines = []
