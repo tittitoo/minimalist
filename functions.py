@@ -2434,13 +2434,11 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             except Exception:
                 pass
 
-        # Autofit row heights based on final content and font sizes
-        if data_end >= data_start:
-            ps.range(f"A{data_start}:H{data_end}").rows.autofit()
-
-        # Explicitly reset all column widths. Excel auto-fits when values are written
-        # via xlwings on Mac, inflating columns (e.g. F expands to fit metadata text).
-        # F and G are sized to the header label; metadata text in F overflows into G/H.
+        # Reset all column widths to their final values BEFORE autofit so that row
+        # heights are calculated at the correct widths. On Mac, xlwings inflates
+        # columns when values are written; autofitting before resetting would
+        # produce row heights based on the wrong (wider) column, leaving blank
+        # space below single-line descriptions after the column is narrowed.
         ps.range("A:A").column_width = 5
         ps.range("B:B").column_width = 4
         ps.range("C:C").column_width = 55
@@ -2463,6 +2461,10 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             ps.range("F:G").column_width = 0
             ps.range("C:C").column_width = 68
             ps.range("H:H").column_width = 18
+
+        # Autofit row heights at the final column widths set above.
+        if data_end >= data_start:
+            ps.range(f"A{data_start}:H{data_end}").rows.autofit()
 
         # -------------------------------------------------------------------
         # Print area and page setup
