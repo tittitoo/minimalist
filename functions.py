@@ -2396,9 +2396,21 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         if data_end >= data_start:
             ps.range(f"A{data_start}:H{data_end}").rows.autofit()
 
-        # Autofit Unit Price / Total column widths (commercial only; numbers now Arial 12)
+        # Explicitly reset all column widths. Excel auto-fits when values are written
+        # via xlwings on Mac, inflating columns (e.g. F expands to fit metadata text).
+        # F and G are sized to the header label; metadata text in F overflows into G/H.
+        ps.range("A:A").column_width = 5
+        ps.range("B:B").column_width = 4
+        ps.range("C:C").column_width = 55
+        ps.range("D:D").column_width = 5
+        ps.range("E:E").column_width = 5
+        ps.range("H:H").column_width = 8
         if mode == "commercial":
-            ps.range("F:G").columns.autofit()
+            # Width based on "Unit Price (XXX)" / "Total (XXX)" at Aptos 9pt bold
+            f_width = max(round(len(f"Unit Price ({currency})") * 0.82), 12)
+            g_width = max(round(len(f"Total ({currency})") * 0.82), 10)
+            ps.range("F:F").column_width = f_width
+            ps.range("G:G").column_width = g_width
 
         # -------------------------------------------------------------------
         # Technical mode: remove price columns and redistribute their width.
