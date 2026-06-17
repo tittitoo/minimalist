@@ -2146,84 +2146,57 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
     rows_ah  = src_ws.range(f"A3:H{last_row}").options(ndim=2).value
     al_vals  = src_ws.range(f"AL3:AL{last_row}").options(ndim=1).value
 
-    # Read font colors from columns B–E via openpyxl.
+    # Read font colors from columns B–E directly via xlwings.
+    # Excel already holds the workbook in memory (local or OneDrive), so we read
+    # directly instead of saving a temp copy — avoids macOS sandbox issues and the
+    # SaveAs-rename side-effect that corrupted output filenames.
     # Maps (row_idx, col_offset) -> (R, G, B); col_offset 0=B,1=C,2=D,3=E.
-    # On Mac/SharePoint, the CloudStorage path is a Files On-Demand placeholder
-    # (not a real zip), so we save a temp copy of the open workbook and read that.
-    _SRC_COLOR_EXCEL_COLS = [2, 3, 4, 5]   # openpyxl column numbers for B–E
-    _SRC_COLOR_OUT_COLS   = ["B", "C", "D", "E"]
+    # Optimisation: check column C first; only read B/D/E for rows where C is colored,
+    # since most rows have default (black/auto) text. Special-format rows are skipped
+    # because they receive programmatic colors anyway.
+    _SRC_COLOR_OUT_COLS = ["B", "C", "D", "E"]
     src_colors = {}
-    _tmp_src = Path.home() / "Downloads" / f"_minimalist_src_{wb.name}"
-    try:
-        import openpyxl as _openpyxl
-        import xml.etree.ElementTree as _ET
-        wb.save(_tmp_src)
-        _oxl_wb = _openpyxl.load_workbook(str(_tmp_src), data_only=True)
+    _special_fmts_color = {"System", "Subsystem", "Title", "Subtitle", "Comment"}
 
-        # Build theme color index (0=dk1,1=lt1,2=dk2,3=lt2,4-9=accent1-6,…)
-        _theme_colors = {}
-        try:
-            if _oxl_wb.loaded_theme:
-                _ns = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
-                _troot = _ET.fromstring(_oxl_wb.loaded_theme)
-                _scheme = _troot.find(".//a:clrScheme", _ns)
-                if _scheme is not None:
-                    for _tidx, _child in enumerate(_scheme):
-                        for _cel in _child:
-                            _hex6 = (_cel.get("val") or _cel.get("lastClr") or "")[-6:]
-                            if _hex6:
-                                _theme_colors[_tidx] = _hex6.upper()
-                            break
-        except Exception:
-            pass
-
-        def _clr_to_rgb(clr):
-            """Return (R,G,B) for any openpyxl Color, or None if black/white/auto."""
-            if clr is None:
-                return None
+    def _xlw_to_rgb(v):
+        if v is None:
+            return None
+        if isinstance(v, (tuple, list)) and len(v) == 3:
+            r, g, b = int(v[0]), int(v[1]), int(v[2])
+        else:
             try:
-                if clr.type == "rgb" and clr.rgb:
-                    _h = clr.rgb[-6:].upper()
-                elif clr.type == "indexed":
-                    from openpyxl.styles.colors import COLOR_INDEX
-                    _idx = int(clr.indexed)
-                    _h = COLOR_INDEX[_idx][-6:].upper() if _idx < len(COLOR_INDEX) else None
-                elif clr.type == "theme" and clr.theme is not None:
-                    _h = _theme_colors.get(int(clr.theme))
-                    if _h:
-                        _tint = getattr(clr, "tint", 0) or 0
-                        _r = int(_h[0:2], 16)
-                        _g = int(_h[2:4], 16)
-                        _b = int(_h[4:6], 16)
-                        if _tint > 0:
-                            _r = int(_r + (255 - _r) * _tint)
-                            _g = int(_g + (255 - _g) * _tint)
-                            _b = int(_b + (255 - _b) * _tint)
-                        elif _tint < 0:
-                            _r = int(_r * (1 + _tint))
-                            _g = int(_g * (1 + _tint))
-                            _b = int(_b * (1 + _tint))
-                        _h = f"{_r:02X}{_g:02X}{_b:02X}"
-                else:
-                    _h = None
-                if not _h or _h in ("000000", "FFFFFF"):
+                n = int(v)
+                if n == 0:
                     return None
-                return (int(_h[0:2], 16), int(_h[2:4], 16), int(_h[4:6], 16))
+                r, g, b = (n >> 16) & 0xFF, (n >> 8) & 0xFF, n & 0xFF
             except Exception:
                 return None
+        return None if (r, g, b) in ((0, 0, 0), (255, 255, 255)) else (r, g, b)
 
-        _oxl_ws = _oxl_wb[system_sheets[0]]
-        for _ri in range(len(rows_ah)):
-            for _ci, _col_num in enumerate(_SRC_COLOR_EXCEL_COLS):
-                _cell = _oxl_ws.cell(row=_ri + 3, column=_col_num)
-                _rgb = _clr_to_rgb(_cell.font.color)
+    try:
+        for _ri, _row_data in enumerate(rows_ah):
+            _no, _desc = _row_data[0], _row_data[2]
+            if not _desc and not _no:
+                continue  # spacer row
+            _al = al_vals[_ri] if al_vals else None
+            _no_has_val = _no is not None and (
+                (isinstance(_no, str) and _no.strip()) or
+                (isinstance(_no, (int, float)) and _no)
+            )
+            if _al in ("Comment", "Subtitle") and _no_has_val:
+                _al = "Title"
+            if _al in _special_fmts_color:
+                continue  # programmatic color — no need to read
+            _c_rgb = _xlw_to_rgb(src_ws.range(f"C{_ri + 3}").font.color)
+            if _c_rgb is None:
+                continue  # C is default — skip B/D/E too (saves 3 calls per row)
+            src_colors[(_ri, 1)] = _c_rgb
+            for _ci, _ltr in [(0, "B"), (2, "D"), (3, "E")]:
+                _rgb = _xlw_to_rgb(src_ws.range(f"{_ltr}{_ri + 3}").font.color)
                 if _rgb:
                     src_colors[(_ri, _ci)] = _rgb
-        _oxl_wb.close()
     except Exception:
         pass
-    finally:
-        _tmp_src.unlink(missing_ok=True)
 
     # T&C lines: column B = letter (A, B, C…), column C = text; starts at row 5
     tc_lines = []
