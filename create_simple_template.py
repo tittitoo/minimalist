@@ -211,6 +211,12 @@ for _r in range(_META_START, _HDR_ROW + 1):       # rows 9–16: center vertical
 # the right alignment from the main _col_h loop — including "Unit Price (USD)".
 for _r in range(_META_START, _META_START + len(RIGHT_META_LABELS)):
     ws.cell(row=_r, column=6).alignment = align("left", v="center")
+# Column D left-override for the same rows: in technical mode Python writes right metadata
+# to D (F/G are collapsed); template pre-styling is the reliable cross-platform way to
+# set left alignment on Mac (runtime horizontal_alignment silently fails via AppleScript).
+# In commercial mode D9–12 are empty, so this override has no visible effect.
+for _r in range(_META_START, _META_START + len(RIGHT_META_LABELS)):
+    ws.cell(row=_r, column=4).alignment = align("left", v="center")
 for _r in range(_DATA_ROW, _META_START + 320):    # rows 17–328: top vertical
     for _ci, h in enumerate(_col_h, 1):
         ws.cell(row=_r, column=_ci).alignment = align(h, v="top")

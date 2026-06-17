@@ -2423,10 +2423,6 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             ps.range("F:G").column_width = 0
             ps.range("C:C").column_width = 68
             ps.range("H:H").column_width = 18
-            # Left-align D metadata rows so text overflows right (template pre-styles D as right)
-            if right_active:
-                _right_end = _ST_META_START + len(right_active) - 1
-                ps.range(f"D{_ST_META_START}:D{_right_end}").horizontal_alignment = "left"
 
         # -------------------------------------------------------------------
         # Print area and page setup
