@@ -2170,7 +2170,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             if raw is None:
                 continue
             val_str = str(raw).strip()
-            if not val_str:
+            if not val_str or val_str == "-":
                 continue
             left_active.append((lbl, val_str))
 
@@ -2203,7 +2203,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 continue
             lbl_str = _RENAME_RIGHT.get(key, lbl_str.rstrip())
             val_str = _format_iso_date(b_val) or str(b_val).strip()
-            if not val_str:
+            if not val_str or val_str == "-":
                 continue
             right_active.append((lbl_str, val_str))
 
