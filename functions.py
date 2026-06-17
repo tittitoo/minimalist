@@ -1989,11 +1989,16 @@ def _sp_apply_row_fmt(ws, row, fmt_type, mode, desc=None):
     row_range = ws.range(f"{row}:{row}")
     if fmt_type == "System":
         row_range.font.bold = True
+        row_range.font.italic = False
         row_range.font.color = _JASON_BLUE
     elif fmt_type == "Subsystem":
         row_range.font.bold = True
+        row_range.font.italic = False
+        row_range.font.color = (0, 0, 0)
     elif fmt_type == "Title":
         row_range.font.bold = True
+        row_range.font.italic = False
+        row_range.font.color = (0, 0, 0)
     elif fmt_type == "Subtitle":
         row_range.font.italic = True
         if sys.platform == "win32":
@@ -2328,6 +2333,9 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             ps.range(f"C{_ST_META_START}:C{_meta_end}").font.name = "Arial"
             ps.range(f"C{_ST_META_START}:C{_meta_end}").font.size = 10
             ps.range(f"C{_ST_META_START}:C{_meta_end}").font.bold = False
+        # T&C items → Arial 10 (smaller than BOQ to subordinate them)
+        if tc_lines:
+            ps.range(f"C{tc_start}:C{tc_end}").font.size = 10
 
         # Top-align all columns so numbers/qty/scope sit at the top of wrapped rows
         ps.range(f"A{data_start}:H{r - 1}").vertical_alignment = "top"

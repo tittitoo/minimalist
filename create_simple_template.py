@@ -163,7 +163,7 @@ ws.row_dimensions[_SPACER2_ROW].height = 6
 ws.row_dimensions[_DATA_ROW].height = 14
 c = ws.cell(row=_DATA_ROW, column=3)
 c.value = "(Python inserts column header + BOQ rows here)"
-c.font = af(FONT, size=8, color="FFAAAAAA", italic=True)
+c.font = af(FONT, size=8, color="FFAAAAAA")
 
 # ---------------------------------------------------------------------------
 # Page setup
