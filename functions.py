@@ -2390,10 +2390,6 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         for (row_r, fmt, desc) in fmt_pending:
             _sp_apply_row_fmt(ps, row_r, fmt, mode, desc=desc)
 
-        # Carry over explicit source colors for Description/Lineitem rows (B–E only)
-        for (row_r, col_letter, rgb) in color_pending:
-            ps.range(f"{col_letter}{row_r}").font.color = rgb
-
         # -------------------------------------------------------------------
         # Totals block (commercial only)
         # Labels written to D so they sit adjacent to the amounts in G,
@@ -2469,6 +2465,12 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # T&C items → Arial 10 (smaller than BOQ to subordinate them)
         if tc_lines:
             ps.range(f"C{tc_start}:C{tc_end}").font.size = 10
+
+        # Carry over source font colors for Description/Lineitem rows (B–E only).
+        # Applied after all batch font.name/size writes — setting font.name via COM
+        # on Windows resets other font properties (including color) to defaults.
+        for (row_r, col_letter, rgb) in color_pending:
+            ps.range(f"{col_letter}{row_r}").font.color = rgb
 
         # Top-align all columns so numbers/qty/scope sit at the top of wrapped rows
         ps.range(f"A{data_start}:H{r - 1}").vertical_alignment = "top"
