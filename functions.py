@@ -2313,7 +2313,6 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             tc_start = r
             ps.range(f"C{tc_start}").value = [[line] for line in tc_lines]
             tc_end = tc_start + len(tc_lines) - 1
-            ps.range(f"C{tc_start}:C{tc_end}").wrap_text = True
             r = tc_end + 1
 
         # -------------------------------------------------------------------
