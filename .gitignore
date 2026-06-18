@@ -3,7 +3,7 @@ hide.py
 __pycache__/hide.cpython-310.pyc
 ~$*
 Template.xlsx
-Template_simple.xlsx
+Template_simple*.xlsx
 __pycache__/functions.cpython-310.pyc
 scratch.txt
 __pycache__/excel.cpython-310.pyc
