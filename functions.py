@@ -2250,7 +2250,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # -------------------------------------------------------------------
         # Proposal type (row 7, data area — page 1 only)
         # -------------------------------------------------------------------
-        ps.range(f"A{_ST_TYPE_ROW}").value = proposal_title
+        ps.range(f"C{_ST_TYPE_ROW}").value = proposal_title
 
         # -------------------------------------------------------------------
         # Metadata: two-column layout.
