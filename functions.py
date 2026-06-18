@@ -2534,7 +2534,14 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         for (row_r, col_letter, rgb) in color_pending:
             ps.range(f"{col_letter}{row_r}").font.color = rgb
         for (row_r, col_letter) in strike_pending:
-            ps.range(f"{col_letter}{row_r}").font.strikethrough = True
+            _rng = ps.range(f"{col_letter}{row_r}")
+            try:
+                if sys.platform == "win32":
+                    _rng.api.Font.Strikethrough = True
+                else:
+                    _rng.font.api.strikethrough.set(True)
+            except Exception:
+                pass
 
         # Top-align all columns so numbers/qty/scope sit at the top of wrapped rows
         ps.range(f"A{data_start}:H{r - 1}").vertical_alignment = "top"
