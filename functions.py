@@ -2047,13 +2047,13 @@ def _sp_apply_row_fmt(ws, row, fmt_type, mode, desc=None):
             row_range.font.color = _COMMENT_GREY
 
 
-def _sp_write_column_header(ps, hdr_row, mode, currency):
+def _sp_write_column_header(ps, hdr_row, mode, currency, has_scope=True):
     """Write and style the BOQ column header row (blue fill, white bold text)."""
     labels = [
         "No.", "SN", "Description", "Qty", "Unit",
         f"Unit Price ({currency})" if mode == "commercial" else "",
         f"Total ({currency})" if mode == "commercial" else "",
-        "Scope",
+        "Scope" if has_scope else "",
     ]
     rng = ps.range(f"A{hdr_row}:H{hdr_row}")
     rng.value = [labels]
@@ -2217,6 +2217,12 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 discount_amount = val
                 has_discount = True
 
+    has_scope = any(
+        row_data[7] not in (None, "")
+        for rows_ah, al_vals, src_colors in sheets_data
+        for row_data in rows_ah
+    )
+
     # -----------------------------------------------------------------------
     # Copy template and open it in the same Excel instance
     # -----------------------------------------------------------------------
@@ -2312,7 +2318,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # Dynamic header: 1 spacer row after the taller column, then blue header
         hdr_row = _ST_META_START + max(len(left_active), len(right_active)) + 1
         data_start = hdr_row + 1
-        _sp_write_column_header(ps, hdr_row, mode, currency)
+        _sp_write_column_header(ps, hdr_row, mode, currency, has_scope=has_scope)
 
         # Repeat entity header (rows 1–5) on every page (Windows COM only)
         if sys.platform == "win32":
