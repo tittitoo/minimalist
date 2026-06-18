@@ -2227,6 +2227,11 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
     try:
         ps = out_wb.sheets["Proposal"]
 
+        # Snapshot logo positions before any column-width changes. Column width
+        # changes can drift cell-anchored shapes, so we restore these after all
+        # widths are finalised.
+        _shape_pos = {s.name: (s.left, s.top) for s in ps.shapes}
+
         # -------------------------------------------------------------------
         # Fill header rows 1–3: batch write (1 AppleScript call)
         # -------------------------------------------------------------------
@@ -2523,6 +2528,12 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # Autofit row heights at the final column widths set above.
         if data_end >= data_start:
             ps.range(f"A{data_start}:H{data_end}").rows.autofit()
+
+        # Restore logo positions to their template coordinates. Autofit and
+        # column-width changes may have drifted cell-anchored shapes.
+        for _s in ps.shapes:
+            if _s.name in _shape_pos:
+                _s.left, _s.top = _shape_pos[_s.name]
 
         # -------------------------------------------------------------------
         # Print area and page setup
