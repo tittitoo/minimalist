@@ -2317,8 +2317,10 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
         # Dynamic header: 1 spacer row after the taller column, then blue header
         hdr_row = _ST_META_START + max(len(left_active), len(right_active)) + 1
-        data_start = hdr_row + 1
         _sp_write_column_header(ps, hdr_row, mode, currency, has_scope=has_scope)
+        # Narrow spacer row between column header and first BOQ row for breathing room
+        ps.range(f"{hdr_row + 1}:{hdr_row + 1}").row_height = 4
+        data_start = hdr_row + 2
 
         # Repeat entity header (rows 1–5) on every page (Windows COM only)
         if sys.platform == "win32":
