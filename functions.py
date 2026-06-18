@@ -2160,14 +2160,27 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 return None
         return None if (r, g, b) in ((0, 0, 0), (255, 255, 255)) else (r, g, b)
 
+    # Strikethrough is not exposed by xlwings Font on Mac, so we read it via
+    # openpyxl directly from the source file. Load once before the loop.
+    # Fails gracefully for OneDrive placeholder files — strike just won't carry over.
+    _oxl_wb_strike = None
+    _src_file_path = _resolve_workbook_path(wb)
+    if _src_file_path is not None:
+        try:
+            import openpyxl as _oxl
+            _oxl_wb_strike = _oxl.load_workbook(str(_src_file_path), data_only=True)
+        except Exception:
+            pass
+
     sheets_data = []   # [(rows_ah, al_vals, sheet_colors, sheet_strike), ...]
     for _sname in system_sheets:
         _src_ws = wb.sheets[_sname]
         _last_row = max(_src_ws.range("C1500").end("up").row, _src_ws.range("G1500").end("up").row)
         _rows_ah = _src_ws.range(f"A3:H{_last_row}").options(ndim=2).value or []
         _al_vals = _src_ws.range(f"AL3:AL{_last_row}").options(ndim=1).value or []
+
+        # Font colors via xlwings (works on Mac and Windows, including OneDrive files)
         _sheet_colors = {}
-        _sheet_strike = {}
         try:
             for _ri, _row_data in enumerate(_rows_ah):
                 _no, _desc = _row_data[0], _row_data[2]
@@ -2182,27 +2195,36 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                     _al = "Title"
                 if _al in _special_fmts_color:
                     continue
-                _cell_c = _src_ws.range(f"C{_ri + 3}")
-                _c_rgb = _xlw_to_rgb(_cell_c.font.color)
-                _c_strike = bool(_cell_c.font.strikethrough)
-                if _c_rgb is None and not _c_strike:
+                _c_rgb = _xlw_to_rgb(_src_ws.range(f"C{_ri + 3}").font.color)
+                if _c_rgb is None:
                     continue  # C is default — skip B/D/E too (saves calls per row)
-                if _c_rgb:
-                    _sheet_colors[(_ri, 1)] = _c_rgb
-                if _c_strike:
-                    _sheet_strike[(_ri, 1)] = True
+                _sheet_colors[(_ri, 1)] = _c_rgb
                 for _ci, _ltr in [(0, "B"), (2, "D"), (3, "E")]:
-                    _other = _src_ws.range(f"{_ltr}{_ri + 3}")
-                    if _c_rgb is not None:
-                        _rgb = _xlw_to_rgb(_other.font.color)
-                        if _rgb:
-                            _sheet_colors[(_ri, _ci)] = _rgb
-                    if _c_strike:
-                        if bool(_other.font.strikethrough):
-                            _sheet_strike[(_ri, _ci)] = True
+                    _rgb = _xlw_to_rgb(_src_ws.range(f"{_ltr}{_ri + 3}").font.color)
+                    if _rgb:
+                        _sheet_colors[(_ri, _ci)] = _rgb
         except Exception:
             pass
+
+        # Strikethrough via openpyxl (xlwings Font doesn't expose strikethrough on Mac)
+        _sheet_strike = {}
+        if _oxl_wb_strike is not None:
+            try:
+                _oxl_ws = _oxl_wb_strike[_sname]
+                for _ri in range(len(_rows_ah)):
+                    for _ci, _col_num in enumerate([2, 3, 4, 5]):  # B–E
+                        if _oxl_ws.cell(row=_ri + 3, column=_col_num).font.strikethrough:
+                            _sheet_strike[(_ri, _ci)] = True
+            except Exception:
+                pass
+
         sheets_data.append((_rows_ah, _al_vals, _sheet_colors, _sheet_strike))
+
+    if _oxl_wb_strike is not None:
+        try:
+            _oxl_wb_strike.close()
+        except Exception:
+            pass
 
     # T&C lines: column B = letter (A, B, C…), column C = text; starts at row 5
     tc_lines = []
