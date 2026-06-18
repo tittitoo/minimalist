@@ -118,12 +118,14 @@ ws.row_dimensions[5].height = 3
 # ROW 6 — Spacer
 ws.row_dimensions[6].height = 8
 
-# ROW 7 — Proposal type anchor  (Python writes "COMMERCIAL PROPOSAL" etc. to C7)
+# ROW 7 — Proposal type anchor  (Python writes "COMMERCIAL PROPOSAL" etc. to A7)
+# centerContinuous = "Center Across Selection": centers text across A–H without
+# merging, which is the cross-platform reliable way (runtime alignment fails on Mac).
 ws.row_dimensions[7].height = 17
-c = ws["C7"]
+c = ws["A7"]
 c.value = "[PROPOSAL TYPE]"
 c.font = af(BODY, bold=True, size=12)
-c.alignment = align()
+c.alignment = Alignment(horizontal="centerContinuous", vertical="center")
 
 # ROW 8 — Spacer
 ws.row_dimensions[8].height = 5
