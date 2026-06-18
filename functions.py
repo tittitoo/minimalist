@@ -1709,6 +1709,8 @@ def prepare_to_print_technical(wb):
 
 
 def technical(wb, show_pdf=True):
+    src_path = Path(wb.fullname)
+    app = wb.app
     directory, is_cloud = get_workbook_directory(wb)
     # Check if Technical PDF already exist
     temp_file_name = Path(directory, "Technical " + wb.name[:-4] + "pdf")
@@ -1759,6 +1761,8 @@ def technical(wb, show_pdf=True):
         save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
+        wb.close()
+        open_workbook_safe(app, src_path)
     else:
         wb.sheets["Cover"].range("C42:C47").value = (
             wb.sheets["Cover"].range("C42:C47").raw_value
@@ -1806,9 +1810,13 @@ def technical(wb, show_pdf=True):
         save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
+        wb.close()
+        open_workbook_safe(app, src_path)
 
 
 def commercial(wb, show_pdf=True):
+    src_path = Path(wb.fullname)
+    app = wb.app
     directory, is_cloud = get_workbook_directory(wb)
     # Check if Commercial PDF already exists
     temp_file_name = Path(directory, "Commercial " + wb.name[:-4] + "pdf")
@@ -1885,11 +1893,11 @@ def commercial(wb, show_pdf=True):
     try:
         to_pdf_safe(wb, pdf_path, show=show_pdf)
     except Exception as e:
-        # The program does not override the existing file. Therefore, the file needs to be removed if it exists.
-        # xw.apps.active.alert('The PDF file already exists!\n Please delete the file and try again.')
         xw.apps.active.alert(  # type: ignore
             f"This error is encountered {e}. The PDF file already exists?"
         )
+    wb.close()
+    open_workbook_safe(app, src_path)
 
 
 def prepare_to_print_internal(wb):
