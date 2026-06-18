@@ -2160,13 +2160,14 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 return None
         return None if (r, g, b) in ((0, 0, 0), (255, 255, 255)) else (r, g, b)
 
-    sheets_data = []   # [(rows_ah, al_vals, sheet_colors), ...]
+    sheets_data = []   # [(rows_ah, al_vals, sheet_colors, sheet_strike), ...]
     for _sname in system_sheets:
         _src_ws = wb.sheets[_sname]
         _last_row = max(_src_ws.range("C1500").end("up").row, _src_ws.range("G1500").end("up").row)
         _rows_ah = _src_ws.range(f"A3:H{_last_row}").options(ndim=2).value or []
         _al_vals = _src_ws.range(f"AL3:AL{_last_row}").options(ndim=1).value or []
         _sheet_colors = {}
+        _sheet_strike = {}
         try:
             for _ri, _row_data in enumerate(_rows_ah):
                 _no, _desc = _row_data[0], _row_data[2]
@@ -2181,17 +2182,27 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                     _al = "Title"
                 if _al in _special_fmts_color:
                     continue
-                _c_rgb = _xlw_to_rgb(_src_ws.range(f"C{_ri + 3}").font.color)
-                if _c_rgb is None:
-                    continue
-                _sheet_colors[(_ri, 1)] = _c_rgb
+                _cell_c = _src_ws.range(f"C{_ri + 3}")
+                _c_rgb = _xlw_to_rgb(_cell_c.font.color)
+                _c_strike = bool(_cell_c.font.strikethrough)
+                if _c_rgb is None and not _c_strike:
+                    continue  # C is default — skip B/D/E too (saves calls per row)
+                if _c_rgb:
+                    _sheet_colors[(_ri, 1)] = _c_rgb
+                if _c_strike:
+                    _sheet_strike[(_ri, 1)] = True
                 for _ci, _ltr in [(0, "B"), (2, "D"), (3, "E")]:
-                    _rgb = _xlw_to_rgb(_src_ws.range(f"{_ltr}{_ri + 3}").font.color)
-                    if _rgb:
-                        _sheet_colors[(_ri, _ci)] = _rgb
+                    _other = _src_ws.range(f"{_ltr}{_ri + 3}")
+                    if _c_rgb is not None:
+                        _rgb = _xlw_to_rgb(_other.font.color)
+                        if _rgb:
+                            _sheet_colors[(_ri, _ci)] = _rgb
+                    if _c_strike:
+                        if bool(_other.font.strikethrough):
+                            _sheet_strike[(_ri, _ci)] = True
         except Exception:
             pass
-        sheets_data.append((_rows_ah, _al_vals, _sheet_colors))
+        sheets_data.append((_rows_ah, _al_vals, _sheet_colors, _sheet_strike))
 
     # T&C lines: column B = letter (A, B, C…), column C = text; starts at row 5
     tc_lines = []
@@ -2219,7 +2230,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
     has_scope = any(
         row_data[7] not in (None, "")
-        for rows_ah, al_vals, src_colors in sheets_data
+        for rows_ah, al_vals, src_colors, src_strike in sheets_data
         for row_data in rows_ah
     )
 
@@ -2340,11 +2351,12 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
         ps.range(f"C{r}").clear_contents()   # clear template placeholder
 
-        boq_rows = []      # 2-D list for batch write
-        fmt_pending = []   # [(row, fmt_type, desc)] for rows needing font changes
-        color_pending = [] # [(row, col_letter, rgb)] source colors to carry over
+        boq_rows = []        # 2-D list for batch write
+        fmt_pending = []     # [(row, fmt_type, desc)] for rows needing font changes
+        color_pending = []   # [(row, col_letter, rgb)] source colors to carry over
+        strike_pending = []  # [(row, col_letter)] source strikethrough to carry over
 
-        for sheet_idx, (rows_ah, al_vals, src_colors) in enumerate(sheets_data):
+        for sheet_idx, (rows_ah, al_vals, src_colors, src_strike) in enumerate(sheets_data):
             if sheet_idx > 0:
                 boq_rows.append([None] * 8)   # one empty row between sheets
                 r += 1
@@ -2391,10 +2403,15 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                     fmt = "Title"
                 if fmt in ("System", "Subsystem", "Title", "Subtitle", "Comment"):
                     fmt_pending.append((r, fmt, desc))
-                elif src_colors:
-                    for _ci, _col_letter in enumerate(_SRC_COLOR_OUT_COLS):
-                        if (i, _ci) in src_colors:
-                            color_pending.append((r, _col_letter, src_colors[(i, _ci)]))
+                else:
+                    if src_colors:
+                        for _ci, _col_letter in enumerate(_SRC_COLOR_OUT_COLS):
+                            if (i, _ci) in src_colors:
+                                color_pending.append((r, _col_letter, src_colors[(i, _ci)]))
+                    if src_strike:
+                        for _ci, _col_letter in enumerate(_SRC_COLOR_OUT_COLS):
+                            if (i, _ci) in src_strike:
+                                strike_pending.append((r, _col_letter))
 
                 r += 1
 
@@ -2489,11 +2506,13 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         if tc_lines:
             ps.range(f"C{tc_start}:C{tc_end}").font.size = 10
 
-        # Carry over source font colors for Description/Lineitem rows (B–E only).
+        # Carry over source font colors and strikethrough for Description/Lineitem rows.
         # Applied after all batch font.name/size writes — setting font.name via COM
         # on Windows resets other font properties (including color) to defaults.
         for (row_r, col_letter, rgb) in color_pending:
             ps.range(f"{col_letter}{row_r}").font.color = rgb
+        for (row_r, col_letter) in strike_pending:
+            ps.range(f"{col_letter}{row_r}").font.strikethrough = True
 
         # Top-align all columns so numbers/qty/scope sit at the top of wrapped rows
         ps.range(f"A{data_start}:H{r - 1}").vertical_alignment = "top"
