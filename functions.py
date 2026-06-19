@@ -2042,6 +2042,8 @@ def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT):
     """Return the number of word-wrapped lines *text* occupies in an Excel column.
 
     Matches Excel's WrapText word-break behaviour using ReportLab font metrics.
+    Hard newlines (\\n in the cell value) are treated as forced line breaks before
+    word-wrapping is applied within each segment — matching Excel's rendering.
     Helvetica is metrically equivalent to Arial; change *font* and *pt* to match
     whatever font is actually written to the sheet.  *col_width* is the Excel
     column_width value (same units as Range.column_width).
@@ -2051,19 +2053,25 @@ def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT):
     text = str(text).strip()
     if not text:
         return 1
-    words = text.split()
-    lines, cur = 1, 0.0
     sp_w = _sw(" ", font, pt)
-    for w in words:
-        ww = _sw(w, font, pt)
-        if cur == 0:
-            cur = ww
-        elif cur + sp_w + ww > avail_pt:
-            lines += 1
-            cur = ww
-        else:
-            cur += sp_w + ww
-    return lines
+    total = 0
+    for segment in text.split("\n"):
+        if not segment.strip():
+            total += 1   # blank line still occupies a row in Excel
+            continue
+        words = segment.split()
+        seg_lines, cur = 1, 0.0
+        for w in words:
+            ww = _sw(w, font, pt)
+            if cur == 0:
+                cur = ww
+            elif cur + sp_w + ww > avail_pt:
+                seg_lines += 1
+                cur = ww
+            else:
+                cur += sp_w + ww
+        total += seg_lines
+    return max(1, total)
 
 
 def _sp_apply_row_fmt(ws, row, fmt_type, mode, desc=None):
