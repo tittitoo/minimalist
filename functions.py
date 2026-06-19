@@ -170,7 +170,13 @@ def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
         temp_path = downloads / full_path.name
         if temp_path.exists():
             temp_path.unlink()
-        wb.save(temp_path, password=password)
+        # Only pass password kwarg if non-empty — passing password="" to Excel's
+        # SaveAs on Mac can set an empty write-reservation password, causing
+        # Excel to show a "is protected" dialog when the file is reopened later.
+        if password:
+            wb.save(temp_path, password=password)
+        else:
+            wb.save(temp_path)
         # Move to final destination using Python (handles special chars fine)
         if full_path.exists():
             full_path.unlink()  # Remove existing file if present
@@ -190,7 +196,10 @@ def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
         if already_at_target and not password:
             wb.save()
         else:
-            wb.save(full_path, password=password)
+            if password:
+                wb.save(full_path, password=password)
+            else:
+                wb.save(full_path)
         return full_path
 
 
@@ -224,19 +233,27 @@ def to_pdf_safe(wb, pdf_path: Path, show: bool = True) -> None:
 
 def _find_or_open_workbook(app, src_path: Path):
     """
-    Return the workbook if already open, otherwise open it from disk.
+    Return the workbook if already open; if not, open it from disk.
 
-    On Mac, xlwings SaveAs keeps the original workbook open in Excel — trying
-    to open an already-open file via osascript triggers a protection dialog.
-    Check app.books first to avoid the duplicate-open.
+    On Mac: use the 'open' shell command (Finder mechanism) rather than
+    osascript's 'open workbook' AppleScript command.  The AppleScript open
+    triggers a "is protected" dialog for workbooks that have any write-
+    reservation or structure-protection set; the Finder open does not.
+    We can't get an xlwings reference back, so we return None on Mac —
+    callers only use the reference for .activate() which is a nice-to-have.
+
+    On Windows: use xlwings Books.open() directly (no @ path issue there).
     """
     try:
         return app.books[src_path.name]
     except (KeyError, Exception):
         pass
-    if src_path.exists():
-        return open_workbook_safe(app, src_path)
-    return None
+    if not src_path.exists():
+        return None
+    if sys.platform == "darwin":
+        subprocess.Popen(["open", str(src_path)])
+        return None
+    return open_workbook_safe(app, src_path)
 
 
 def open_workbook_safe(app, full_path: Path):
