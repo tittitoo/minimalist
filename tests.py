@@ -121,6 +121,15 @@ class TestSetCasePreserveAcronym(unittest.TestCase):
         result = set_case_preserve_acronym("hello world", title=True)
         self.assertEqual(result, "Hello World")
 
+    def test_dot_separated_part_number_preserved(self):
+        # "BTD.NH.TE.TD.NR.RC" must not be lowercased to "BTD.nh.te.td.nr.rc".
+        # capitalize() lowercases every char after the first, so restoration
+        # must use IGNORECASE to recover inner dot-separated segments.
+        result = set_case_preserve_acronym(
+            "Part Number BTD.NH.TE.TD.NR.RC", title=True
+        )
+        self.assertIn("BTD.NH.TE.TD.NR.RC", result)
+
     def test_upper_case(self):
         result = set_case_preserve_acronym("hello world", upper=True)
         self.assertEqual(result, "HELLO WORLD")

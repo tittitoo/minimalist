@@ -670,11 +670,13 @@ def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
 
     if title:
         text = title_case_ignore_double_char(text)
-        # Improved function to restore acronyms
+        # Restore acronyms with IGNORECASE so that dot-separated part numbers like
+        # "BTD.NH.TE.TD.NR.RC" are preserved. capitalize() lowercases every character
+        # after the first, so ".NH" becomes ".nh" — a case-insensitive pattern is
+        # required to match it back.
         for acronym in acronyms:
-            acronym_regex = acronym.title()
-            pattern = rf"\b{acronym_regex}\b"
-            text = re.sub(pattern, acronym, text)
+            pattern = rf"\b{re.escape(acronym)}\b"
+            text = re.sub(pattern, acronym, text, flags=re.IGNORECASE)
         return text
 
     elif capitalize:
