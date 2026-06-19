@@ -2587,15 +2587,32 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             ps.range("C:C").column_width = 68
             ps.range("H:H").column_width = 18
 
-        # Set wrap_text AFTER column widths are finalised so Excel evaluates the
-        # wrap boundary at the correct width. Setting it earlier (at xlwings-inflated
-        # width) causes autofit to miscalculate and leave blank space in wrapped rows.
         if data_end >= data_start:
             ps.range(f"C{data_start}:C{data_end}").wrap_text = True
 
-        # Autofit row heights at the final column widths set above.
-        if data_end >= data_start:
-            ps.range(f"A{data_start}:H{data_end}").rows.autofit()
+        # Set row heights from Python data instead of rows.autofit().
+        # On Mac, rows.autofit() reads Excel's internal layout engine, which lags
+        # behind column-width changes made via AppleScript — so autofit still uses
+        # the pre-change column width and gives single-line rows a 2-line height slot.
+        # We calculate directly from boq_rows (already in memory): one batch call to
+        # set the base height, then targeted calls only for genuinely long descriptions.
+        if data_end >= data_start and boq_rows:
+            _std_h = 14.25
+            _c_w = 55 if mode == "commercial" else 68
+            # Empirical: Arial 10pt fits ~65 chars/line at col_width=55 (calibrated
+            # against confirmed single-line 56-char description at that width).
+            _cpl = max(1, int(_c_w * 65 / 55))
+            ps.range(f"{data_start}:{data_end}").row_height = _std_h
+            for _ri, _brow in enumerate(boq_rows):
+                _desc = _brow[2] if _brow and len(_brow) > 2 else None
+                if _desc is None:
+                    continue
+                _txt = str(_desc).strip()
+                if not _txt:
+                    continue
+                _lines = (len(_txt) + _cpl - 1) // _cpl
+                if _lines > 1:
+                    ps.range(f"{data_start + _ri}:{data_start + _ri}").row_height = _std_h * _lines
 
         # Restore logo positions to their template coordinates. Autofit and
         # column-width changes may have drifted cell-anchored shapes.
