@@ -1766,9 +1766,9 @@ def _missing_proposal_fields(wb):
 
 
 def technical(wb, show_pdf=True):
-    src_path = Path(wb.fullname)
     app = wb.app
     directory, is_cloud = get_workbook_directory(wb)
+    src_path = Path(directory) / wb.name
     # Check if Technical PDF already exist
     temp_file_name = Path(directory, "Technical " + wb.name[:-4] + "pdf")
     if temp_file_name.is_file():
@@ -1880,9 +1880,9 @@ def technical(wb, show_pdf=True):
 
 
 def commercial(wb, show_pdf=True):
-    src_path = Path(wb.fullname)
     app = wb.app
     directory, is_cloud = get_workbook_directory(wb)
+    src_path = Path(directory) / wb.name
     # Check if Commercial PDF already exists
     temp_file_name = Path(directory, "Commercial " + wb.name[:-4] + "pdf")
     if temp_file_name.is_file():
