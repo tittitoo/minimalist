@@ -237,10 +237,18 @@ def _find_or_open_workbook(app, src_path: Path):
 
     Workbooks created by this tool are password-protected (hide.legacy).
     We pass that password so Excel opens them silently without a dialog.
+    Returns None (never raises) — callers use the reference only for activate().
     """
+    # Check all open books first — iterate to avoid exact-name lookup failures
+    # from path/encoding differences after a Mac SaveAs.
     try:
-        return app.books[src_path.name]
-    except (KeyError, Exception):
+        for book in app.books:
+            try:
+                if book.name == src_path.name:
+                    return book
+            except Exception:
+                continue
+    except Exception:
         pass
     if not src_path.exists():
         return None
@@ -249,7 +257,10 @@ def _find_or_open_workbook(app, src_path: Path):
         pwd = _hide.legacy
     except Exception:
         pwd = ""
-    return open_workbook_safe(app, src_path, password=pwd)
+    try:
+        return open_workbook_safe(app, src_path, password=pwd)
+    except Exception:
+        return None
 
 
 def open_workbook_safe(app, full_path: Path, password: str = ""):
@@ -283,7 +294,7 @@ def _open_workbook_mac(app, full_path: Path, password: str = ""):
             pw = password.replace('"', '\\"')
             script = (
                 'tell application "Microsoft Excel"\n'
-                f'  set wb to open workbook workbook file name POSIX file "{posix}" with password "{pw}"\n'
+                f'  set wb to open workbook workbook file name POSIX file "{posix}" password "{pw}"\n'
                 '  return name of wb\n'
                 'end tell'
             )
