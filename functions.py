@@ -235,14 +235,8 @@ def _find_or_open_workbook(app, src_path: Path):
     """
     Return the workbook if already open; if not, open it from disk.
 
-    On Mac: use the 'open' shell command (Finder mechanism) rather than
-    osascript's 'open workbook' AppleScript command.  The AppleScript open
-    triggers a "is protected" dialog for workbooks that have any write-
-    reservation or structure-protection set; the Finder open does not.
-    We can't get an xlwings reference back, so we return None on Mac —
-    callers only use the reference for .activate() which is a nice-to-have.
-
-    On Windows: use xlwings Books.open() directly (no @ path issue there).
+    Workbooks created by this tool are password-protected (hide.legacy).
+    We pass that password so Excel opens them silently without a dialog.
     """
     try:
         return app.books[src_path.name]
@@ -250,13 +244,15 @@ def _find_or_open_workbook(app, src_path: Path):
         pass
     if not src_path.exists():
         return None
-    if sys.platform == "darwin":
-        subprocess.Popen(["open", str(src_path)])
-        return None
-    return open_workbook_safe(app, src_path)
+    try:
+        import hide as _hide
+        pwd = _hide.legacy
+    except Exception:
+        pwd = ""
+    return open_workbook_safe(app, src_path, password=pwd)
 
 
-def open_workbook_safe(app, full_path: Path):
+def open_workbook_safe(app, full_path: Path, password: str = ""):
     """
     Open a workbook handling macOS AppleScript path limitations.
 
@@ -266,11 +262,13 @@ def open_workbook_safe(app, full_path: Path):
     Books.open() on Windows.
     """
     if sys.platform == "darwin":
-        return _open_workbook_mac(app, full_path)
+        return _open_workbook_mac(app, full_path, password=password)
+    if password:
+        return app.books.open(str(full_path), password=password)
     return app.books.open(str(full_path))
 
 
-def _open_workbook_mac(app, full_path: Path):
+def _open_workbook_mac(app, full_path: Path, password: str = ""):
     """
     Open a workbook on macOS using osascript, bypassing the xlwings appscript bridge.
 
@@ -281,12 +279,21 @@ def _open_workbook_mac(app, full_path: Path):
     """
     def _try_open(open_path: Path):
         posix = str(open_path).replace('"', '\\"')
-        script = (
-            'tell application "Microsoft Excel"\n'
-            f'  set wb to open workbook workbook file name POSIX file "{posix}"\n'
-            '  return name of wb\n'
-            'end tell'
-        )
+        if password:
+            pw = password.replace('"', '\\"')
+            script = (
+                'tell application "Microsoft Excel"\n'
+                f'  set wb to open workbook workbook file name POSIX file "{posix}" with password "{pw}"\n'
+                '  return name of wb\n'
+                'end tell'
+            )
+        else:
+            script = (
+                'tell application "Microsoft Excel"\n'
+                f'  set wb to open workbook workbook file name POSIX file "{posix}"\n'
+                '  return name of wb\n'
+                'end tell'
+            )
         result = subprocess.run(
             ["osascript", "-e", script],
             capture_output=True, text=True, timeout=60,
