@@ -240,35 +240,45 @@ def _open_workbook_mac(app, full_path: Path):
     """
     Open a workbook on macOS using osascript, bypassing the xlwings appscript bridge.
 
-    If the path has problematic characters (@ etc.), copies to ~/Downloads first so
-    Excel can access it.  Returns the xlwings Book object.
+    Tries the direct POSIX path first — osascript handles '@' and other special
+    characters in file paths just fine (the Downloads copy workaround was only
+    needed for the xlwings appscript bridge).  Falls back to a ~/Downloads copy
+    only if the direct open fails (e.g. Excel version quirk).
     """
-    if _has_problematic_path_chars(full_path):
+    def _try_open(open_path: Path):
+        posix = str(open_path).replace('"', '\\"')
+        script = (
+            'tell application "Microsoft Excel"\n'
+            f'  set wb to open workbook workbook file name POSIX file "{posix}"\n'
+            '  return name of wb\n'
+            'end tell'
+        )
+        result = subprocess.run(
+            ["osascript", "-e", script],
+            capture_output=True, text=True, timeout=60,
+        )
+        return result
+
+    result = _try_open(full_path)
+
+    if result.returncode != 0 and _has_problematic_path_chars(full_path):
+        # Direct open failed — fall back to a Downloads copy
         downloads = Path.home() / "Downloads"
-        open_path = downloads / full_path.name
-        if open_path.exists():
-            open_path.unlink()
-        shutil.copy2(str(full_path), str(open_path))
+        copy_path = downloads / full_path.name
+        if copy_path.exists():
+            copy_path.unlink()
+        shutil.copy2(str(full_path), str(copy_path))
+        result = _try_open(copy_path)
+        open_path = copy_path
     else:
         open_path = full_path
 
-    posix = str(open_path).replace('"', '\\"')
-    script = (
-        'tell application "Microsoft Excel"\n'
-        f'  set wb to open workbook workbook file name POSIX file "{posix}"\n'
-        '  return name of wb\n'
-        'end tell'
-    )
-    result = subprocess.run(
-        ["osascript", "-e", script],
-        capture_output=True, text=True, timeout=60,
-    )
     if result.returncode != 0:
         raise RuntimeError(
             f"Cannot open workbook '{open_path}': {result.stderr.strip()}"
         )
+
     wb_name = result.stdout.strip()
-    # Locate the xlwings Book handle by the exact name Excel assigned.
     for name_try in (wb_name, open_path.stem, open_path.name):
         try:
             return app.books[name_try]
