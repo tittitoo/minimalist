@@ -652,7 +652,7 @@ def title_case_ignore_double_char(text):
             len(word.strip(string.punctuation)) > 2
         ):  # So that two letter words are ignored without punctuation mark
             # To prevent cases like 'mm)' from becoming 'Mm)'
-            titled_words.append(word.title())
+            titled_words.append(word.capitalize())
         else:
             titled_words.append(word)
     return " ".join(titled_words)

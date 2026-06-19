@@ -143,6 +143,12 @@ class TestTitleCaseIgnoreDoubleChar(unittest.TestCase):
         self.assertIn("The", result)
         self.assertIn("Camera", result)
 
+    def test_apostrophe_possessive(self):
+        # str.title() incorrectly capitalises the 's' after an apostrophe;
+        # capitalize() must be used instead so "manufacturer's" stays lowercase.
+        result = title_case_ignore_double_char("manufacturer's product")
+        self.assertEqual(result, "Manufacturer's Product")
+
 
 class TestNumberTitleLogic(unittest.TestCase):
     """Tests for the vectorized number_title logic."""
