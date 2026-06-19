@@ -2450,8 +2450,6 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         if boq_rows:
             # One call writes all BOQ rows at once
             ps.range(f"A{data_start}:H{data_end}").value = boq_rows
-            # One call wraps the entire description column
-            ps.range(f"C{data_start}:C{data_end}").wrap_text = True
             # One call applies price format to both price columns
             if mode == "commercial":
                 ps.range(f"F{data_start}:G{data_end}").number_format = ACCOUNTING_PAREN
@@ -2588,6 +2586,12 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             ps.range("F:G").column_width = 0
             ps.range("C:C").column_width = 68
             ps.range("H:H").column_width = 18
+
+        # Set wrap_text AFTER column widths are finalised so Excel evaluates the
+        # wrap boundary at the correct width. Setting it earlier (at xlwings-inflated
+        # width) causes autofit to miscalculate and leave blank space in wrapped rows.
+        if data_end >= data_start:
+            ps.range(f"C{data_start}:C{data_end}").wrap_text = True
 
         # Autofit row heights at the final column widths set above.
         if data_end >= data_start:
