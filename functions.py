@@ -222,6 +222,23 @@ def to_pdf_safe(wb, pdf_path: Path, show: bool = True) -> None:
         wb.to_pdf(path=str(pdf_path), show=show)
 
 
+def _find_or_open_workbook(app, src_path: Path):
+    """
+    Return the workbook if already open, otherwise open it from disk.
+
+    On Mac, xlwings SaveAs keeps the original workbook open in Excel — trying
+    to open an already-open file via osascript triggers a protection dialog.
+    Check app.books first to avoid the duplicate-open.
+    """
+    try:
+        return app.books[src_path.name]
+    except (KeyError, Exception):
+        pass
+    if src_path.exists():
+        return open_workbook_safe(app, src_path)
+    return None
+
+
 def open_workbook_safe(app, full_path: Path):
     """
     Open a workbook handling macOS AppleScript path limitations.
@@ -1836,7 +1853,7 @@ def technical(wb, show_pdf=True):
         save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
-        _src_wb = open_workbook_safe(app, src_path) if src_path.exists() else None
+        _src_wb = _find_or_open_workbook(app, src_path)
         wb.close()
         if _src_wb is not None:
             try:
@@ -1892,7 +1909,7 @@ def technical(wb, show_pdf=True):
         save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
-        _src_wb = open_workbook_safe(app, src_path) if src_path.exists() else None
+        _src_wb = _find_or_open_workbook(app, src_path)
         wb.close()
         if _src_wb is not None:
             try:
@@ -1992,7 +2009,7 @@ def commercial(wb, show_pdf=True):
         xw.apps.active.alert(  # type: ignore
             f"This error is encountered {e}. The PDF file already exists?"
         )
-    _src_wb = open_workbook_safe(app, src_path) if src_path.exists() else None
+    _src_wb = _find_or_open_workbook(app, src_path)
     wb.close()
     if _src_wb is not None:
         try:
