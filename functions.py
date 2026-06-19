@@ -274,7 +274,10 @@ def _open_workbook_mac(app, full_path: Path):
             return app.books[name_try]
         except (KeyError, Exception):
             continue
-    raise KeyError(f"Workbook opened via osascript but not findable: {open_path}")
+    # File was opened successfully via osascript but xlwings can't locate it yet.
+    # Return None rather than raising — callers that don't need the reference
+    # (commercial, technical) work fine; the book is visible in Excel.
+    return None
 
 
 def _get_rfq_base_path() -> Path | None:
@@ -1007,6 +1010,31 @@ def unhide_columns_wb(wb):
         unhide_columns(sheet)
 
 
+def _set_wrap_row_heights(sheet, col_width=55):
+    """Replace rows.autofit() for col C — Python-computed heights avoid Mac timing bug.
+
+    Mac Excel's layout engine lags behind xlwings column_width changes made via
+    AppleScript, so rows.autofit() reads stale layout and over-allocates row height.
+    We measure text width with ReportLab (Helvetica ≈ Arial metrically) instead.
+    Constants (_SP_ROW_H etc.) are shared with simple_proposal.
+    """
+    last_row = sheet.range("C1500").end("up").row
+    if last_row < 2:
+        return
+    sheet.range(f"2:{last_row}").row_height = _SP_ROW_H
+    c_vals = sheet.range(f"C2:C{last_row}").value
+    if not isinstance(c_vals, list):
+        c_vals = [c_vals]
+    for i, val in enumerate(c_vals):
+        text = str(val).strip() if val else ""
+        if not text:
+            continue
+        lines = _sp_wrap_lines(text, col_width)
+        if lines > 1:
+            row_num = i + 2
+            sheet.range(f"{row_num}:{row_num}").row_height = _SP_ROW_H * lines
+
+
 def adjust_columns(sheet):
     """Unhide all columns while setting the width for selected columns"""
     if not should_skip_sheet(sheet.name):
@@ -1014,7 +1042,7 @@ def adjust_columns(sheet):
         sheet.range("B:B").autofit()
         sheet.range("C:C").column_width = 55
         sheet.range("C:C").wrap_text = True
-        sheet.range("C:C").rows.autofit()
+        _set_wrap_row_heights(sheet)
         sheet.range("D:H").autofit()
 
 
@@ -1047,7 +1075,7 @@ def hide_columns(sheet):
         sheet.range("J:K").autofit()
         sheet.range("C:C").column_width = 55
         sheet.range("C:C").wrap_text = True
-        sheet.range("C:C").rows.autofit()
+        _set_wrap_row_heights(sheet)
         sheet.range("B:B").autofit()
         sheet.range("A:A").column_width = 5
 
@@ -1852,14 +1880,12 @@ def commercial(wb, show_pdf=True):
         ws.range("A1").wrap_text = False
         if not should_skip_sheet(sheet):
             last_row = ws.range("G1500").end("up").row
-            ws.activate()
-            # Adjust column width as sometimes, the long value does not show.
             ws.range(f"A3:AL{last_row}").value = ws.range(f"A3:AL{last_row}").raw_value
             ws.range("A:A").column_width = 4
             ws.range("B:B").autofit()
             ws.range("C:C").column_width = 55
             ws.range("C:C").wrap_text = True
-            ws.range("C:C").rows.autofit()
+            _set_wrap_row_heights(ws)
             ws.range(f"G3:G{last_row-1}").formula = (
                 '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
             )
@@ -1874,7 +1900,8 @@ def commercial(wb, show_pdf=True):
             if col_i_values:
                 ws.range(f"AL1:AL{last_row}").value = [[v] for v in col_i_values]
             ws.range("AL:AL").column_width = 0
-            # Call macros
+            # Activate sheet for VBA macros that operate on the active sheet
+            ws.activate()
             run_macro("conditional_format")
             run_macro("remove_h_borders")
             run_macro("pagebreak_borders")
