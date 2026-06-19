@@ -1738,6 +1738,33 @@ def prepare_to_print_technical(wb):
     wb.sheets[current_sheet].activate()
 
 
+def _missing_proposal_fields(wb):
+    """Return list of required Config field labels that are blank or '-'."""
+    config = wb.sheets["Config"]
+    cfg   = config.range("B21:B32").options(ndim=1).value or []
+    right = config.range("A28:B35").options(ndim=2).value or []
+
+    def _blank(v):
+        return v is None or str(v).strip() in ("", "-")
+
+    def _right_val(*keys):
+        for row in right:
+            if row[0] and str(row[0]).strip().lower().rstrip(": ") in keys:
+                return row[1]
+        return None
+
+    required = [
+        ("Attention to:",  cfg[0]  if len(cfg) > 0  else None),
+        ("Customer:",      cfg[2]  if len(cfg) > 2  else None),
+        ("Project Name:",  cfg[5]  if len(cfg) > 5  else None),
+        ("Sales Manager:", _right_val("sales manager")),
+        ("Jason Ref:",     _right_val("jason ref", "jason ref num")),
+        ("Revision Num:",  _right_val("revision num")),
+        ("Date:",          cfg[11] if len(cfg) > 11 else None),
+    ]
+    return [lbl for lbl, val in required if _blank(val)]
+
+
 def technical(wb, show_pdf=True):
     src_path = Path(wb.fullname)
     app = wb.app
@@ -1747,6 +1774,14 @@ def technical(wb, show_pdf=True):
     if temp_file_name.is_file():
         xw.apps.active.alert(  # type: ignore
             "The Technical PDF file already exists!\n Please delete the file and try again."
+        )
+        return
+
+    missing = _missing_proposal_fields(wb)
+    if missing:
+        xw.apps.active.alert(  # type: ignore
+            "Cannot generate proposal — the following required fields are empty in Config:\n\n"
+            + "\n".join(f"  • {lbl}" for lbl in missing)
         )
         return
 
@@ -1853,6 +1888,14 @@ def commercial(wb, show_pdf=True):
     if temp_file_name.is_file():
         xw.apps.active.alert(  # type: ignore
             "The Commercial PDF file already exists!\n Please delete the file and try again."
+        )
+        return
+
+    missing = _missing_proposal_fields(wb)
+    if missing:
+        xw.apps.active.alert(  # type: ignore
+            "Cannot generate proposal — the following required fields are empty in Config:\n\n"
+            + "\n".join(f"  • {lbl}" for lbl in missing)
         )
         return
 
