@@ -1980,6 +1980,16 @@ _ST_DATA_START = _ST_TABLE_HDR + 1                           # row 17 (max)
 ACCOUNTING_COMMA = "#,##0.00"
 ACCOUNTING_PAREN = "#,##0.00;(#,##0.00)"   # negative shown as (111), not -111
 
+# Simple-Proposal layout constants — change font/size here to update everywhere.
+_SP_BODY_FONT = "Helvetica"  # ReportLab name; metrically equivalent to Excel's Arial
+_SP_BODY_PT   = 12           # BOQ and totals body font size
+_SP_TC_PT     = 10           # T&C lines font size (subordinate to BOQ)
+_SP_ROW_H     = 14.25        # standard single-line row height in points
+# Excel col_width → available text width (pt): avail = (col_width × _SP_MDW_PX + 1) × 0.75
+# _SP_MDW_PX is the MaxDigitWidth of the workbook's Normal-style font (Calibri 11pt default).
+# Calibrated value 8.0 verified against a known single-line case at col_width = 55.
+_SP_MDW_PX    = 8.0
+
 
 def _format_iso_date(val):
     """Return val as YYYY-MM-DD string if it is a date/datetime; else return as-is."""
@@ -2026,6 +2036,34 @@ def _sp_cell(ws, row, col_letter):
 
 _JASON_BLUE = (0, 91, 191)     # #005BBF — Jason Blue
 _COMMENT_GREY = (127, 127, 127)  # mid-grey for comment rows
+
+
+def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT):
+    """Return the number of word-wrapped lines *text* occupies in an Excel column.
+
+    Matches Excel's WrapText word-break behaviour using ReportLab font metrics.
+    Helvetica is metrically equivalent to Arial; change *font* and *pt* to match
+    whatever font is actually written to the sheet.  *col_width* is the Excel
+    column_width value (same units as Range.column_width).
+    """
+    from reportlab.pdfbase.pdfmetrics import stringWidth as _sw
+    avail_pt = (col_width * _SP_MDW_PX + 1) * 0.75
+    text = str(text).strip()
+    if not text:
+        return 1
+    words = text.split()
+    lines, cur = 1, 0.0
+    sp_w = _sw(" ", font, pt)
+    for w in words:
+        ww = _sw(w, font, pt)
+        if cur == 0:
+            cur = ww
+        elif cur + sp_w + ww > avail_pt:
+            lines += 1
+            cur = ww
+        else:
+            cur += sp_w + ww
+    return lines
 
 
 def _sp_apply_row_fmt(ws, row, fmt_type, mode, desc=None):
@@ -2590,29 +2628,28 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         if data_end >= data_start:
             ps.range(f"C{data_start}:C{data_end}").wrap_text = True
 
-        # Set row heights from Python data instead of rows.autofit().
-        # On Mac, rows.autofit() reads Excel's internal layout engine, which lags
-        # behind column-width changes made via AppleScript — so autofit still uses
-        # the pre-change column width and gives single-line rows a 2-line height slot.
-        # We calculate directly from boq_rows (already in memory): one batch call to
-        # set the base height, then targeted calls only for genuinely long descriptions.
+        # Set row heights using ReportLab font metrics (_sp_wrap_lines) instead of
+        # rows.autofit(). On Mac, autofit lags behind column-width changes made via
+        # AppleScript, causing single-line rows to get 2-line height.  We derive
+        # heights from the Python data already in memory — no Excel reads needed.
+        _c_w = 55 if mode == "commercial" else 68
         if data_end >= data_start and boq_rows:
-            _std_h = 14.25
-            _c_w = 55 if mode == "commercial" else 68
-            # Empirical: Arial 10pt fits ~65 chars/line at col_width=55 (calibrated
-            # against confirmed single-line 56-char description at that width).
-            _cpl = max(1, int(_c_w * 65 / 55))
-            ps.range(f"{data_start}:{data_end}").row_height = _std_h
+            ps.range(f"{data_start}:{data_end}").row_height = _SP_ROW_H
             for _ri, _brow in enumerate(boq_rows):
                 _desc = _brow[2] if _brow and len(_brow) > 2 else None
                 if _desc is None:
                     continue
-                _txt = str(_desc).strip()
-                if not _txt:
-                    continue
-                _lines = (len(_txt) + _cpl - 1) // _cpl
+                _lines = _sp_wrap_lines(_desc, _c_w)
                 if _lines > 1:
-                    ps.range(f"{data_start + _ri}:{data_start + _ri}").row_height = _std_h * _lines
+                    ps.range(f"{data_start + _ri}:{data_start + _ri}").row_height = _SP_ROW_H * _lines
+
+        if tc_lines:
+            for _i, _tc in enumerate(tc_lines):
+                if not _tc:
+                    continue
+                _lines = _sp_wrap_lines(str(_tc), _c_w, pt=_SP_TC_PT)
+                if _lines > 1:
+                    ps.range(f"{tc_start + _i}:{tc_start + _i}").row_height = _SP_ROW_H * _lines
 
         # Restore logo positions to their template coordinates. Autofit and
         # column-width changes may have drifted cell-anchored shapes.
