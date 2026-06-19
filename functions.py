@@ -1984,7 +1984,8 @@ ACCOUNTING_PAREN = "#,##0.00;(#,##0.00)"   # negative shown as (111), not -111
 _SP_BODY_FONT = "Helvetica"  # ReportLab name; metrically equivalent to Excel's Arial
 _SP_BODY_PT   = 12           # BOQ and totals body font size
 _SP_TC_PT     = 10           # T&C lines font size (subordinate to BOQ)
-_SP_ROW_H     = 15.75        # single-line row height for Arial 12pt (pt = 12 × 1.295 ≈ 15.54 → 15.75)
+_SP_ROW_H     = 18.0         # single-line row height for Arial 12pt; 18pt clears descenders on Mac Excel
+                             # (Mac top-padding ≥ 2.5pt; 15.75 and 16.5 both still clip)
 # Excel col_width → available text width (pt): avail = (col_width × _SP_MDW_PX + 1) × 0.75
 # _SP_MDW_PX is the MaxDigitWidth of the workbook's Normal-style font (Calibri 11pt default).
 # Calibrated value 8.0 verified against a known single-line case at col_width = 55.
