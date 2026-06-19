@@ -2341,6 +2341,37 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
     )
 
     # -----------------------------------------------------------------------
+    # Validate required metadata before doing any file I/O
+    # -----------------------------------------------------------------------
+    def _is_blank(v):
+        return v is None or str(v).strip() in ("", "-")
+
+    _cfg_b21_b32 = config.range("B21:B32").options(ndim=1).value or []
+    _right_check  = config.range("A28:B35").options(ndim=2).value or []
+
+    def _right_val(target_keys):
+        for _row in _right_check:
+            if _row[0] and str(_row[0]).strip().lower().rstrip(": ") in target_keys:
+                return _row[1]
+        return None
+
+    _required = [
+        ("Attention to:",  _cfg_b21_b32[0]  if len(_cfg_b21_b32) > 0  else None),
+        ("Customer:",      _cfg_b21_b32[2]  if len(_cfg_b21_b32) > 2  else None),
+        ("Sales Manager:", _right_val({"sales manager"})),
+        ("Jason Ref:",     _right_val({"jason ref", "jason ref num"})),
+        ("Revision Num:",  _right_val({"revision num"})),
+        ("Date:",          _cfg_b21_b32[11] if len(_cfg_b21_b32) > 11 else None),
+    ]
+    _missing = [lbl for lbl, val in _required if _is_blank(val)]
+    if _missing:
+        xw.apps.active.alert(  # type: ignore
+            "Cannot generate proposal — the following required fields are empty in Config:\n\n"
+            + "\n".join(f"  • {lbl}" for lbl in _missing)
+        )
+        return
+
+    # -----------------------------------------------------------------------
     # Copy template and open it in the same Excel instance
     # -----------------------------------------------------------------------
     shutil.copy2(str(tmpl_path), str(output_xlsx))
