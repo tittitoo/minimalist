@@ -6,6 +6,7 @@ Created so that python fucntions are available in Excel.
 import sys
 import time
 import tempfile
+import subprocess
 from pathlib import Path
 import xlwings as xw  # type: ignore
 import functions
@@ -198,6 +199,12 @@ def disable_screen_updating(func):
             success = False
             try:
                 retry_com_operation(lambda: setattr(app, "screen_updating", False))
+                if sys.platform == "darwin":
+                    subprocess.run(
+                        ["osascript", "-e",
+                         'tell application "Microsoft Excel" to set screen updating to false'],
+                        capture_output=True, timeout=5,
+                    )
                 retry_com_operation(lambda: setattr(app, "calculation", "manual"))
                 set_busy_cursor(app, busy=True)
                 update_status(app, "Running please wait ...")
@@ -225,6 +232,12 @@ def disable_screen_updating(func):
                                 app, "screen_updating", original_screen_updating
                             )
                         )
+                        if sys.platform == "darwin":
+                            subprocess.run(
+                                ["osascript", "-e",
+                                 'tell application "Microsoft Excel" to set screen updating to true'],
+                                capture_output=True, timeout=5,
+                            )
                         set_busy_cursor(app, busy=False)
                         if success:
                             update_status(app, "Ready")
