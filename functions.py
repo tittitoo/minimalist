@@ -1826,8 +1826,15 @@ def technical(wb, show_pdf=True):
         save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
+        _src_wb = open_workbook_safe(app, src_path) if src_path.exists() else None
         wb.close()
-        open_workbook_safe(app, src_path)
+        if _src_wb is not None:
+            try:
+                _src_wb.activate()
+            except Exception:
+                pass
+        elif not src_path.exists():
+            xw.apps.active.alert(f"Proposal generated but could not reopen:\n{src_path.name}")  # type: ignore
     else:
         wb.sheets["Cover"].range("C42:C47").value = (
             wb.sheets["Cover"].range("C42:C47").raw_value
@@ -1875,8 +1882,15 @@ def technical(wb, show_pdf=True):
         save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
+        _src_wb = open_workbook_safe(app, src_path) if src_path.exists() else None
         wb.close()
-        open_workbook_safe(app, src_path)
+        if _src_wb is not None:
+            try:
+                _src_wb.activate()
+            except Exception:
+                pass
+        elif not src_path.exists():
+            xw.apps.active.alert(f"Proposal generated but could not reopen:\n{src_path.name}")  # type: ignore
 
 
 def commercial(wb, show_pdf=True):
@@ -1968,8 +1982,15 @@ def commercial(wb, show_pdf=True):
         xw.apps.active.alert(  # type: ignore
             f"This error is encountered {e}. The PDF file already exists?"
         )
+    _src_wb = open_workbook_safe(app, src_path) if src_path.exists() else None
     wb.close()
-    open_workbook_safe(app, src_path)
+    if _src_wb is not None:
+        try:
+            _src_wb.activate()
+        except Exception:
+            pass
+    elif not src_path.exists():
+        xw.apps.active.alert(f"Proposal generated but could not reopen:\n{src_path.name}")  # type: ignore
 
 
 def prepare_to_print_internal(wb):
