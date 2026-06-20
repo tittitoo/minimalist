@@ -3046,15 +3046,23 @@ def apply_format_column_border(sheet):
     clear_border(row2, xlInsideHorizontal)
 
 
-def conditional_format_wb(wb):
+def conditional_format_wb(wb, app=None):
     """
     Apply conditional formatting to all sheets.
     On Windows: Uses Python/xlwings API for conditional_format only.
     On macOS: Uses VBA macros (AppleScript doesn't support FormatConditions API).
     remove_h_borders and format_column_border use VBA on both platforms.
+
+    Pass app to restore the status bar after each VBA macro call — macros
+    reset Application.StatusBar to False (showing "Ready") when they finish.
     """
     current_sheet = wb.sheets.active
     is_windows = sys.platform == "win32"
+    _status = "Applying conditional formatting..."
+
+    def _restore():
+        if app:
+            app.status_bar = _status
 
     for sheet_name in wb.sheet_names:
         if not should_skip_sheet(sheet_name):
@@ -3067,15 +3075,19 @@ def conditional_format_wb(wb):
                 except Exception:
                     sheet.activate()
                     run_macro("conditional_format")
+                    _restore()
             else:
                 # macOS: use VBA (AppleScript doesn't support FormatConditions)
                 sheet.activate()
                 run_macro("conditional_format")
+                _restore()
 
             # Always use VBA for border formatting (Python version unreliable)
             sheet.activate()
             run_macro("remove_h_borders")
+            _restore()
             run_macro("format_column_border")
+            _restore()
 
     current_sheet.activate()
 
