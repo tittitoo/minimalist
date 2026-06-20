@@ -295,8 +295,6 @@ def fill_formula_wb():
     )
     update_status(app, "Formatting cells...")
     functions.format_cell_data(wb)
-    update_status(app, "Adjusting columns...")
-    functions.adjust_columns_wb(wb)
     update_status(app, "Applying conditional formatting...")
     functions.conditional_format_wb(wb)
     update_status(app, "Filling subtotals...")
