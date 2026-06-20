@@ -731,7 +731,7 @@ def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
     # Remove matching hyphen
     acronym_regex = re.compile(r"\b([a-z0-9\.]?[A-Z0-9\/][A-Z0-9a-z]*)(?=\b|[^a-z])")
     # acronym_regex = re.compile(r'\b([a-z]?[A-Z0-9][A-Z0-9-]*)(?=\b|[^a-z])')
-    acronyms = acronym_regex.findall(text)
+    acronyms = [a for a in acronym_regex.findall(text) if a.lower() not in _TITLE_CASE_LOWER]
 
     if title:
         text = title_case_ignore_double_char(text)
