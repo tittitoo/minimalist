@@ -1067,30 +1067,8 @@ def adjust_columns_wb(wb):
 
 def hide_columns(sheet):
     if not should_skip_sheet(sheet.name):
-        sheet.range("AI:AL").column_width = 0
-        sheet.range("AC:AD").column_width = 0
-        sheet.range("AF:AF").column_width = 0
-        sheet.range("S:AA").column_width = 0
-        sheet.range("Q:Q").column_width = 0
-        sheet.range("P:P").column_width = 20
-        sheet.range("P:P").wrap_text = False
-        sheet.range("R:R").autofit()
-        sheet.range("O:O").column_width = 0
-        sheet.range("L:L").autofit()
-        sheet.range("T:T").autofit()
-        sheet.range("AB:AB").autofit()
-        sheet.range("AE:AE").autofit()
-        sheet.range("AG:AH").autofit()
-        sheet.range("AM:AP").autofit()
-        sheet.range("M:N").autofit()
-        sheet.range("D:H").autofit()
-        sheet.range("I:I").column_width = 10
-        sheet.range("I:I").wrap_text = False
-        sheet.range("J:K").autofit()
-        sheet.range("C:C").column_width = 55
-        sheet.range("C:C").wrap_text = True
-        sheet.range("B:B").autofit()
-        sheet.range("A:A").column_width = 5
+        sheet.activate()
+        run_macro("hide_proposal_columns")
 
 
 def hide_columns_wb(wb):
