@@ -170,13 +170,13 @@ def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
         temp_path = downloads / full_path.name
         if temp_path.exists():
             temp_path.unlink()
-        # Only pass password kwarg if non-empty — passing password="" to Excel's
-        # SaveAs on Mac can set an empty write-reservation password, causing
-        # Excel to show a "is protected" dialog when the file is reopened later.
-        if password:
-            wb.save(temp_path, password=password)
-        else:
-            wb.save(temp_path)
+        # Always pass password to SaveAs — even password="" explicitly clears
+        # any inherited open-password from the source workbook. The earlier
+        # "skip if empty" approach caused Commercial/Technical files to inherit
+        # hide.legacy from the source. The reopen dialog that prompted that change
+        # was caused by the osascript open lacking the password, not by saving
+        # with password=""; that reopen is now fixed via _find_or_open_workbook.
+        wb.save(temp_path, password=password)
         # Move to final destination using Python (handles special chars fine)
         if full_path.exists():
             full_path.unlink()  # Remove existing file if present
@@ -196,10 +196,7 @@ def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
         if already_at_target and not password:
             wb.save()
         else:
-            if password:
-                wb.save(full_path, password=password)
-            else:
-                wb.save(full_path)
+            wb.save(full_path, password=password)
         return full_path
 
 
