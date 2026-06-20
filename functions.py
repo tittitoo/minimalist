@@ -2955,20 +2955,28 @@ def apply_conditional_format(sheet):
 def apply_remove_h_borders(sheet):
     """
     Remove horizontal inside borders from the data range.
+    Windows: Python/xlwings API.  Mac: VBA (appscript bridge doesn't expose Borders).
     """
+    if sys.platform == "darwin":
+        sheet.activate()
+        run_macro("remove_h_borders")
+        return
     xlInsideHorizontal = 12
     xlNone = -4142
-
     last_row = sheet.range("C1500").end("up").row
     if last_row > 4:
-        data_range = sheet.range(f"A3:H{last_row - 2}")
-        data_range.api.Borders(xlInsideHorizontal).LineStyle = xlNone
+        sheet.range(f"A3:H{last_row - 2}").api.Borders(xlInsideHorizontal).LineStyle = xlNone
 
 
 def apply_format_column_border(sheet):
     """
     Apply column border formatting to the sheet.
+    Windows: Python/xlwings API.  Mac: VBA (appscript bridge doesn't expose Borders).
     """
+    if sys.platform == "darwin":
+        sheet.activate()
+        run_macro("format_column_border")
+        return
     # Excel constants
     xlContinuous = 1
     xlNone = -4142
