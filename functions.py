@@ -107,33 +107,23 @@ def copy_design_row(pwb, row_num, dest_range):
 
 def apply_lastrow_border(row_range):
     """
-    Apply top and bottom border with color #0332FF to a row range.
-    Compatible with both Mac and Windows platforms.
-
-    Args:
-        row_range: xlwings range object for the row to style
+    Apply top and bottom border with color #0432FF to a row range.
+    Mac: copies border style from PERSONAL.XLSB Design row 5.
+    Windows: applies borders directly via COM API.
     """
-    # Excel border edge constants
     xlEdgeTop = 8
     xlEdgeBottom = 9
-    # Line style constants
     xlContinuous = 1
-    # Weight constants
     xlThin = 2
 
-    # Color #0332FF: R=3, G=50, B=255
     if sys.platform == "win32":
-        # Windows: Use COM API directly (pure Python)
-        # Color in BGR long integer format for Windows
-        color = 255 * 65536 + 50 * 256 + 3  # 16724483
+        color = (255 << 16) | (50 << 8) | 4  # #0432FF in BGR long
         for edge in [xlEdgeTop, xlEdgeBottom]:
             border = row_range.api.Borders(edge)
             border.LineStyle = xlContinuous
             border.Weight = xlThin
             border.Color = color
     else:
-        # macOS: AppleScript/VBA limitations prevent direct border manipulation.
-        # Fall back to copying border style from PERSONAL.XLSB Design sheet.
         get_cached_range("Design", "5:5").copy(row_range)
 
 
@@ -974,76 +964,39 @@ def fill_lastrow(wb):
 def fill_lastrow_sheet(wb, sheet):  # type: ignore
     if not should_skip_sheet(sheet.name):
         last_row = sheet.range("C1500").end("up").row
-        # Apply top and bottom border with color #0332FF (pure Python, cross-platform)
-        row_range = sheet.range(f"{last_row + 2}:{last_row + 2}")
+        sr = last_row + 2  # subtotal row (last_row+1 is spacer)
+        row_range = sheet.range(f"{sr}:{sr}")
         apply_lastrow_border(row_range)
-        sheet.range("F" + str(last_row + 2)).formula = '="Subtotal(" & Config!B12 & ")"'
-        sheet.range("F" + str(last_row + 2)).font.size = 9
-        sheet.range("G" + str(last_row + 2)).formula = (
-            "=SUM(G3:G" + str(last_row + 1) + ")"
-        )
-        # SCDQ: Subtotal cost after discount in quoted currency
-        # sheet.range("S" + str(last_row + 2)).formula = (
-        #     "=SUM(S3:S" + str(last_row + 1) + ")"
-        # )
-        # BSCQ: Base subtotal cost in quoted currency
-        # sheet.range("U" + str(last_row + 2)).formula = (
-        #     "=SUM(U3:U" + str(last_row + 1) + ")"
-        # )
+        sheet.range(f"F{sr}").formula = '="Subtotal(" & Config!B12 & ")"'
+        sheet.range(f"F{sr}").font.size = 9
+        sheet.range(f"G{sr}").formula = f"=SUM(G3:G{last_row + 1})"
         # Default
-        sheet.range("V" + str(last_row + 2)).formula = (
-            "=SUM(V3:V" + str(last_row + 1) + ")"
-        )
+        sheet.range(f"V{sr}").formula = f"=SUM(V3:V{last_row + 1})"
         # Warranty
-        sheet.range("W" + str(last_row + 2)).formula = (
-            "=SUM(W3:W" + str(last_row + 1) + ")"
-        )
+        sheet.range(f"W{sr}").formula = f"=SUM(W3:W{last_row + 1})"
         # Freight (Inbound)
-        sheet.range("X" + str(last_row + 2)).formula = (
-            "=SUM(X3:X" + str(last_row + 1) + ")"
-        )
+        sheet.range(f"X{sr}").formula = f"=SUM(X3:X{last_row + 1})"
         # Special (Conditions)
-        sheet.range("Y" + str(last_row + 2)).formula = (
-            "=SUM(Y3:Y" + str(last_row + 1) + ")"
-        )
+        sheet.range(f"Y{sr}").formula = f"=SUM(Y3:Y{last_row + 1})"
         # Risk
-        sheet.range("Z" + str(last_row + 2)).formula = (
-            "=SUM(Z3:Z" + str(last_row + 1) + ")"
-        )
-        # sheet.range("AF" + str(last_row + 2)).formula = (
-        #     "=SUM(AF3:AF" + str(last_row + 1) + ")"
-        # )
-        # sheet.range("AG" + str(last_row + 2)).formula = (
-        #     "=SUM(AG3:AG" + str(last_row + 1) + ")"
-        # )
-        # sheet.range("AH" + str(last_row + 2)).formula = (
-        #     "=AG" + str(last_row + 2) + "/AF" + str(last_row + 2)
-        # )
-        sheet.range("AL" + str(last_row + 2)).value = "Title"
-        # TCDQL(Total Cost after Discount in Quoted Currency Lumpsum)
-        # Material cost
-        sheet.range(f"AQ{str(last_row + 2)}").formula = f"=SUM(AQ3:AQ{last_row+1})"
-        # BTCQL (Base Total Cost in Quoted Currency Lumpsum)
-        # Base price after escalation
-        sheet.range(f"AS{str(last_row + 2)}").formula = f"=SUM(AS3:AS{last_row+1})"
-        # TSPL (Total Selling Price Lumpsum)
-        # Actual selling price
-        sheet.range(f"AU{str(last_row + 2)}").formula = f"=SUM(AU3:AU{last_row+1})"
-        # TP (Total Profit)
-        sheet.range(f"AV{str(last_row + 2)}").formula = f"=SUM(AV3:AV{last_row+1})"
-        # Total Margin
-        sheet.range(f"AW{str(last_row + 2)}").formula = (
-            f'=IF(AU{str(last_row+2)}<>0,AV{str(last_row + 2)}/AU{str(last_row + 2)}, "")'
-        )
-        # The formatting for added row.
-        sheet.range(f"AW{str(last_row + 2)}").number_format = "0.00%"
-        # Format
-        # sheet.range(f"S{last_row+2}:S{last_row+2}").font.color = (0, 144, 81)
-        sheet.range(f"V{last_row+2}:Z{last_row+2}").font.color = (0, 144, 81)
-        sheet.range(f"{last_row+2}:{last_row+2}").font.bold = True
+        sheet.range(f"Z{sr}").formula = f"=SUM(Z3:Z{last_row + 1})"
+        sheet.range(f"AL{sr}").value = "Title"
+        # TCDQL — material cost
+        sheet.range(f"AQ{sr}").formula = f"=SUM(AQ3:AQ{last_row + 1})"
+        # BTCQL — base price after escalation
+        sheet.range(f"AS{sr}").formula = f"=SUM(AS3:AS{last_row + 1})"
+        # TSPL — actual selling price
+        sheet.range(f"AU{sr}").formula = f"=SUM(AU3:AU{last_row + 1})"
+        # TP — total profit
+        sheet.range(f"AV{sr}").formula = f"=SUM(AV3:AV{last_row + 1})"
+        # Total margin
+        sheet.range(f"AW{sr}").formula = f'=IF(AU{sr}<>0,AV{sr}/AU{sr},"")'
+        sheet.range(f"AW{sr}").number_format = "0.00%"
+        # Format subtotal row
+        sheet.range(f"V{sr}:Z{sr}").font.color = (0, 144, 81)
+        sheet.range(f"{sr}:{sr}").font.bold = True
 
-        # Set-up print area
-        sheet.page_setup.print_area = "A1:H" + str(last_row + 2)
+        sheet.page_setup.print_area = f"A1:H{sr}"
 
 
 def unhide_columns(sheet):
