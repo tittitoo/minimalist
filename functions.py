@@ -698,13 +698,24 @@ def set_comma_space(text):
     return text
 
 
+_TITLE_CASE_LOWER = frozenset({
+    "a", "an", "the",
+    "and", "but", "or", "nor", "for", "yet", "so",
+    "at", "by", "in", "of", "on", "to", "up", "as",
+})
+
+
 def title_case_ignore_double_char(text):
     words = text.split()
+    last_idx = len(words) - 1
     titled_words = []
-    for word in words:
-        if (
-            len(word.strip(string.punctuation)) > 2
-        ):  # So that two letter words are ignored without punctuation mark
+    for i, word in enumerate(words):
+        core = word.strip(string.punctuation).lower()
+        if i != 0 and i != last_idx and core in _TITLE_CASE_LOWER:
+            # Articles, conjunctions, short prepositions stay lowercase
+            # regardless of how the user typed them, unless first or last word
+            titled_words.append(word.lower())
+        elif len(word.strip(string.punctuation)) > 2:
             # To prevent cases like 'mm)' from becoming 'Mm)'
             titled_words.append(word.capitalize())
         else:
