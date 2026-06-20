@@ -2857,16 +2857,14 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
 def apply_conditional_format(sheet):
     """
-    Apply conditional formatting to column C based on AL values.
+    Apply conditional formatting to column C (row type styles) and D:G (Title bold).
     Uses xlwings API - no sheet activation required.
     """
-    col_c = sheet.range("C:C")
-
-    # Excel constants
     xlExpression = 2
     xlUnderlineStyleSingle = 2
 
-    # Clear existing conditional formats
+    # --- Column C: row-type styles ---
+    col_c = sheet.range("C:C")
     col_c.api.FormatConditions.Delete()
 
     # Rules in reverse priority order (last added = highest priority via SetFirstPriority)
@@ -2894,6 +2892,17 @@ def apply_conditional_format(sheet):
         if "color" in fmt:
             fc.Font.Color = fmt["color"]
         fc.StopIfTrue = True
+
+    # --- Columns D:G: bold when Title row has a number in D ---
+    col_dg = sheet.range("D:G")
+    col_dg.api.FormatConditions.Delete()
+    fc = col_dg.api.FormatConditions.Add(
+        Type=xlExpression,
+        Formula1='=AND($AL1="Title",ISNUMBER($D1))',
+    )
+    fc.SetFirstPriority()
+    fc.Font.Bold = True
+    fc.StopIfTrue = False
 
 
 def apply_remove_h_borders(sheet):
