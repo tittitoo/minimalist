@@ -1864,6 +1864,12 @@ def technical(wb, show_pdf=True):
         xw.apps.active.alert("The file already seems to be technical.")  # type: ignore
         return
 
+    _stage = "Preparing technical proposal..."
+    app.status_bar = _stage
+
+    def _restore():
+        app.status_bar = _stage
+
     if wb.name[:10] == "Commercial":
         for sheet in wb.sheet_names:
             ws = wb.sheets[sheet]
@@ -1872,6 +1878,7 @@ def technical(wb, show_pdf=True):
                 # Require to remove h_borders as these willl not be detected
                 # when columns are removed and page setup changed.
                 run_macro("remove_h_borders")
+                _restore()
                 last_row = ws.range("C1500").end("up").row
                 ws.range("F:G").delete()
                 ws.range("AL3:AL" + str(last_row)).value = ws.range(
@@ -1890,9 +1897,12 @@ def technical(wb, show_pdf=True):
         wb.sheets["Summary"].activate()
         file_name = "Technical " + wb.name[11:-4] + "xlsx"
         full_path = Path(directory, file_name)
+        app.status_bar = "Saving technical proposal..."
         save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
+        app.status_bar = "Generating PDF..."
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
+        app.status_bar = "Reopening source..."
         _src_wb = _find_or_open_workbook(app, src_path)
         wb.close()
         if _src_wb is not None:
@@ -1943,12 +1953,14 @@ def technical(wb, show_pdf=True):
             pass
         delete_scratch_sheet(wb)
         prepare_to_print_technical(wb)
-        # wb.sheets["Summary"].activate()
         file_name = "Technical " + wb.name[:-4] + "xlsx"
         full_path = Path(directory, file_name)
+        app.status_bar = "Saving technical proposal..."
         save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
+        app.status_bar = "Generating PDF..."
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
+        app.status_bar = "Reopening source..."
         _src_wb = _find_or_open_workbook(app, src_path)
         wb.close()
         if _src_wb is not None:
@@ -1980,8 +1992,12 @@ def commercial(wb, show_pdf=True):
         )
         return
 
-    """Takes a work book, set horizantal borders at pagebreaks."""
-    # current_sheet = wb.sheets.active
+    _stage = "Preparing commercial proposal..."
+    app.status_bar = _stage
+
+    def _restore():
+        app.status_bar = _stage
+
     wb.sheets["Cover"].range("D6:D8").value = (
         wb.sheets["Cover"].range("D6:D8").raw_value
     )
@@ -2009,7 +2025,9 @@ def commercial(wb, show_pdf=True):
             ws.range("B:B").autofit()
             ws.range("C:C").column_width = 55
             ws.range("C:C").wrap_text = True
+            app.status_bar = "Setting row heights..."
             _set_wrap_row_heights(ws)
+            _restore()
             ws.range(f"G3:G{last_row-1}").formula = (
                 '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
             )
@@ -2027,8 +2045,11 @@ def commercial(wb, show_pdf=True):
             # Activate sheet for VBA macros that operate on the active sheet
             ws.activate()
             run_macro("conditional_format")
+            _restore()
             run_macro("remove_h_borders")
+            _restore()
             run_macro("pagebreak_borders")
+            _restore()
 
     wb.sheets["Summary"].range("G:X").delete()
     wb.sheets["Config"].delete()
@@ -2039,16 +2060,17 @@ def commercial(wb, show_pdf=True):
     wb.sheets["Summary"].activate()
     file_name = "Commercial " + wb.name[:-4] + "xlsx"
     full_path = Path(directory, file_name)
+    app.status_bar = "Saving commercial proposal..."
     save_workbook_safe(wb, full_path, password="")
-    # Explicitly specify PDF path - don't rely on xlwings to figure it out
-    # (SharePoint sync can cause stale workbook path references)
     pdf_path = full_path.with_suffix(".pdf")
+    app.status_bar = "Generating PDF..."
     try:
         to_pdf_safe(wb, pdf_path, show=show_pdf)
     except Exception as e:
         xw.apps.active.alert(  # type: ignore
             f"This error is encountered {e}. The PDF file already exists?"
         )
+    app.status_bar = "Reopening source..."
     _src_wb = _find_or_open_workbook(app, src_path)
     wb.close()
     if _src_wb is not None:
