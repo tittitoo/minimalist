@@ -1149,7 +1149,7 @@ def hide_columns_wb(wb):
 def set_row_heights_wb(wb):
     for sheet in wb.sheets:
         if not should_skip_sheet(sheet.name):
-            _set_wrap_row_heights(sheet)
+            sheet.range("C:C").rows.autofit()
 
 
 def summary(wb, discount=False, detail=False, simulation=True, discount_level=15):
