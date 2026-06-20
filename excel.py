@@ -303,9 +303,6 @@ def fill_formula_wb():
     functions.hide_columns_wb(wb)
     update_status(app, "Setting row heights...")
     functions.set_row_heights_wb(wb)
-    update_status(app, "Recalculating...")
-    # Force recalculation at the end to avoid stale value errors
-    wb.app.calculate()
 
 
 @check_if_template

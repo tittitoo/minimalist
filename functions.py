@@ -107,24 +107,26 @@ def copy_design_row(pwb, row_num, dest_range):
 
 def apply_lastrow_border(row_range):
     """
-    Apply top and bottom border with color #0432FF to a row range.
-    Mac: copies border style from PERSONAL.XLSB Design row 5.
+    Apply thin blue (#0432FF) top and bottom borders to a subtotal row range.
+    Mac: calls apply_subtotal_borders VBA macro (faster than clipboard copy).
     Windows: applies borders directly via COM API.
     """
     xlEdgeTop = 8
     xlEdgeBottom = 9
     xlContinuous = 1
     xlThin = 2
+    color_bgr = (255 << 16) | (50 << 8) | 4  # #0432FF in BGR long (Windows COM)
 
     if sys.platform == "win32":
-        color = (255 << 16) | (50 << 8) | 4  # #0432FF in BGR long
         for edge in [xlEdgeTop, xlEdgeBottom]:
             border = row_range.api.Borders(edge)
             border.LineStyle = xlContinuous
             border.Weight = xlThin
-            border.Color = color
+            border.Color = color_bgr
     else:
-        get_cached_range("Design", "5:5").copy(row_range)
+        row_num = row_range.row
+        row_range.sheet.activate()
+        get_macro_nb().macro("apply_subtotal_borders")(row_num)
 
 
 def _has_problematic_path_chars(path: Path) -> bool:
