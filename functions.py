@@ -1787,17 +1787,22 @@ def prepare_to_print_technical(wb):
     page_setup(wb)
     for sheet in wb.sheet_names:
         if not should_skip_sheet(sheet):
-            last_row = wb.sheets[sheet].range("C1500").end("up").row
-            wb.sheets[sheet].activate()
-            wb.sheets[sheet].range("C:C").column_width = 60
-            wb.sheets[sheet].range("C:C").wrap_text = True
-            wb.sheets[sheet].range("C:C").rows.autofit()
-            wb.sheets[sheet].range("D:F").autofit()
+            ws = wb.sheets[sheet]
+            last_row = ws.range("C1500").end("up").row
+            ws.activate()
+            ws.range("C:C").column_width = 60
+            ws.range("C:C").wrap_text = True
+            ws.range("C:C").rows.autofit()
+            ws.range("D:F").autofit()
             # Adjust the last two rows so that unwanted pagebreak can be prevented
-            wb.sheets[sheet].range(f"{last_row+1}:{last_row+1}").delete()
-            wb.sheets[sheet].range(f"{last_row+1}:{last_row+1}").row_height = 2
-            run_macro("conditional_format")
-            run_macro("remove_h_borders")
+            ws.range(f"{last_row+1}:{last_row+1}").delete()
+            ws.range(f"{last_row+1}:{last_row+1}").row_height = 2
+            try:
+                apply_conditional_format(ws)
+            except Exception:
+                run_macro("conditional_format")
+            apply_remove_h_borders(ws)
+            ws.activate()  # pagebreak_borders VBA needs active sheet
             run_macro("pagebreak_borders")
     wb.sheets[current_sheet].activate()
 
@@ -1874,8 +1879,7 @@ def technical(wb, show_pdf=True):
             if not should_skip_sheet(sheet):
                 # Require to remove h_borders as these willl not be detected
                 # when columns are removed and page setup changed.
-                run_macro("remove_h_borders")
-                _restore()
+                apply_remove_h_borders(ws)
                 last_row = ws.range("C1500").end("up").row
                 ws.range("F:G").delete()
                 ws.range("AL3:AL" + str(last_row)).value = ws.range(
@@ -2039,12 +2043,14 @@ def commercial(wb, show_pdf=True):
             if col_i_values:
                 ws.range(f"AL1:AL{last_row}").value = [[v] for v in col_i_values]
             ws.range("AL:AL").column_width = 0
-            # Activate sheet for VBA macros that operate on the active sheet
-            ws.activate()
-            run_macro("conditional_format")
-            _restore()
-            run_macro("remove_h_borders")
-            _restore()
+            try:
+                apply_conditional_format(ws)
+            except Exception:
+                ws.activate()
+                run_macro("conditional_format")
+                _restore()
+            apply_remove_h_borders(ws)
+            ws.activate()  # pagebreak_borders VBA needs active sheet
             run_macro("pagebreak_borders")
             _restore()
 
@@ -2085,9 +2091,10 @@ def prepare_to_print_internal(wb):
     page_setup(wb)
     for sheet in wb.sheet_names:
         if not should_skip_sheet(sheet):
-            wb.sheets[sheet].activate()
-            run_macro("conditional_format_internal_costing")
-            run_macro("remove_h_borders")
+            ws = wb.sheets[sheet]
+            ws.activate()
+            run_macro("conditional_format_internal_costing")  # Phase 2: replace with Python
+            apply_remove_h_borders(ws)
             # Below is commented out so that blue lines do not show
             # MACRO_NB.macro('pagebreak_borders')()
     wb.sheets[current_sheet].activate()
@@ -2952,9 +2959,8 @@ def apply_remove_h_borders(sheet):
     xlInsideHorizontal = 12
     xlNone = -4142
 
-    # Find last row with data
-    last_row = sheet.range("A1").end("down").row
-    if last_row > 5:  # Ensure we have data
+    last_row = sheet.range("C1500").end("up").row
+    if last_row > 4:
         data_range = sheet.range(f"A3:H{last_row - 2}")
         data_range.api.Borders(xlInsideHorizontal).LineStyle = xlNone
 
@@ -3067,16 +3073,13 @@ def apply_format_column_border(sheet):
 
 def conditional_format_wb(wb, app=None):
     """
-    Apply conditional formatting to all sheets.
-    On Windows: Uses Python/xlwings API for conditional_format only.
-    On macOS: Uses VBA macros (AppleScript doesn't support FormatConditions API).
-    remove_h_borders and format_column_border use VBA on both platforms.
+    Apply conditional formatting to all sheets using Python/xlwings API.
+    Falls back to VBA conditional_format macro if the API call fails (e.g. older Mac Excel).
+    remove_h_borders and format_column_border are now pure Python on all platforms.
 
-    Pass app to restore the status bar after each VBA macro call — macros
-    reset Application.StatusBar to False (showing "Ready") when they finish.
+    Pass app to restore the status bar if the VBA fallback resets it.
     """
     current_sheet = wb.sheets.active
-    is_windows = sys.platform == "win32"
     _status = "Applying conditional formatting..."
 
     def _restore():
@@ -3087,26 +3090,15 @@ def conditional_format_wb(wb, app=None):
         if not should_skip_sheet(sheet_name):
             sheet = wb.sheets[sheet_name]
 
-            if is_windows:
-                # Windows: use Python API for conditional_format only
-                try:
-                    apply_conditional_format(sheet)
-                except Exception:
-                    sheet.activate()
-                    run_macro("conditional_format")
-                    _restore()
-            else:
-                # macOS: use VBA (AppleScript doesn't support FormatConditions)
+            try:
+                apply_conditional_format(sheet)
+            except Exception:
                 sheet.activate()
                 run_macro("conditional_format")
                 _restore()
 
-            # Always use VBA for border formatting (Python version unreliable)
-            sheet.activate()
-            run_macro("remove_h_borders")
-            _restore()
-            run_macro("format_column_border")
-            _restore()
+            apply_remove_h_borders(sheet)
+            apply_format_column_border(sheet)
 
     current_sheet.activate()
 
