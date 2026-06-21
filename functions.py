@@ -1746,6 +1746,8 @@ def prepare_to_print_technical(wb):
             except Exception:
                 run_macro("conditional_format")
             apply_remove_h_borders(ws)
+            apply_teal_border(ws, "A", "left")
+            apply_teal_border(ws, "F", "right")
             ws.activate()  # pagebreak_borders VBA needs active sheet
             run_macro("pagebreak_borders")
     wb.sheets[current_sheet].activate()
@@ -1848,6 +1850,7 @@ def technical(wb, show_pdf=True):
         app.status_bar = "Generating PDF..."
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
         app.status_bar = "Reopening source..."
+        app.calculation = "automatic"
         _src_wb = _find_or_open_workbook(app, src_path)
         wb.close()
         if _src_wb is not None:
@@ -1906,6 +1909,7 @@ def technical(wb, show_pdf=True):
         app.status_bar = "Generating PDF..."
         print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
         app.status_bar = "Reopening source..."
+        app.calculation = "automatic"
         _src_wb = _find_or_open_workbook(app, src_path)
         wb.close()
         if _src_wb is not None:
@@ -1915,6 +1919,33 @@ def technical(wb, show_pdf=True):
                 pass
         elif not src_path.exists():
             xw.apps.active.alert(f"Proposal generated but could not reopen:\n{src_path.name}")  # type: ignore
+
+
+def prepare_to_print_commercial(wb):
+    """Apply print formatting and VBA border/CF to each commercial sheet (second pass)."""
+    current_sheet = wb.sheets.active
+    page_setup(wb)
+    for sheet in wb.sheet_names:
+        if not should_skip_sheet(sheet):
+            ws = wb.sheets[sheet]
+            ws.activate()
+            ws.range("A:A").column_width = 4
+            ws.range("B:B").autofit()
+            ws.range("C:C").column_width = 55
+            ws.range("C:C").wrap_text = True
+            _set_wrap_row_heights(ws)
+            ws.range("D:H").autofit()
+            try:
+                apply_conditional_format(ws)
+            except Exception:
+                ws.activate()
+                run_macro("conditional_format")
+            apply_remove_h_borders(ws)
+            apply_teal_border(ws, "A", "left")
+            apply_teal_border(ws, "H", "right")
+            ws.activate()
+            run_macro("pagebreak_borders")
+    wb.sheets[current_sheet].activate()
 
 
 def commercial(wb, show_pdf=True):
@@ -1937,12 +1968,7 @@ def commercial(wb, show_pdf=True):
         )
         return
 
-    _stage = "Preparing commercial proposal..."
-    app.status_bar = _stage
-
-    def _restore():
-        app.status_bar = _stage
-
+    app.status_bar = "Preparing commercial proposal..."
     wb.sheets["Cover"].range("D6:D8").value = (
         wb.sheets["Cover"].range("D6:D8").raw_value
     )
@@ -1951,52 +1977,17 @@ def commercial(wb, show_pdf=True):
     wb.sheets["Cover"].range("C42:C47").value = (
         wb.sheets["Cover"].range("C42:C47").raw_value
     )
-    last_row = wb.sheets["Summary"].range("D1500").end("up").row
-    wb.sheets["Summary"].range(f"G20:P{last_row}").value = (
-        wb.sheets["Summary"].range(f"G20:P{last_row}").raw_value
-    )
     wb.sheets["Summary"].range("C20:C100").value = (
         wb.sheets["Summary"].range("C20:C100").raw_value
     )
-    page_setup(wb)
     for sheet in wb.sheet_names:
         ws = wb.sheets[sheet]
         ws.range("A1").value = ws.range("A1").raw_value  # Remove formula
         ws.range("A1").wrap_text = False
         if not should_skip_sheet(sheet):
-            last_row = ws.range("G1500").end("up").row
-            ws.range(f"A3:AL{last_row}").value = ws.range(f"A3:AL{last_row}").raw_value
-            ws.range("A:A").column_width = 4
-            ws.range("B:B").autofit()
-            ws.range("C:C").column_width = 55
-            ws.range("C:C").wrap_text = True
-            app.status_bar = "Setting row heights..."
-            _set_wrap_row_heights(ws)
-            _restore()
-            ws.range(f"G3:G{last_row-1}").formula = (
-                '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
-            )
-            ws.range(f"G{last_row}").formula = "=SUM(G3:G" + str(last_row - 1) + ")"
-            wb.sheets[sheet].range("D:H").autofit()
-            ws = wb.sheets[sheet]  # Refresh stale reference before column deletions
-            ws.range("AM:BD").delete()
-            ws.range("I:AK").delete()
-            ws = wb.sheets[sheet]  # Refresh again after column deletions
-            col_i_values = ws.range(f"I1:I{last_row}").options(ndim=1).value
-            ws.range("I:I").delete()
-            if col_i_values:
-                ws.range(f"AL1:AL{last_row}").value = [[v] for v in col_i_values]
-            ws.range("AL:AL").column_width = 0
-            try:
-                apply_conditional_format(ws)
-            except Exception:
-                ws.activate()
-                run_macro("conditional_format")
-                _restore()
-            apply_remove_h_borders(ws)
-            ws.activate()  # pagebreak_borders VBA needs active sheet
-            run_macro("pagebreak_borders")
-            _restore()
+            get_macro_nb().macro("commercial_prepare_sheet")(sheet)
+    app.status_bar = "Formatting for print..."
+    prepare_to_print_commercial(wb)
 
     wb.sheets["Summary"].range("G:X").delete()
     wb.sheets["Config"].delete()
@@ -2018,6 +2009,7 @@ def commercial(wb, show_pdf=True):
             f"This error is encountered {e}. The PDF file already exists?"
         )
     app.status_bar = "Reopening source..."
+    app.calculation = "automatic"  # Restore before reopening so source opens without stale warnings
     _src_wb = _find_or_open_workbook(app, src_path)
     wb.close()
     if _src_wb is not None:
@@ -2903,6 +2895,24 @@ def apply_conditional_format(sheet):
     fc.SetFirstPriority()
     fc.Font.Bold = True
     fc.StopIfTrue = False
+
+
+def apply_teal_border(sheet, col_letter, edge):
+    if sys.platform == "darwin":
+        run_macro(f"format_col_{col_letter.lower()}_{edge}_border")
+        return
+    xlContinuous = 1
+    xlThin = 2
+    xlEdgeLeft = 7
+    xlEdgeRight = 10
+    COLOR_TEAL = -52732
+    xl_edge = xlEdgeLeft if edge == "left" else xlEdgeRight
+    last_row = max(sheet.used_range.last_cell.row, 2)
+    b = sheet.range(f"{col_letter}2:{col_letter}{last_row}").api.Borders(xl_edge)
+    b.LineStyle = xlContinuous
+    b.Color = COLOR_TEAL
+    b.TintAndShade = 0
+    b.Weight = xlThin
 
 
 def apply_remove_h_borders(sheet):

@@ -3,6 +3,19 @@
 ' Note: Workbook_Open belongs in the ThisWorkbook module, not here.
 
 ' ============================================================
+' Keyboard shortcuts
+' Call SetupShortcuts from Workbook_Open in ThisWorkbook so shortcuts
+' survive future Module1 replacements (procedure attributes are fragile).
+' ============================================================
+Sub SetupShortcuts()
+    ' Ctrl+E/J/M work via OnKey on Mac (no OS conflict).
+    Application.OnKey "^e", "formula"
+    Application.OnKey "^j", "hide_columns"
+    Application.OnKey "^m", "unhide_columns"
+    ' add_row / delete_row shortcuts TBD — Ctrl+W/Q/I/D all intercepted by Mac Excel
+End Sub
+
+' ============================================================
 ' Performance helper
 ' Call appTGGL False before bulk ops, appTGGL (True) after.
 ' ============================================================
@@ -24,10 +37,12 @@ End Sub
 ' Primary path is Python apply_conditional_format; this is the fallback.
 ' ============================================================
 Sub conditional_format()
-appTGGL bTGGL:=False
+    Dim wasUpdating As Boolean
+    wasUpdating = Application.ScreenUpdating
+    If wasUpdating Then appTGGL bTGGL:=False
 
-Dim activeRange As Range
-Set activeRange = Selection
+    Dim activeRange As Range
+    Set activeRange = Selection
     Cells.FormatConditions.Delete
 
     ' --- Column C: row-type styles ---
@@ -112,7 +127,7 @@ Set activeRange = Selection
     Selection.FormatConditions(1).StopIfTrue = False
 
     activeRange.Select
-appTGGL
+    If wasUpdating Then appTGGL
 End Sub
 
 ' ============================================================
@@ -409,14 +424,46 @@ appTGGL bTGGL:=False
 appTGGL
 End Sub
 
+Sub format_col_a_left_border()
+    ' Left teal border on column A from row 2 down — shared by technical and commercial proposals.
+    With ActiveSheet.Range("A2:A1048576").Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .Color = -52732
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+End Sub
+
+Sub format_col_f_right_border()
+    ' Right teal border on column F from row 2 down — last data column in a technical proposal.
+    With ActiveSheet.Range("F2:F1048576").Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .Color = -52732
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+End Sub
+
+Sub format_col_h_right_border()
+    ' Right teal border on column H from row 2 down — last data column in a commercial proposal.
+    With ActiveSheet.Range("H2:H1048576").Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .Color = -52732
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+End Sub
+
 Sub remove_h_borders()
-appTGGL bTGGL:=False
+    Dim wasUpdating As Boolean
+    wasUpdating = Application.ScreenUpdating
+    If wasUpdating Then appTGGL bTGGL:=False
     Dim lastRow As Long
     lastRow = ActiveSheet.Cells.Find("*", SearchOrder:=xlByRows, SearchDirection:=xlPrevious).Row
     Dim DataRange As Range
     Set DataRange = Range("A3:H" & lastRow - 2)
     DataRange.Borders(xlInsideHorizontal).LineStyle = xlNone
-appTGGL
+    If wasUpdating Then appTGGL
 End Sub
 
 Sub pagebreak_borders()
@@ -436,13 +483,15 @@ Sub pagebreak_borders()
 End Sub
 
 Sub remove_pagebreak_borders()
-    appTGGL bTGGL:=False
+    Dim wasUpdating As Boolean
+    wasUpdating = Application.ScreenUpdating
+    If wasUpdating Then appTGGL bTGGL:=False
     For Each pgbr In ActiveSheet.HPageBreaks
         With pgbr.Location.Offset(-1, 0).EntireRow.Borders(xlEdgeBottom)
             .LineStyle = xlNone
         End With
     Next
-    appTGGL
+    If wasUpdating Then appTGGL
 End Sub
 
 ' ============================================================
@@ -521,12 +570,12 @@ End Sub
 ' Row operations — keyboard shortcuts
 ' ============================================================
 Sub add_row()
-' Keyboard Shortcut: Ctrl+w
+' Shortcut: Ctrl+W (Windows) / Ctrl+G (Mac)
     Selection.EntireRow.Insert , CopyOrigin:=xlFormatFromLeftOrAbove
 End Sub
 
 Sub delete_row()
-' Keyboard Shortcut: Ctrl+q
+' Shortcut: Ctrl+Q (Windows) / Ctrl+L (Mac)
     appTGGL bTGGL:=False
     Selection.EntireRow.Delete
     appTGGL
@@ -625,6 +674,40 @@ End Sub
 ' ============================================================
 ' Column layout — called from Python hide_columns()
 ' ============================================================
+Sub commercial_prepare_sheet(sheetName As String)
+    ' Called from Python commercial() for each data sheet.
+    ' Runs entirely inside Excel — no large Apple Event data transfers.
+    ' DO NOT call appTGGL — Python already set ScreenUpdating=False.
+    Dim ws As Worksheet
+    Set ws = ActiveWorkbook.Sheets(sheetName)
+
+    Dim lastRow As Long
+    lastRow = ws.Cells(1500, 7).End(xlUp).Row  ' Column G = 7
+
+    If lastRow < 3 Then Exit Sub  ' No data rows to process
+
+    ' Freeze A:H values (formula -> static value, inside Excel process)
+    ws.Range("A3:H" & lastRow).Value = ws.Range("A3:H" & lastRow).Value
+
+    ' Re-add G price formula and subtotal
+    ws.Range("G3:G" & lastRow - 1).Formula = _
+        "=IF(AND(F3<>"""", H3<>""OPTION"", H3<>""INCLUDED"", H3<>""WAIVED""), D3*F3,"""")"
+    ws.Range("G" & lastRow).Formula = "=SUM(G3:G" & lastRow - 1 & ")"
+
+    ' Delete pricing columns beyond H (after deletion AL shifts to column I)
+    ws.Columns("AM:BD").Delete
+    ws.Columns("I:AK").Delete
+
+    ' Save row-type labels now at column I (was AL)
+    Dim alValues As Variant
+    alValues = ws.Range("I1:I" & lastRow).Value
+
+    ' Remove from I, write to AL, hide
+    ws.Columns("I").Delete
+    ws.Range("AL1:AL" & lastRow).Value = alValues
+    ws.Columns("AL").ColumnWidth = 0
+End Sub
+
 Sub hide_proposal_columns()
     ' Replaces ~24 individual xlwings/appscript calls with a single VBA execution.
     With ActiveSheet
