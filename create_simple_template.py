@@ -102,8 +102,8 @@ c.value = "[TEL  |  FAX  |  WEBSITE  |  Co. Reg. No.]"
 c.font = af(FONT, size=9, color=GREY)
 c.alignment = align()
 
-# ROW 4 — Blue rule
-ws.row_dimensions[4].height = 2
+# ROW 4 — Blue rule (1.75pt is the minimum height where the fill remains visible)
+ws.row_dimensions[4].height = 1.75
 blue_fill = fill(BLUE)
 for col in range(1, 9):
     ws.cell(row=4, column=col).fill = blue_fill
