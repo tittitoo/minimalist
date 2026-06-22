@@ -1948,6 +1948,31 @@ def prepare_to_print_commercial(wb):
     wb.sheets[current_sheet].activate()
 
 
+def _commercial_prepare_sheet_py(wb, sheet_name):
+    """Python fallback for the commercial_prepare_sheet VBA macro.
+    Used when PERSONAL.XLSB is older than the macro's introduction.
+    Mirrors the VBA logic exactly: freeze A:H values, rebuild G formula,
+    delete extra columns, and relocate the AL row-type labels.
+    """
+    ws = wb.sheets[sheet_name]
+    last_row = ws.range("G1500").end("up").row
+    if last_row < 3:
+        return
+    ws.range(f"A3:H{last_row}").value = ws.range(f"A3:H{last_row}").raw_value
+    ws.range(f"G3:G{last_row - 1}").formula = (
+        '=IF(AND(F3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED"), D3*F3,"")'
+    )
+    ws.range(f"G{last_row}").formula = f"=SUM(G3:G{last_row - 1})"
+    ws.range("AM:BD").delete()
+    ws.range("I:AK").delete()
+    ws = wb.sheets[sheet_name]  # Refresh reference after column deletions
+    col_i_vals = ws.range(f"I1:I{last_row}").options(ndim=1).value
+    ws.range("I:I").delete()
+    if col_i_vals:
+        ws.range(f"AL1:AL{last_row}").value = [[v] for v in col_i_vals]
+    ws.range("AL:AL").column_width = 0
+
+
 def commercial(wb, show_pdf=True):
     app = wb.app
     directory, is_cloud = get_workbook_directory(wb)
@@ -1985,7 +2010,11 @@ def commercial(wb, show_pdf=True):
         ws.range("A1").value = ws.range("A1").raw_value  # Remove formula
         ws.range("A1").wrap_text = False
         if not should_skip_sheet(sheet):
-            get_macro_nb().macro("commercial_prepare_sheet")(sheet)
+            try:
+                get_macro_nb().macro("commercial_prepare_sheet")(sheet)
+            except Exception:
+                # Fallback: Python equivalent of the VBA macro (older PERSONAL.XLSB)
+                _commercial_prepare_sheet_py(wb, sheet)
     app.status_bar = "Formatting for print..."
     prepare_to_print_commercial(wb)
 
