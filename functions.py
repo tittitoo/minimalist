@@ -2141,9 +2141,12 @@ _SP_TC_PT     = 10           # T&C lines font size (subordinate to BOQ)
 _SP_ROW_H     = 18.0         # single-line row height for Arial 12pt; 18pt clears descenders on Mac Excel
                              # (Mac top-padding ≥ 2.5pt; 15.75 and 16.5 both still clip)
 # Excel col_width → available text width (pt): avail = (col_width × _SP_MDW_PX + 1) × 0.75
-# _SP_MDW_PX is the MaxDigitWidth of the workbook's Normal-style font (Calibri 11pt default).
-# Mac (72 DPI effective): Calibri 11pt MDW ≈ 8px.  Windows (96 DPI): ≈ 7px.
-_SP_MDW_PX    = 7.0 if sys.platform == "win32" else 8.0
+# _SP_MDW_PX calibrated empirically per platform against known single/multi-line boundary cases
+# at col_width=55.  Windows Excel PDF export produces a physically wider column than Mac for the
+# same col_width value, so Windows needs a higher MDW to correctly classify borderline rows:
+#   Mac  (avail=330.75pt): "Ext.Trunk…70-Lines" (344pt) genuinely wraps to 2 text lines ✓
+#   Win  (avail=351.38pt): same text fits on 1 line; "Call Transfer…Group Call" (361pt) wraps ✓
+_SP_MDW_PX    = 8.5 if sys.platform == "win32" else 8.0
 
 
 def _format_iso_date(val):
