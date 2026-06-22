@@ -1036,13 +1036,18 @@ def unhide_columns_wb(wb):
 
 
 def _set_wrap_row_heights(sheet, col_width=55):
-    """Replace rows.autofit() for col C — Python-computed heights avoid Mac timing bug.
+    """Set row heights for column C word-wrap, cross-platform.
 
-    Mac Excel's layout engine lags behind xlwings column_width changes made via
-    AppleScript, so rows.autofit() reads stale layout and over-allocates row height.
-    We measure text width with ReportLab (Helvetica ≈ Arial metrically) instead.
-    Constants (_SP_ROW_H etc.) are shared with simple_proposal.
+    Windows: rows.autofit() works correctly — COM column-width changes are
+    synchronous so Excel's layout engine reads the right value immediately.
+
+    Mac: autofit reads stale layout after AppleScript column-width changes,
+    producing extra blank space below single-line rows. We use ReportLab font
+    metrics (Helvetica ≈ Arial) with _SP_MDW_PX calibrated for Mac instead.
     """
+    if sys.platform != "darwin":
+        sheet.range("C:C").rows.autofit()
+        return
     last_row = sheet.range("C1500").end("up").row
     if last_row < 2:
         return
@@ -1090,7 +1095,7 @@ def hide_columns_wb(wb):
 def set_row_heights_wb(wb):
     for sheet in wb.sheets:
         if not should_skip_sheet(sheet.name):
-            sheet.range("C:C").rows.autofit()
+            _set_wrap_row_heights(sheet)
 
 
 def summary(wb, discount=False, detail=False, simulation=True, discount_level=15):
