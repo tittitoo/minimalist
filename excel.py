@@ -262,6 +262,7 @@ def fill_formula():
 def fill_formula_wb():
     wb = xw.Book.caller()
     app = wb.app
+    original_sheet = wb.sheets.active
     update_status(app, "Updating template version check...")
     functions.update_template_version(wb)
     update_status(app, "Cleaning up empty rows...")
@@ -290,6 +291,7 @@ def fill_formula_wb():
     functions.hide_columns_wb(wb)
     update_status(app, "Setting row heights...")
     functions.set_row_heights_wb(wb)
+    original_sheet.activate()
 
 
 @check_if_template
