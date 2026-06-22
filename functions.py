@@ -1036,18 +1036,16 @@ def unhide_columns_wb(wb):
 
 
 def _set_wrap_row_heights(sheet, col_width=55):
-    """Set row heights for column C word-wrap, cross-platform.
+    """Set col-C row heights using ReportLab metrics — bypasses Excel's conservative autofit.
 
-    Windows: rows.autofit() works correctly — COM column-width changes are
-    synchronous so Excel's layout engine reads the right value immediately.
+    Excel word-wrap is conservative: text that just barely fits on one line often
+    causes Excel to allocate a blank second line, creating ugly gaps in PDFs.
+    We calculate line count independently with ReportLab (Helvetica ≈ Arial) and
+    set row height precisely, so no blank lines form.
 
-    Mac: autofit reads stale layout after AppleScript column-width changes,
-    producing extra blank space below single-line rows. We use ReportLab font
-    metrics (Helvetica ≈ Arial) with _SP_MDW_PX calibrated for Mac instead.
+    _SP_MDW_PX is platform-calibrated: Mac ≈ 8 (72 DPI effective),
+    Windows ≈ 7 (96 DPI) — see constant definition for details.
     """
-    if sys.platform != "darwin":
-        sheet.range("C:C").rows.autofit()
-        return
     last_row = sheet.range("C1500").end("up").row
     if last_row < 2:
         return
@@ -2144,8 +2142,8 @@ _SP_ROW_H     = 18.0         # single-line row height for Arial 12pt; 18pt clear
                              # (Mac top-padding ≥ 2.5pt; 15.75 and 16.5 both still clip)
 # Excel col_width → available text width (pt): avail = (col_width × _SP_MDW_PX + 1) × 0.75
 # _SP_MDW_PX is the MaxDigitWidth of the workbook's Normal-style font (Calibri 11pt default).
-# Calibrated value 8.0 verified against a known single-line case at col_width = 55.
-_SP_MDW_PX    = 8.0
+# Mac (72 DPI effective): Calibri 11pt MDW ≈ 8px.  Windows (96 DPI): ≈ 7px.
+_SP_MDW_PX    = 7.0 if sys.platform == "win32" else 8.0
 
 
 def _format_iso_date(val):
