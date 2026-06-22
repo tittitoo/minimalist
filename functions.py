@@ -1736,7 +1736,7 @@ def prepare_to_print_technical(wb):
             ws.activate()
             ws.range("C:C").column_width = 60
             ws.range("C:C").wrap_text = True
-            ws.range("C:C").rows.autofit()
+            _set_wrap_row_heights(ws, col_width=60)
             ws.range("D:F").autofit()
             # Adjust the last two rows so that unwanted pagebreak can be prevented
             ws.range(f"{last_row+1}:{last_row+1}").delete()
@@ -2898,21 +2898,10 @@ def apply_conditional_format(sheet):
 
 
 def apply_teal_border(sheet, col_letter, edge):
-    if sys.platform == "darwin":
-        run_macro(f"format_col_{col_letter.lower()}_{edge}_border")
-        return
-    xlContinuous = 1
-    xlThin = 2
-    xlEdgeLeft = 7
-    xlEdgeRight = 10
-    COLOR_TEAL = -52732
-    xl_edge = xlEdgeLeft if edge == "left" else xlEdgeRight
-    last_row = max(sheet.used_range.last_cell.row, 2)
-    b = sheet.range(f"{col_letter}2:{col_letter}{last_row}").api.Borders(xl_edge)
-    b.LineStyle = xlContinuous
-    b.Color = COLOR_TEAL
-    b.TintAndShade = 0
-    b.Weight = xlThin
+    """Apply teal edge border to a column via VBA macro (both Mac and Windows).
+    VBA operates on ActiveSheet — caller must activate the sheet first.
+    """
+    run_macro(f"format_col_{col_letter.lower()}_{edge}_border")
 
 
 def apply_remove_h_borders(sheet):
