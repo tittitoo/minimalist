@@ -154,14 +154,15 @@ def put_logo(c: canvas.Canvas, logo=LOGO):
     if FORM_FLAG:
         width = 1.25 * inch
         c.beginForm("logo_Form")
-        c.drawImage(
-            logo,
-            PAPERWIDTH - RIGHT_MARGIN - width,
-            780,
-            width=width,
-            height=(1.25 * inch) * 0.224,
-            mask="auto",
-        )
+        if logo and os.path.isfile(logo):
+            c.drawImage(
+                logo,
+                PAPERWIDTH - RIGHT_MARGIN - width,
+                780,
+                width=width,
+                height=(1.25 * inch) * 0.224,
+                mask="auto",
+            )
         c.endForm()
         FORM_FLAG = False
     c.restoreState()
