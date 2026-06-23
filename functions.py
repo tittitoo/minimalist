@@ -1051,24 +1051,25 @@ def _set_wrap_row_heights(sheet, col_width=55):
     We calculate line count independently with ReportLab (Helvetica ≈ Arial) and
     set row height precisely, so no blank lines form.
 
+    Empty rows (no col-C content) are left at their source height — these are
+    intentional thin separators and must NOT be forced to a full line height.
+
     _SP_MDW_PX is platform-calibrated: Mac ≈ 8 (72 DPI effective),
     Windows ≈ 7 (96 DPI) — see constant definition for details.
     """
     last_row = sheet.range("C1500").end("up").row
     if last_row < 2:
         return
-    sheet.range(f"2:{last_row}").row_height = _SP_ROW_H
     c_vals = sheet.range(f"C2:C{last_row}").value
     if not isinstance(c_vals, list):
         c_vals = [c_vals]
     for i, val in enumerate(c_vals):
         text = str(val).strip() if val else ""
         if not text:
-            continue
+            continue  # preserve source height for empty/separator rows
         lines = _sp_wrap_lines(text, col_width)
-        if lines > 1:
-            row_num = i + 2
-            sheet.range(f"{row_num}:{row_num}").row_height = _SP_ROW_H * lines
+        row_num = i + 2
+        sheet.range(f"{row_num}:{row_num}").row_height = _SP_ROW_H * lines
 
 
 def adjust_columns(sheet):
