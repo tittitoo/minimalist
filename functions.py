@@ -2841,12 +2841,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                     ps.range(f"{data_start + _ri}:{data_start + _ri}").row_height = _SP_ROW_H * _lines
 
         if tc_lines:
-            for _i, _tc in enumerate(tc_lines):
-                if not _tc:
-                    continue
-                _lines = _sp_wrap_lines(str(_tc), _c_w, pt=_SP_TC_PT)
-                if _lines > 1:
-                    ps.range(f"{tc_start + _i}:{tc_start + _i}").row_height = _SP_ROW_H * _lines
+            ps.range(f"{tc_start}:{tc_end}").rows.autofit()
 
         # Restore logo positions to their template coordinates. Autofit and
         # column-width changes may have drifted cell-anchored shapes.
