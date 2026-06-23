@@ -1761,6 +1761,12 @@ def prepare_to_print_technical(wb):
             apply_teal_border(ws, "F", "right")
             ws.activate()  # pagebreak_borders VBA needs active sheet
             run_macro("pagebreak_borders")
+    if sys.platform == "win32":
+        for _tn in ["Technical_Notes", "TN", "T&C"]:
+            _ws = get_sheet(wb, _tn, required=False)
+            if _ws is not None:
+                _cw = _ws.range("C:C").column_width or 55
+                _set_wrap_row_heights(_ws, col_width=_cw)
     wb.sheets[current_sheet].activate()
 
 
@@ -1960,6 +1966,17 @@ def prepare_to_print_commercial(wb):
             apply_teal_border(ws, "H", "right")
             ws.activate()
             run_macro("pagebreak_borders")
+    # Technical_Notes and T&C are excluded from the main loop (skip_sheet) but are
+    # still printed in the commercial PDF.  Their source row heights were sized on
+    # Mac; Windows renders a physically wider column so the same text wraps to fewer
+    # lines, leaving phantom blanks.  Only apply the fix on Windows — Mac source
+    # heights are already correct (MDW=8.0 calibration is for col_width=55 only).
+    if sys.platform == "win32":
+        for _tn in ["Technical_Notes", "TN", "T&C"]:
+            _ws = get_sheet(wb, _tn, required=False)
+            if _ws is not None:
+                _cw = _ws.range("C:C").column_width or 55
+                _set_wrap_row_heights(_ws, col_width=_cw)
     wb.sheets[current_sheet].activate()
 
 
@@ -2158,11 +2175,14 @@ _SP_ROW_H     = 18.0         # single-line row height for Arial 12pt; 18pt clear
                              # (Mac top-padding ≥ 2.5pt; 15.75 and 16.5 both still clip)
 # Excel col_width → available text width (pt): avail = (col_width × _SP_MDW_PX + 1) × 0.75
 # _SP_MDW_PX calibrated empirically per platform against known single/multi-line boundary cases
-# at col_width=55.  Windows Excel PDF export produces a physically wider column than Mac for the
-# same col_width value, so Windows needs a higher MDW to correctly classify borderline rows:
-#   Mac  (avail=330.75pt): "Ext.Trunk…70-Lines" (344pt) genuinely wraps to 2 text lines ✓
-#   Win  (avail=351.38pt): same text fits on 1 line; "Call Transfer…Group Call" (361pt) wraps ✓
-_SP_MDW_PX    = 8.5 if sys.platform == "win32" else 8.0
+# at col_width=55.  Widths are measured on stripped text (leading spaces removed); the 3-space
+# indent added by format_text is ~10pt and is implicitly absorbed into the MDW calibration.
+# Windows Excel PDF export produces a physically wider column than Mac for the same col_width,
+# so Windows needs a higher MDW to correctly classify borderline rows:
+#   Mac  (avail=330.75pt): "Ext.Trunk…70-Lines" (344pt stripped) genuinely wraps to 2 lines ✓
+#   Win  (avail=359.63pt): "Talkback…G.E.A. Muting" (358pt stripped) fits 1 line ✓
+#                           "Call Transfer…Group Call" (361pt stripped) wraps to 2 lines ✓
+_SP_MDW_PX    = 8.7 if sys.platform == "win32" else 8.0
 
 
 def _format_iso_date(val):
