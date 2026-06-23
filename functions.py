@@ -1051,22 +1051,26 @@ def _set_wrap_row_heights(sheet, col_width=55):
     We calculate line count independently with ReportLab (Helvetica ≈ Arial) and
     set row height precisely, so no blank lines form.
 
-    Empty rows (no col-C content) are left at their source height — these are
-    intentional thin separators and must NOT be forced to a full line height.
+    Empty/separator rows (no col-C content) are treated differently per platform:
+      Mac:     bulk-reset to _SP_ROW_H so separators are a full line high (unchanged behaviour)
+      Windows: bulk-reset to _SP_EMPTY_ROW_H so separators are thin — otherwise they look
+               like phantom blank lines because Windows renders content rows narrower, fitting
+               more text per row and leaving proportionally too-large gaps.
 
-    _SP_MDW_PX is platform-calibrated: Mac ≈ 8 (72 DPI effective),
-    Windows ≈ 7 (96 DPI) — see constant definition for details.
+    _SP_MDW_PX is platform-calibrated: see constant definition for details.
     """
     last_row = sheet.range("C1500").end("up").row
     if last_row < 2:
         return
+    _bulk = _SP_ROW_H if sys.platform != "win32" else _SP_EMPTY_ROW_H
+    sheet.range(f"2:{last_row}").row_height = _bulk
     c_vals = sheet.range(f"C2:C{last_row}").value
     if not isinstance(c_vals, list):
         c_vals = [c_vals]
     for i, val in enumerate(c_vals):
         text = str(val).strip() if val else ""
         if not text:
-            continue  # preserve source height for empty/separator rows
+            continue  # empty/separator rows: left at bulk height
         lines = _sp_wrap_lines(text, col_width)
         row_num = i + 2
         sheet.range(f"{row_num}:{row_num}").row_height = _SP_ROW_H * lines
@@ -2172,7 +2176,8 @@ ACCOUNTING_PAREN = "#,##0.00;(#,##0.00)"   # negative shown as (111), not -111
 _SP_BODY_FONT = "Helvetica"  # ReportLab name; metrically equivalent to Excel's Arial
 _SP_BODY_PT   = 12           # BOQ and totals body font size
 _SP_TC_PT     = 10           # T&C lines font size (subordinate to BOQ)
-_SP_ROW_H     = 18.0         # single-line row height for Arial 12pt; 18pt clears descenders on Mac Excel
+_SP_ROW_H       = 18.0  # single-line row height for Arial 12pt; 18pt clears descenders on Mac Excel
+_SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between content groups
                              # (Mac top-padding ≥ 2.5pt; 15.75 and 16.5 both still clip)
 # Excel col_width → available text width (pt): avail = (col_width × _SP_MDW_PX + 1) × 0.75
 # _SP_MDW_PX calibrated empirically per platform against known single/multi-line boundary cases
