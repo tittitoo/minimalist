@@ -220,6 +220,14 @@ def to_pdf_safe(wb, pdf_path: Path, show: bool = True) -> None:
         wb.to_pdf(path=str(pdf_path), show=show)
 
 
+def _open_pdf(path: Path) -> None:
+    """Open a PDF in the system default viewer."""
+    if sys.platform == "darwin":
+        subprocess.Popen(["open", str(path)])
+    else:
+        os.startfile(str(path))
+
+
 def _find_or_open_workbook(app, src_path: Path):
     """
     Return the workbook if already open; if not, open it from disk.
@@ -1851,7 +1859,7 @@ def technical(wb, show_pdf=True):
         save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
         app.status_bar = "Generating PDF..."
-        print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
+        print_technical(wb, pdf_path=str(pdf_path), show_pdf=False)
         app.status_bar = "Reopening source..."
         app.calculation = "automatic"
         _src_wb = _find_or_open_workbook(app, src_path)
@@ -1863,6 +1871,8 @@ def technical(wb, show_pdf=True):
                 pass
         elif not src_path.exists():
             xw.apps.active.alert(f"Proposal generated but could not reopen:\n{src_path.name}")  # type: ignore
+        if show_pdf:
+            _open_pdf(pdf_path)
     else:
         wb.sheets["Cover"].range("C42:C47").value = (
             wb.sheets["Cover"].range("C42:C47").raw_value
@@ -1910,7 +1920,7 @@ def technical(wb, show_pdf=True):
         save_workbook_safe(wb, full_path, password="")
         pdf_path = full_path.with_suffix(".pdf")
         app.status_bar = "Generating PDF..."
-        print_technical(wb, pdf_path=str(pdf_path), show_pdf=show_pdf)
+        print_technical(wb, pdf_path=str(pdf_path), show_pdf=False)
         app.status_bar = "Reopening source..."
         app.calculation = "automatic"
         _src_wb = _find_or_open_workbook(app, src_path)
@@ -1922,6 +1932,8 @@ def technical(wb, show_pdf=True):
                 pass
         elif not src_path.exists():
             xw.apps.active.alert(f"Proposal generated but could not reopen:\n{src_path.name}")  # type: ignore
+        if show_pdf:
+            _open_pdf(pdf_path)
 
 
 def prepare_to_print_commercial(wb):
@@ -2034,9 +2046,11 @@ def commercial(wb, show_pdf=True):
     save_workbook_safe(wb, full_path, password="")
     pdf_path = full_path.with_suffix(".pdf")
     app.status_bar = "Generating PDF..."
+    pdf_ok = True
     try:
-        to_pdf_safe(wb, pdf_path, show=show_pdf)
+        to_pdf_safe(wb, pdf_path, show=False)
     except Exception as e:
+        pdf_ok = False
         xw.apps.active.alert(  # type: ignore
             f"This error is encountered {e}. The PDF file already exists?"
         )
@@ -2051,6 +2065,8 @@ def commercial(wb, show_pdf=True):
             pass
     elif not src_path.exists():
         xw.apps.active.alert(f"Proposal generated but could not reopen:\n{src_path.name}")  # type: ignore
+    if show_pdf and pdf_ok:
+        _open_pdf(pdf_path)
 
 
 def prepare_to_print_internal(wb):
@@ -2506,6 +2522,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
     app = wb.app
     out_wb = open_workbook_safe(app, output_xlsx)
+    pdf_ok = False
     try:
         ps = out_wb.sheets["Proposal"]
 
@@ -2865,9 +2882,11 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # Save XLSX and export PDF
         # -------------------------------------------------------------------
         save_workbook_safe(out_wb, output_xlsx)
+        pdf_ok = True
         try:
-            to_pdf_safe(out_wb, output_pdf, show=show_pdf)
+            to_pdf_safe(out_wb, output_pdf, show=False)
         except Exception as e:
+            pdf_ok = False
             xw.apps.active.alert(f"PDF export error: {e}")  # type: ignore
 
     finally:
@@ -2875,6 +2894,8 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
             out_wb.close()
         except Exception:
             pass
+    if show_pdf and pdf_ok:
+        _open_pdf(output_pdf)
 
 
 def apply_conditional_format(sheet):
