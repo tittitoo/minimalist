@@ -1062,15 +1062,17 @@ def _set_wrap_row_heights(sheet, col_width=55):
     last_row = sheet.range("C1500").end("up").row
     if last_row < 2:
         return
-    _bulk = _SP_ROW_H if sys.platform != "win32" else _SP_EMPTY_ROW_H
-    sheet.range(f"2:{last_row}").row_height = _bulk
+    if sys.platform == "win32":
+        sheet.range(f"2:{last_row}").rows.autofit()
+        return
+    sheet.range(f"2:{last_row}").row_height = _SP_ROW_H
     c_vals = sheet.range(f"C2:C{last_row}").value
     if not isinstance(c_vals, list):
         c_vals = [c_vals]
     for i, val in enumerate(c_vals):
         text = str(val).strip() if val else ""
         if not text:
-            continue  # empty/separator rows: left at bulk height
+            continue
         lines = _sp_wrap_lines(text, col_width)
         row_num = i + 2
         sheet.range(f"{row_num}:{row_num}").row_height = _SP_ROW_H * lines
