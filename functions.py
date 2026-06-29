@@ -1754,8 +1754,9 @@ def prepare_to_print_technical(wb):
             ws.activate()
             ws.range("C:C").column_width = 60
             ws.range("C:C").wrap_text = True
-            _set_wrap_row_heights(ws, col_width=60)
             ws.range("D:F").autofit()
+            if sys.platform != "win32":
+                _set_wrap_row_heights(ws, col_width=60)
             # Adjust the last two rows so that unwanted pagebreak can be prevented
             ws.range(f"{last_row+1}:{last_row+1}").delete()
             ws.range(f"{last_row+1}:{last_row+1}").row_height = 2
@@ -1768,6 +1769,10 @@ def prepare_to_print_technical(wb):
             apply_teal_border(ws, "F", "right")
             ws.activate()  # pagebreak_borders VBA needs active sheet
             run_macro("pagebreak_borders")
+            if sys.platform == "win32":
+                _last_row = ws.range("C1500").end("up").row
+                if _last_row >= 2:
+                    ws.range(f"2:{_last_row}").rows.autofit()
     if sys.platform == "win32":
         for _tn in ["Technical_Notes", "TN", "T&C"]:
             _ws = get_sheet(wb, _tn, required=False)
@@ -1961,8 +1966,9 @@ def prepare_to_print_commercial(wb):
             ws.range("B:B").autofit()
             ws.range("C:C").column_width = 55
             ws.range("C:C").wrap_text = True
-            _set_wrap_row_heights(ws)
             ws.range("D:H").autofit()
+            if sys.platform != "win32":
+                _set_wrap_row_heights(ws)
             try:
                 apply_conditional_format(ws)
             except Exception:
@@ -1973,6 +1979,10 @@ def prepare_to_print_commercial(wb):
             apply_teal_border(ws, "H", "right")
             ws.activate()
             run_macro("pagebreak_borders")
+            if sys.platform == "win32":
+                _last_row = ws.range("C1500").end("up").row
+                if _last_row >= 2:
+                    ws.range(f"2:{_last_row}").rows.autofit()
     # Technical_Notes and T&C are excluded from the main loop (skip_sheet) but are
     # still printed in the commercial PDF.  Their source row heights were sized on
     # Mac; Windows renders a physically wider column so the same text wraps to fewer
