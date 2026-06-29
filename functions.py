@@ -1044,26 +1044,15 @@ def unhide_columns_wb(wb):
 
 
 def _set_wrap_row_heights(sheet, col_width=55):
-    """Set col-C row heights using ReportLab metrics — bypasses Excel's conservative autofit.
+    """Set col-C row heights using ReportLab metrics — bypasses Excel's rows.autofit().
 
-    Excel word-wrap is conservative: text that just barely fits on one line often
-    causes Excel to allocate a blank second line, creating ugly gaps in PDFs.
-    We calculate line count independently with ReportLab (Helvetica ≈ Arial) and
-    set row height precisely, so no blank lines form.
-
-    Empty/separator rows (no col-C content) are treated differently per platform:
-      Mac:     bulk-reset to _SP_ROW_H so separators are a full line high (unchanged behaviour)
-      Windows: bulk-reset to _SP_EMPTY_ROW_H so separators are thin — otherwise they look
-               like phantom blank lines because Windows renders content rows narrower, fitting
-               more text per row and leaving proportionally too-large gaps.
-
-    _SP_MDW_PX is platform-calibrated: see constant definition for details.
+    rows.autofit() sizes rows based on screen rendering, but the PDF export renderer
+    has slightly different font metrics and can wrap text to more lines than the screen
+    shows, causing the bottom line to be clipped.  ReportLab (Helvetica ≈ Arial, MDW=8.0)
+    predicts PDF line counts accurately and sets exact heights, so no clipping occurs.
     """
     last_row = sheet.range("C1500").end("up").row
     if last_row < 2:
-        return
-    if sys.platform == "win32":
-        sheet.range(f"2:{last_row}").rows.autofit()
         return
     sheet.range(f"2:{last_row}").row_height = _SP_ROW_H
     c_vals = sheet.range(f"C2:C{last_row}").value
@@ -1755,8 +1744,7 @@ def prepare_to_print_technical(wb):
             ws.range("C:C").column_width = 60
             ws.range("C:C").wrap_text = True
             ws.range("D:F").autofit()
-            if sys.platform != "win32":
-                _set_wrap_row_heights(ws, col_width=60)
+            _set_wrap_row_heights(ws, col_width=60)
             # Adjust the last two rows so that unwanted pagebreak can be prevented
             ws.range(f"{last_row+1}:{last_row+1}").delete()
             ws.range(f"{last_row+1}:{last_row+1}").row_height = 2
@@ -1769,16 +1757,11 @@ def prepare_to_print_technical(wb):
             apply_teal_border(ws, "F", "right")
             ws.activate()  # pagebreak_borders VBA needs active sheet
             run_macro("pagebreak_borders")
-            if sys.platform == "win32":
-                _last_row = ws.range("C1500").end("up").row
-                if _last_row >= 2:
-                    ws.range(f"2:{_last_row}").rows.autofit()
-    if sys.platform == "win32":
-        for _tn in ["Technical_Notes", "TN", "T&C"]:
-            _ws = get_sheet(wb, _tn, required=False)
-            if _ws is not None:
-                _cw = _ws.range("C:C").column_width or 55
-                _set_wrap_row_heights(_ws, col_width=_cw)
+    for _tn in ["Technical_Notes", "TN", "T&C"]:
+        _ws = get_sheet(wb, _tn, required=False)
+        if _ws is not None:
+            _cw = _ws.range("C:C").column_width or 55
+            _set_wrap_row_heights(_ws, col_width=_cw)
     wb.sheets[current_sheet].activate()
 
 
@@ -1967,8 +1950,7 @@ def prepare_to_print_commercial(wb):
             ws.range("C:C").column_width = 55
             ws.range("C:C").wrap_text = True
             ws.range("D:H").autofit()
-            if sys.platform != "win32":
-                _set_wrap_row_heights(ws)
+            _set_wrap_row_heights(ws)
             try:
                 apply_conditional_format(ws)
             except Exception:
@@ -1979,21 +1961,11 @@ def prepare_to_print_commercial(wb):
             apply_teal_border(ws, "H", "right")
             ws.activate()
             run_macro("pagebreak_borders")
-            if sys.platform == "win32":
-                _last_row = ws.range("C1500").end("up").row
-                if _last_row >= 2:
-                    ws.range(f"2:{_last_row}").rows.autofit()
-    # Technical_Notes and T&C are excluded from the main loop (skip_sheet) but are
-    # still printed in the commercial PDF.  Their source row heights were sized on
-    # Mac; Windows renders a physically wider column so the same text wraps to fewer
-    # lines, leaving phantom blanks.  Only apply the fix on Windows — Mac source
-    # heights are already correct (MDW=8.0 calibration is for col_width=55 only).
-    if sys.platform == "win32":
-        for _tn in ["Technical_Notes", "TN", "T&C"]:
-            _ws = get_sheet(wb, _tn, required=False)
-            if _ws is not None:
-                _cw = _ws.range("C:C").column_width or 55
-                _set_wrap_row_heights(_ws, col_width=_cw)
+    for _tn in ["Technical_Notes", "TN", "T&C"]:
+        _ws = get_sheet(wb, _tn, required=False)
+        if _ws is not None:
+            _cw = _ws.range("C:C").column_width or 55
+            _set_wrap_row_heights(_ws, col_width=_cw)
     wb.sheets[current_sheet].activate()
 
 
@@ -2195,12 +2167,12 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 # _SP_MDW_PX calibrated empirically per platform against known single/multi-line boundary cases
 # at col_width=55.  Widths are measured on stripped text (leading spaces removed); the 3-space
 # indent added by format_text is ~10pt and is implicitly absorbed into the MDW calibration.
-# Windows Excel PDF export produces a physically wider column than Mac for the same col_width,
-# so Windows needs a higher MDW to correctly classify borderline rows:
-#   Mac  (avail=330.75pt): "Ext.Trunk…70-Lines" (344pt stripped) genuinely wraps to 2 lines ✓
-#   Win  (avail=359.63pt): "Talkback…G.E.A. Muting" (358pt stripped) fits 1 line ✓
-#                           "Call Transfer…Group Call" (361pt stripped) wraps to 2 lines ✓
-_SP_MDW_PX    = 8.7 if sys.platform == "win32" else 8.0
+# MDW=8.0 calibrated against the Windows PDF renderer (not screen renderer).
+# rows.autofit() sizes to screen metrics, but PDF export uses a different font renderer
+# with slightly narrower effective character width — text that fits 2 lines on screen
+# can wrap to 3 lines in PDF, causing clipping.  MDW=8.0 (avail=330.75pt) matches
+# the PDF renderer closely enough to predict the correct line count on both platforms.
+_SP_MDW_PX    = 8.0
 
 
 def _format_iso_date(val):
