@@ -2187,7 +2187,7 @@ def _get_tools_path() -> Path | None:
     username = getpass.getuser()
     if username == "oliver":
         p = Path.home() / "OneDrive - Jason Electronics Pte Ltd" / "Shared Documents" / "@tools"
-    elif username == "carol_lim":
+    elif username in ("carol_lim", "shams"):
         p = Path.home() / "Jason Electronics Pte Ltd" / "Bid Proposal - @tools"
     else:
         p = Path.home() / "Jason Electronics Pte Ltd" / "Bid Proposal - Documents" / "@tools"
