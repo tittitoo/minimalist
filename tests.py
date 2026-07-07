@@ -105,6 +105,26 @@ class TestSetX(unittest.TestCase):
         # 20x- should not be changed (hyphen follows)
         self.assertEqual(set_x("20x-connector"), "20x-connector")
 
+    def test_preserves_x_as_last_letter_of_word(self):
+        # 'x' ending a word (Max) is not a multiplication sign
+        self.assertEqual(set_x("Max 11.7 watts"), "Max 11.7 watts")
+
+    def test_preserves_x_as_last_letter_of_word_no_space(self):
+        self.assertEqual(set_x("Flex 10G ports"), "Flex 10G ports")
+
+    def test_preserves_cisco_part_number_digit_x_letter(self):
+        # X directly followed by another letter is part of a part number
+        self.assertEqual(
+            set_x("WS-C2960X-24TS-L"), "WS-C2960X-24TS-L"
+        )
+
+    def test_preserves_cisco_part_number_x_digit_hyphen(self):
+        # X followed by digits then a hyphen is part of a part number
+        self.assertEqual(set_x("X2-10GB-SR"), "X2-10GB-SR")
+
+    def test_preserves_cisco_part_number_letter_x_digit_letter(self):
+        self.assertEqual(set_x("N9K-X9736C-EX"), "N9K-X9736C-EX")
+
 
 class TestSetCasePreserveAcronym(unittest.TestCase):
     """Tests for set_case_preserve_acronym function."""

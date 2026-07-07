@@ -773,15 +773,19 @@ def set_x(text):
     All variants (1x, 20X, x1, X 20, x20, etc.) are converted to 'N ×',
     e.g. '2x items' and 'x2 items' both become '2 × items'.
     Hyphenated cases like '20x-connector' are left unchanged.
+
+    The x/X must not be glued to a letter on either side, so it doesn't match:
+    - Words where x is just a letter ('Max 11.7', 'Flex 10G', 'Approx 100')
+    - Cisco-style part numbers ('WS-C2960X-24TS-L', 'X2-10GB-SR', 'N9K-X9736C-EX')
     """
-    # Number-first: 20x, 30X (not followed by -)
-    text = re.sub(r"(\d+)[xX](?!-)", r"\1 ×", text)
+    # Number-first: 20x, 30X (not glued to a letter/digit/- on either side)
+    text = re.sub(r"(?<![A-Za-z])(\d+)[xX](?![A-Za-z0-9-])", r"\1 ×", text)
     # Symbol-first: x20, X30 — flip to number-first
-    text = re.sub(r"[xX](\d+)", r"\1 ×", text)
+    text = re.sub(r"(?<![A-Za-z0-9-])[xX](\d+)(?![A-Za-z0-9-])", r"\1 ×", text)
     # Number-first with space: 20 x, 20 X
-    text = re.sub(r"(\d+) [xX](?!\S)", r"\1 ×", text)
+    text = re.sub(r"(?<![A-Za-z])(\d+) [xX](?!\S)", r"\1 ×", text)
     # Symbol-first with space: x 20, X 20 — flip to number-first
-    text = re.sub(r"[xX] (\d+)", r"\1 ×", text)
+    text = re.sub(r"(?<![A-Za-z])[xX] (\d+)", r"\1 ×", text)
     return text
 
 
