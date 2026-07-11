@@ -154,6 +154,21 @@ class TestSetCasePreserveAcronym(unittest.TestCase):
         result = set_case_preserve_acronym("hello world", upper=True)
         self.assertEqual(result, "HELLO WORLD")
 
+    def test_title_case_preserves_ohm_symbol(self):
+        # Ω is a cased Unicode letter; str.capitalize()/lower() silently
+        # turn it into ω since it has no ASCII acronym-regex match to restore it.
+        result = set_case_preserve_acronym(
+            "Pigtail Cable RG214, 50Ω, 1m N-Male Crimp Connector 50Ω", title=True
+        )
+        self.assertIn("50Ω", result)
+        self.assertNotIn("50ω", result)
+
+    def test_title_case_preserves_diameter_and_delta_symbols(self):
+        result = set_case_preserve_acronym("Diameter Φ50 mm Hole", title=True)
+        self.assertIn("Φ50", result)
+        result = set_case_preserve_acronym("Temperature Rise ΔT 10K", title=True)
+        self.assertIn("ΔT", result)
+
 
 class TestTitleCaseIgnoreDoubleChar(unittest.TestCase):
     """Tests for title_case_ignore_double_char function."""

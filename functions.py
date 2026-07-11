@@ -713,6 +713,25 @@ _TITLE_CASE_LOWER = frozenset({
 })
 
 
+def _ascii_lower(text):
+    """str.lower() but only folds ASCII letters.
+
+    Non-ASCII cased letters (Ω ohm, Φ diameter, Δ delta, Σ sum, etc.) have no
+    ASCII acronym-regex equivalent to restore them afterwards, so lowercasing
+    them would silently destroy the symbol (Ω -> ω). Leave them untouched.
+    """
+    return "".join(c.lower() if c.isascii() else c for c in text)
+
+
+def _ascii_capitalize(word):
+    """str.capitalize() but only touches ASCII letters, for the same reason as _ascii_lower."""
+    if not word:
+        return word
+    first = word[0].upper() if word[0].isascii() else word[0]
+    rest = _ascii_lower(word[1:])
+    return first + rest
+
+
 def title_case_ignore_double_char(text):
     words = text.split()
     last_idx = len(words) - 1
@@ -722,10 +741,10 @@ def title_case_ignore_double_char(text):
         if i != 0 and i != last_idx and core in _TITLE_CASE_LOWER:
             # Articles, conjunctions, short prepositions stay lowercase
             # regardless of how the user typed them, unless first or last word
-            titled_words.append(word.lower())
+            titled_words.append(_ascii_lower(word))
         elif len(word.strip(string.punctuation)) > 2:
             # To prevent cases like 'mm)' from becoming 'Mm)'
-            titled_words.append(word.capitalize())
+            titled_words.append(_ascii_capitalize(word))
         else:
             titled_words.append(word)
     return " ".join(titled_words)
@@ -754,12 +773,12 @@ def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
 
     elif capitalize:
         # First change all to lower case
-        text = text.lower()
+        text = _ascii_lower(text)
         for acronym in acronyms:
             acronym_regex = acronym.lower()
             pattern = rf"\b{acronym_regex}\b"
             text = re.sub(pattern, acronym, text)
-        text = text.capitalize()  # Has not handle the first word
+        text = _ascii_capitalize(text)  # Has not handle the first word
         return text
 
     elif upper:
