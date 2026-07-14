@@ -20,9 +20,13 @@ from pathlib import Path
 from functions import (
     set_nitty_gritty,
     set_comma_space,
+    set_paren_spacing,
     set_x,
     set_case_preserve_acronym,
     title_case_ignore_double_char,
+    normalize_standard_tokens,
+    set_dimension_unit_chain,
+    format_description_text,
     SKIP_SHEETS,
     SHEET_ALIASES,
     resolve_sheet_name,
@@ -192,6 +196,193 @@ class TestTitleCaseIgnoreDoubleChar(unittest.TestCase):
         # capitalize() must be used instead so "manufacturer's" stays lowercase.
         result = title_case_ignore_double_char("manufacturer's product")
         self.assertEqual(result, "Manufacturer's Product")
+
+
+class TestSetParenSpacing(unittest.TestCase):
+    """Tests for set_paren_spacing function."""
+
+    def test_adds_space_before_paren(self):
+        self.assertEqual(set_paren_spacing("unit(bracket)"), "unit (bracket)")
+
+    def test_no_space_before_paren_at_start(self):
+        self.assertEqual(set_paren_spacing("(bracket) unit"), "(bracket) unit")
+
+    def test_hugs_following_punctuation(self):
+        self.assertEqual(set_paren_spacing("unit(bracket),next"), "unit (bracket),next")
+
+    def test_single_space_before_letter_or_digit(self):
+        self.assertEqual(set_paren_spacing("unit(bracket)next"), "unit (bracket) next")
+
+
+class TestNormalizeStandardTokens(unittest.TestCase):
+    """Tests for normalize_standard_tokens: UOM and standard-designator normalization.
+
+    Rules ported from the `hote` web app's normalizeStandardTokens() so free-text
+    descriptions normalize the same way across both tools.
+    """
+
+    def test_normalizes_units_regardless_of_source_casing(self):
+        self.assertEqual(normalize_standard_tokens("27MM bracket"), "27 mm bracket")
+        self.assertEqual(normalize_standard_tokens("100 FT cable"), "100 ft cable")
+
+    def test_normalizes_kw_both_casings(self):
+        self.assertEqual(normalize_standard_tokens("5kw supply"), "5 kW supply")
+        self.assertEqual(normalize_standard_tokens("5KW supply"), "5 kW supply")
+
+    def test_normalizes_voltage_units(self):
+        self.assertEqual(normalize_standard_tokens("230Vac supply"), "230 VAC supply")
+        self.assertEqual(normalize_standard_tokens("24vdc unit"), "24 VDC unit")
+
+    def test_normalizes_ah_without_colliding_with_bare_a(self):
+        self.assertEqual(normalize_standard_tokens("205ah battery"), "205 Ah battery")
+
+    def test_normalizes_month_hour_year_to_database_standard_codes(self):
+        self.assertEqual(normalize_standard_tokens("36mths support"), "36 mth support")
+        self.assertEqual(normalize_standard_tokens("36 months support"), "36 mth support")
+        self.assertEqual(normalize_standard_tokens("2hrs labour"), "2 hr labour")
+        self.assertEqual(normalize_standard_tokens("3 years warranty"), "3 yr warranty")
+
+    def test_normalizes_rack_units_with_no_space(self):
+        self.assertEqual(normalize_standard_tokens("2u rack"), "2U rack")
+
+    def test_converts_area_volume_exponent_to_superscript(self):
+        self.assertEqual(normalize_standard_tokens("10mm2 wire"), "10 mm² wire")
+        self.assertEqual(normalize_standard_tokens("5m3 tank"), "5 m³ tank")
+
+    def test_normalizes_cat_family_standards(self):
+        self.assertEqual(normalize_standard_tokens("cat6a patch cord"), "Cat6a patch cord")
+        self.assertEqual(normalize_standard_tokens("CAT6A patch cord"), "Cat6a patch cord")
+
+    def test_normalizes_ip_ratings(self):
+        self.assertEqual(normalize_standard_tokens("ip65 rated"), "IP65 rated")
+        self.assertEqual(normalize_standard_tokens("ipx6 rated"), "IPX6 rated")
+        self.assertEqual(normalize_standard_tokens("ip69k washdown"), "IP69K washdown")
+
+    def test_normalizes_spelled_out_meter_collapsing_space(self):
+        self.assertEqual(normalize_standard_tokens("40 meter"), "40m")
+        self.assertEqual(normalize_standard_tokens("0.2 meter cable"), "0.2m cable")
+
+    def test_normalizes_spelled_out_ohm_to_symbol(self):
+        self.assertEqual(normalize_standard_tokens("50 ohm resistor"), "50Ω resistor")
+
+    def test_does_not_corrupt_ordinary_words_with_dictionary_substrings(self):
+        self.assertEqual(
+            normalize_standard_tokens("format the description"), "format the description"
+        )
+
+
+class TestSetDimensionUnitChain(unittest.TestCase):
+    """Tests for set_dimension_unit_chain: glued multi-number dimension chains."""
+
+    def test_normalizes_glued_dimension_chain(self):
+        self.assertEqual(set_dimension_unit_chain("600x746x673mm"), "600 × 746 × 673 mm")
+        self.assertEqual(set_dimension_unit_chain("600X746X673MM"), "600 × 746 × 673 mm")
+
+    def test_leaves_single_unit_mention_untouched(self):
+        self.assertEqual(set_dimension_unit_chain("27mm bracket"), "27mm bracket")
+
+
+class TestFormatDescriptionText(unittest.TestCase):
+    """Tests for format_description_text, the combined cleanup/normalization/title-case
+    pipeline ported from the `hote` web app's formatDescriptionText(), so free-text
+    descriptions format identically across both tools.
+    """
+
+    def test_title_cases_short_text(self):
+        self.assertEqual(
+            format_description_text("cable tray for antenna", title_case=True),
+            "Cable Tray for Antenna",
+        )
+
+    def test_leaves_long_text_unchanged_by_title_casing(self):
+        long_text = (
+            "this is a very long description that definitely exceeds "
+            "sixty characters in length"
+        )
+        self.assertEqual(format_description_text(long_text, title_case=True), long_text)
+
+    def test_preserves_hyphenated_part_numbers_under_title_case(self):
+        self.assertEqual(
+            format_description_text("switch WS-C2960X-24TS-L unit", title_case=True),
+            "Switch WS-C2960X-24TS-L Unit",
+        )
+
+    def test_preserves_hyphen_flanked_sku_segment_colliding_with_article(self):
+        # "-A" reduces to "a" (normally lowercased mid-string) but is a part-number
+        # segment here, not the English article, and must survive untouched.
+        self.assertEqual(
+            format_description_text(
+                "Catalyst 9300 24-port PoE+, Network Advantage · C9300-24P-A",
+                title_case=True,
+            ),
+            "Catalyst 9300 24-port PoE+, Network Advantage · C9300-24P-A",
+        )
+
+    def test_does_not_bleed_allcaps_sku_casing_into_unrelated_word(self):
+        self.assertEqual(
+            format_description_text(
+                "Single Pack Option · CW9174I-SINGLE", title_case=True
+            ),
+            "Single Pack Option · CW9174I-SINGLE",
+        )
+
+    def test_normalizes_quantity_x_notation(self):
+        self.assertEqual(
+            format_description_text("20x cable ties", title_case=True), "20 × Cable Ties"
+        )
+
+    def test_fixes_comma_spacing_without_breaking_thousands_separator(self):
+        self.assertEqual(
+            format_description_text(
+                "cable ,connector and 1,200 units", title_case=True
+            ),
+            "Cable, Connector and 1,200 Units",
+        )
+
+    def test_inserts_comma_space_even_after_a_digit_that_is_not_a_thousands_separator(self):
+        self.assertEqual(
+            format_description_text(
+                "9172H(W7,3 radio,3 band 2x2),Global", title_case=True
+            ),
+            "9172H (W7, 3 Radio, 3 Band 2x2), Global",
+        )
+
+    def test_adds_paren_spacing_and_capitalizes_past_leading_punctuation(self):
+        self.assertEqual(
+            format_description_text("unit(bracket),next", title_case=True),
+            "Unit (Bracket), Next",
+        )
+
+    def test_normalizes_dimension_letter_chain_without_misreading_w_as_watts(self):
+        self.assertEqual(
+            format_description_text(
+                "Cabinet 800W X 1200D X 2100H", title_case=True
+            ),
+            "Cabinet 800W × 1200D × 2100H",
+        )
+        # Lowercase dimension letters must survive title-casing untouched — this only
+        # holds if the chain is protected from title-casing, not merely normalized
+        # afterwards.
+        self.assertEqual(
+            format_description_text("800w x 1200d x 2100h", title_case=True),
+            "800w × 1200d × 2100h",
+        )
+
+    def test_lone_dimension_letter_is_still_read_as_its_unit(self):
+        self.assertEqual(
+            format_description_text("800w fan", title_case=True), "800 W Fan"
+        )
+
+    def test_always_normalizes_units_regardless_of_title_case_flag(self):
+        # Units/standards normalize even when title_case=False (long text, or a
+        # Format type that's never title-cased).
+        self.assertEqual(
+            format_description_text("27MM bracket", title_case=False), "27 mm bracket"
+        )
+
+    def test_returns_empty_string_for_falsy_input(self):
+        self.assertEqual(format_description_text(None, title_case=True), "")
+        self.assertEqual(format_description_text("", title_case=True), "")
 
 
 class TestNumberTitleLogic(unittest.TestCase):

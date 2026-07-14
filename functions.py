@@ -688,21 +688,29 @@ def set_nitty_gritty(text):
 
 
 def set_comma_space(text):
-    """Fix having space before comma and not having space after comma"""
-    # fix word+space+, to word+,
-    x = re.compile(r"\w+\s,")
-    if x.search(text):
-        substring = re.findall(r"\w+\s,", text)
-        for word in substring:
-            text = re.sub(word, word[:-2] + ",", text)
+    """Fix having space before comma and not having space after comma.
 
-    # Fix word+,+no-space to word+,+space
-    x = re.compile(r",\d?\w+")
-    if x.search(text):
-        # Ignores format like 1,200 but matches 1,w
-        substring = re.findall(r"(?<![0-9]),\w+", text)
-        for word in substring:
-            text = re.sub(word, ", " + word[1:], text)
+    Skips numeric thousand-separators (a comma followed by exactly 3 digits
+    with no 4th digit, e.g. "1,200"), regardless of what precedes the comma.
+    A weaker "digit precedes the comma" check misfires on designators that
+    merely end in a digit (e.g. "W7,3 radio" is not a grouped number).
+    """
+    text = re.sub(r"(\w+)\s,", r"\1,", text)
+    text = re.sub(r",\s*(?!\d{3}(?!\d))", ", ", text)
+    return text
+
+
+def set_paren_spacing(text):
+    """Fix spacing around parentheses.
+
+    Always a space before '(' (unless at the very start), and after ')'
+    either no space at all (when followed by a punctuation mark, e.g.
+    "(2x2), Global" — the comma should hug the ')') or exactly one space
+    (when followed by an ordinary letter/digit).
+    """
+    text = re.sub(r"(?<=\S)\(", " (", text)
+    text = re.sub(r"\)\s*([,.;:!?])", r")\1", text)
+    text = re.sub(r"\)(?=[A-Za-z0-9])", ") ", text)
     return text
 
 
@@ -723,13 +731,31 @@ def _ascii_lower(text):
     return "".join(c.lower() if c.isascii() else c for c in text)
 
 
+_CAP_TARGET_RE = re.compile(r"[a-zA-Z0-9]")
+
+
 def _ascii_capitalize(word):
-    """str.capitalize() but only touches ASCII letters, for the same reason as _ascii_lower."""
+    """str.capitalize() but only touches ASCII letters, for the same reason as
+    _ascii_lower. Skips past leading *decorative* punctuation (markdown "**bold**"
+    markers, a stray "(") to find the character to capitalize, but stops at the first
+    letter-or-digit — a leading digit (e.g. "24-port") means there's nothing to
+    capitalize there, same as a plain number has no case; it must not keep scanning
+    past it into a hyphenated word segment ("24-Port"), only pure decoration in front
+    of a real word should be skipped. A naive position-0-only version would capitalize
+    "(" (a no-op) and then lowercase everything after, corrupting "(bracket" into
+    "(bracket" unchanged instead of "(Bracket".
+    """
     if not word:
         return word
-    first = word[0].upper() if word[0].isascii() else word[0]
-    rest = _ascii_lower(word[1:])
-    return first + rest
+    i = 0
+    while i < len(word) and not _CAP_TARGET_RE.match(word[i]):
+        i += 1
+    prefix = word[:i]
+    if i >= len(word):
+        return _ascii_lower(prefix)
+    first = word[i]
+    capitalized_first = first.upper() if first.isascii() else first
+    return _ascii_lower(prefix) + capitalized_first + _ascii_lower(word[i + 1:])
 
 
 def title_case_ignore_double_char(text):
@@ -750,28 +776,62 @@ def title_case_ignore_double_char(text):
     return " ".join(titled_words)
 
 
+_ACRONYM_RE = re.compile(r"\b([a-z0-9\.]?[A-Z0-9\/][A-Z0-9a-z]*)(?=\b|[^a-z])")
+_PLAIN_CAPITALIZED_WORD_RE = re.compile(r"[A-Z][a-z]+")
+
+
+def _find_preserved_acronyms(text):
+    """Locate acronym/mixed-case tokens in `text` whose casing should survive title-casing.
+
+    Returns (start, acronym) pairs at their exact position in `text`, so callers can
+    restore them by direct index splicing rather than a text-wide regex substitution —
+    a text-wide (even case-insensitive) restore lets an all-caps SKU segment elsewhere in
+    the string (e.g. "SINGLE" in "CW9174I-SINGLE") bleed its casing into an unrelated
+    occurrence of the same word stem (e.g. the standalone word "Single"), since a bare
+    \\b...\\b regex can't tell the two apart.
+    """
+    matches = []
+    for m in _ACRONYM_RE.finditer(text):
+        acronym = m.group(1)
+        start = m.start(1)
+        before = text[start - 1] if start > 0 else ""
+        after = text[start + len(acronym)] if start + len(acronym) < len(text) else ""
+        hyphen_flanked = before == "-" or after == "-"
+        # A plain capitalized word (initial capital, only lowercase letters after, no
+        # digits) carries no acronym signal at all — title-casing already produces the
+        # same result. Treating it as a "preserved acronym" anyway is what lets an
+        # unrelated all-caps casing of the same word stem elsewhere in the string get
+        # smuggled back in. Skip these unless hyphen-flanked, where a lowercase tail can
+        # still be part of a genuine compound part-number segment.
+        if _PLAIN_CAPITALIZED_WORD_RE.fullmatch(acronym) and not hyphen_flanked:
+            continue
+        # A short match that reduces to an exception-list word (a/an/the/...) is normally
+        # excluded so it gets correctly lowercased as a standalone word instead (e.g.
+        # "To" -> "to"). But a hyphen-flanked segment inside a compound part number
+        # (Cisco SKUs like "C9300-24P-A") is a technical token, not the English word —
+        # those must still be preserved.
+        if acronym.lower() not in _TITLE_CASE_LOWER or hyphen_flanked:
+            matches.append((start, acronym))
+    return matches
+
+
 def set_case_preserve_acronym(text, title=False, capitalize=False, upper=False):
     """Maintaion acronyms case when using title or sentence"""
     # The regex below essentially ignore the letters in lower case letter.
     # Now cases such as iPhone, mPower, c/w are recognized.
-    # acronym_regex = re.compile(r'\b([a-z0-9\.]?[A-Z0-9\/][A-Z0-9a-z-]*)(?=\b|[^a-z])')
-    # Remove matching hyphen
-    acronym_regex = re.compile(r"\b([a-z0-9\.]?[A-Z0-9\/][A-Z0-9a-z]*)(?=\b|[^a-z])")
-    # acronym_regex = re.compile(r'\b([a-z]?[A-Z0-9][A-Z0-9-]*)(?=\b|[^a-z])')
-    acronyms = [a for a in acronym_regex.findall(text) if a.lower() not in _TITLE_CASE_LOWER]
-
     if title:
-        text = title_case_ignore_double_char(text)
-        # Restore acronyms with IGNORECASE so that dot-separated part numbers like
-        # "BTD.NH.TE.TD.NR.RC" are preserved. capitalize() lowercases every character
-        # after the first, so ".NH" becomes ".nh" — a case-insensitive pattern is
-        # required to match it back.
-        for acronym in acronyms:
-            pattern = rf"\b{re.escape(acronym)}\b"
-            text = re.sub(pattern, acronym, text, flags=re.IGNORECASE)
-        return text
+        matches = _find_preserved_acronyms(text)
+        result = title_case_ignore_double_char(text)
+        # Restore each preserved acronym at its own exact position. title-casing
+        # preserves word positions/lengths (whitespace is already collapsed to single
+        # spaces upstream), so the original match indices still line up with `result`.
+        for start, acronym in matches:
+            result = result[:start] + acronym + result[start + len(acronym):]
+        return result
 
-    elif capitalize:
+    acronyms = [a for a in _ACRONYM_RE.findall(text) if a.lower() not in _TITLE_CASE_LOWER]
+
+    if capitalize:
         # First change all to lower case
         text = _ascii_lower(text)
         for acronym in acronyms:
@@ -805,6 +865,214 @@ def set_x(text):
     text = re.sub(r"(?<![A-Za-z])(\d+) [xX](?!\S)", r"\1 ×", text)
     # Symbol-first with space: x 20, X 20 — flip to number-first
     text = re.sub(r"(?<![A-Za-z])[xX] (\d+)", r"\1 ×", text)
+    return text
+
+
+# Text longer than this looks ugly title-cased, so format_description_text() skips
+# title-casing past this length (matches the `hote` web app's same constant).
+MAX_TITLE_CASE_LENGTH = 60
+
+# Units that follow a number (27mm, 100 ft, 5kW, 50Hz). Per the SI Brochure / ISO 80000,
+# a space is always required between a numeric value and its unit symbol, so the space
+# is enforced here even if the user typed none. The leading-digit requirement is what
+# makes single-letter symbols (V, A, W) safe to include: "5V" is unambiguous, whereas a
+# bare "V" floating in prose is not.
+_UOM_CANONICAL = {
+    "mm": "mm", "cm": "cm", "km": "km", "m": "m", "mtr": "m", "ft": "ft", "in": "in", "kg": "kg",
+    "hz": "Hz", "khz": "kHz", "mhz": "MHz", "ghz": "GHz",
+    "v": "V", "a": "A", "ah": "Ah", "w": "W", "kw": "kW", "kva": "kVA", "hp": "hp",
+    "db": "dB", "dbi": "dBi", "dbm": "dBm", "vdc": "VDC", "vac": "VAC",
+    "psi": "psi", "rpm": "rpm",
+    "bps": "bps", "kbps": "Kbps", "mbps": "Mbps", "gbps": "Gbps",
+    # Digital storage (bytes) — distinct from the bit-rate units above (kbps/mbps/gbps).
+    # The \b...\b word-boundary matching means "50gb" and "50gbps" never collide: neither
+    # pattern's required boundary falls inside the other's literal string.
+    "kb": "KB", "mb": "MB", "gb": "GB", "tb": "TB", "pb": "PB",
+    "mp": "MP", "fps": "FPS",
+    # "mth"/"hr"/"yr" are the established qty-unit codes for Month/Hour/Year across the
+    # codebase's UNITS constants — mirrored here so free-text mentions (Cisco service
+    # terms, etc.) match that standard. Kept space-preserving (not in _UOM_WORD_TO_SYMBOL)
+    # since these are conventionally shown with a space (e.g. "3 hr", "2 ea").
+    "mth": "mth", "mths": "mth", "month": "mth", "months": "mth",
+    "hr": "hr", "hrs": "hr", "hour": "hr", "hours": "hr",
+    "yr": "yr", "yrs": "yr", "year": "yr", "years": "yr",
+}
+
+# Length-type units that can carry an area (²) or volume (³) exponent suffix directly
+# after the unit letters (10mm2 -> 10 mm², 5m3 -> 5 m³) — converted to the proper
+# Unicode superscript character rather than left as a literal trailing digit.
+_SUPERSCRIPT_ELIGIBLE = {"mm", "cm", "km", "m", "in", "ft"}
+_SUPERSCRIPT_DIGITS = {"2": "²", "3": "³"}
+
+# Full unit WORDS (not abbreviations) that collapse the space when normalized to their
+# symbol/abbreviation — e.g. "0.2 meter" -> "0.2m", "50 ohm" -> "50Ω". Unlike
+# _UOM_CANONICAL above (abbreviation-to-abbreviation, spacing preserved as typed),
+# spelling out the full word implies a looser style that should tighten up once
+# abbreviated, matching how "27mm"/"5kW" are conventionally written attached.
+_UOM_WORD_TO_SYMBOL = {
+    "meter": "m", "meters": "m", "metre": "m", "metres": "m",
+    "ohm": "Ω", "ohms": "Ω",
+}
+
+# Abbreviations that are industry convention (not SI) to attach directly to the number
+# with no space at all — e.g. rack units "1U", "42U", never "1 U".
+_UOM_NO_SPACE = {"u": "U"}
+
+# Compound word+digit(+letter) standard designators where the number is *inside* the
+# token (Cat6a, IP65), not preceded by an external number — matched as whole words.
+_STANDARD_DESIGNATORS = {
+    "cat5": "Cat5", "cat5e": "Cat5e", "cat6": "Cat6", "cat6a": "Cat6a",
+    "cat6e": "Cat6e", "cat7": "Cat7", "cat8": "Cat8",
+    "ip20": "IP20", "ip22": "IP22", "ip31": "IP31", "ip40": "IP40", "ip44": "IP44",
+    "ip54": "IP54", "ip65": "IP65", "ipx6": "IPX6", "ip66": "IP66", "ip67": "IP67",
+    "ip68": "IP68", "ip69k": "IP69K",
+}
+
+
+def normalize_standard_tokens(text):
+    """Force known units/standards into their canonical casing regardless of how the user
+    typed them — a correction pass, unlike set_case_preserve_acronym's title mode which
+    only *preserves* whatever casing was already there. Must run after any title-casing
+    pass so it overrides whatever wrong casing that pass left in place (e.g. a typed
+    "CAT6A" would otherwise survive as-is since it looks like a valid acronym).
+    """
+    for key, canonical in _UOM_CANONICAL.items():
+        if key in _SUPERSCRIPT_ELIGIBLE:
+            def _repl(m, _canonical=canonical):
+                exp = m.group(3)
+                suffix = _SUPERSCRIPT_DIGITS[exp] if exp else ""
+                return f"{m.group(1)} {_canonical}{suffix}"
+            text = re.sub(
+                rf"\b(\d+(?:\.\d+)?)\s?({key})([23])?\b", _repl, text, flags=re.IGNORECASE
+            )
+        else:
+            text = re.sub(
+                rf"\b(\d+(?:\.\d+)?)\s?({key})\b",
+                lambda m, _c=canonical: f"{m.group(1)} {_c}",
+                text,
+                flags=re.IGNORECASE,
+            )
+    for key, symbol in _UOM_WORD_TO_SYMBOL.items():
+        text = re.sub(
+            rf"\b(\d+(?:\.\d+)?)\s?({key})\b",
+            lambda m, _s=symbol: f"{m.group(1)}{_s}",
+            text,
+            flags=re.IGNORECASE,
+        )
+    for key, canonical in _UOM_NO_SPACE.items():
+        text = re.sub(
+            rf"\b(\d+)\s?({key})\b",
+            lambda m, _c=canonical: f"{m.group(1)}{_c}",
+            text,
+            flags=re.IGNORECASE,
+        )
+    for key, canonical in _STANDARD_DESIGNATORS.items():
+        text = re.sub(rf"\b({key})\b", canonical, text, flags=re.IGNORECASE)
+    return text
+
+
+# Multi-number dimension chains sharing one trailing unit (600x746x673mm -> "600 × 746 ×
+# 673 mm"). Distinct from the per-number letter-suffix chains below (800W X 1200D X
+# 2100H) — here the numbers are bare, with a single unit at the very end. \b-based
+# regexes elsewhere never fire inside a glued chain like this (digits and letters are
+# both \w, so there's no boundary between "746x673" and "mm"), which is why this needs
+# its own pass rather than relying on set_x + normalize_standard_tokens. Requires 2+
+# numbers so an ordinary single "27mm" mention is untouched.
+_DIMENSION_UNITS_RE = "|".join(sorted(_SUPERSCRIPT_ELIGIBLE, key=len, reverse=True))
+
+
+def set_dimension_unit_chain(text):
+    pattern = re.compile(
+        rf"\b(\d+(?:\.\d+)?(?:\s?[x×X]\s?\d+(?:\.\d+)?){{1,}})\s?({_DIMENSION_UNITS_RE})\b",
+        re.IGNORECASE,
+    )
+
+    def _repl(m):
+        nums = [n.strip() for n in re.split(r"[x×X]", m.group(1))]
+        unit = _UOM_CANONICAL.get(m.group(2).lower(), m.group(2))
+        return f"{' × '.join(nums)} {unit}"
+
+    return pattern.sub(_repl, text)
+
+
+# Dimension chains where each number carries its own Width/Depth/Height/Length letter,
+# either glued after the number ("800W") or before it with a slash ("W/800") — e.g.
+# "800W X 1200D X 2100H" or "D/1200 × W/800 × H/2100". Requires 2+ segments (same
+# false-positive guard as above), so a lone "800W" fan spec elsewhere is left alone.
+_DIM_LETTER = "WDHL"
+_DIM_SEGMENT = rf"(?:\d+(?:\.\d+)?[{_DIM_LETTER}]|[{_DIM_LETTER}]/\d+(?:\.\d+)?)"
+_DIM_CHAIN_RE = re.compile(
+    rf"\b{_DIM_SEGMENT}(?:\s?[x×X]\s?{_DIM_SEGMENT}){{1,}}\b", re.IGNORECASE
+)
+
+# NUL is used as the token delimiter while dimension chains are hidden from the rest of
+# the pipeline: it can't appear in real input, isn't a \w character (so \b still forms
+# around it, keeping the token isolated from neighboring regex matches), and survives
+# the title-casing helpers untouched (_ascii_lower/_ascii_capitalize only fold ASCII
+# *letters*).
+_DIM_TOKEN_DELIM = "\x00"
+
+
+def protect_dimension_suffix_chains(text):
+    """Hide dimension-suffix chains from the rest of the pipeline, returning the
+    protected text and a restore function to put them back verbatim at the very end.
+    Necessary because a bare "800W" would otherwise be misread by
+    normalize_standard_tokens as 800 Watts (W is already a unit key in _UOM_CANONICAL) —
+    placeholder substitution is the only reliable way to make a substring immune to
+    every later pass rather than trying to out-order regexes.
+    """
+    chains = []
+
+    def _capture(m):
+        token = f"{_DIM_TOKEN_DELIM}{len(chains)}{_DIM_TOKEN_DELIM}"
+        chains.append(re.sub(r"\s?[x×X]\s?", " × ", m.group(0)))
+        return token
+
+    protected_text = _DIM_CHAIN_RE.sub(_capture, text)
+
+    def restore(t):
+        for i, chain in enumerate(chains):
+            t = t.replace(f"{_DIM_TOKEN_DELIM}{i}{_DIM_TOKEN_DELIM}", chain, 1)
+        return t
+
+    return protected_text, restore
+
+
+def format_description_text(text, title_case=False):
+    """
+    Cleans up and normalizes free text for display, mirroring the `hote` web app's
+    formatDescriptionText(). Cleanup (whitespace, bullets, comma/paren spacing,
+    x-notation) always runs; title-casing only runs when requested and the cleaned
+    text is short (long sentences look ugly title-cased). Known units of measure and
+    standard designators (mm, kW, Cat6a, IP65, ...) are always normalized to their
+    canonical casing, regardless of length.
+    """
+    if not text:
+        return ""
+    text = str(text).strip()
+    text = re.sub(r" {2,}", " ", text)
+    text = re.sub(r"^(-|~)", "•", text)
+    text = re.sub(r"^[*?]\s", " • ", text)
+    text = re.sub(r";$", ":", text)
+    text = set_comma_space(text)
+    text = set_paren_spacing(text)
+
+    # Length check for the title-case gate uses the text before dimension chains are
+    # shrunk down to their placeholder tokens (which would otherwise make borderline-
+    # length text look artificially shorter than it really is).
+    should_title_case = title_case and len(text) <= MAX_TITLE_CASE_LENGTH
+
+    protected_text, restore = protect_dimension_suffix_chains(text)
+    text = protected_text
+
+    text = set_dimension_unit_chain(text)
+    text = set_x(text)
+
+    if should_title_case:
+        text = set_case_preserve_acronym(text, title=True)
+
+    text = normalize_standard_tokens(text)
+    text = restore(text)
     return text
 
 
@@ -3217,13 +3485,13 @@ def format_text(
     )
 
     # Vectorized processing of Description column
-    # Apply set_nitty_gritty using vectorized apply (faster than row iteration)
+    # Apply format_description_text using vectorized apply (faster than row iteration)
     systems["Description"] = (
         systems["Description"]
         .astype(str)
         .str.strip()
         .str.lstrip("• ")
-        .apply(set_nitty_gritty)
+        .apply(lambda x: format_description_text(x, title_case=False))
     )
 
     # Vectorized Unit processing
@@ -3244,17 +3512,16 @@ def format_text(
     systems.loc[systems["Scope"] == "tba", "Scope"] = "TBA"
     systems.loc[systems["Scope"] == "removed", "Scope"] = "REMOVED"
 
-    # Apply title case to Lineitem and Description rows with short descriptions
+    # Apply title case to Lineitem and Description rows (format_description_text itself
+    # skips title-casing past MAX_TITLE_CASE_LENGTH, so no length mask is needed here)
     if title_lineitem_or_description:
-        mask = systems["Format"].isin(["Lineitem", "Description"]) & (
-            systems["Description"].str.len() <= 60
-        )
+        mask = systems["Format"].isin(["Lineitem", "Description"])
         if mask.any():
             systems.loc[mask, "Description"] = (
                 systems.loc[mask, "Description"]
                 .str.strip()
                 .str.lstrip("• ")
-                .apply(lambda x: set_case_preserve_acronym(x, title=True))
+                .apply(lambda x: format_description_text(x, title_case=True))
             )
 
     # Upper case for Title rows
@@ -3352,7 +3619,9 @@ def shaded(wb, shaded=True):
 
 
 def internal_costing(wb):
+    app = wb.app
     directory, is_cloud = get_workbook_directory(wb)
+    src_path = Path(directory) / wb.name
 
     wb.sheets["Cover"].range("D39").value = "INTERNAL COSTING"
     wb.sheets["Cover"].range("D40").value = wb.sheets["Cover"].range("D40").raw_value
@@ -3481,6 +3750,20 @@ def internal_costing(wb):
     wb.sheets["Summary"].activate()
     file_name = "Internal " + wb.name[:-4] + "xlsx"
     save_workbook_safe(wb, Path(directory, file_name), password="")
+
+    # Reopen the untouched source from disk and close this mutated copy —
+    # matches commercial()/technical() so the source file is left as-is
+    # instead of the open window staying bound to the "Internal ..." copy.
+    app.calculation = "automatic"
+    _src_wb = _find_or_open_workbook(app, src_path)
+    wb.close()
+    if _src_wb is not None:
+        try:
+            _src_wb.activate()
+        except Exception:
+            pass
+    elif not src_path.exists():
+        xw.apps.active.alert(f"Internal costing generated but could not reopen:\n{src_path.name}")  # type: ignore
 
 
 def convert_legacy(wb):
