@@ -274,13 +274,6 @@ def fill_formula_wb():
     functions.number_title(wb, count=count, step=step)
     update_status(app, "Filling formulas...")
     functions.fill_formula_wb(wb)
-    update_status(app, "Formatting text...")
-    functions.format_text(
-        wb,
-        indent_description=True,
-        bullet_description=True,
-        title_lineitem_or_description=True,
-    )
     update_status(app, "Formatting cells...")
     functions.format_cell_data(wb)
     update_status(app, "Applying conditional formatting...")

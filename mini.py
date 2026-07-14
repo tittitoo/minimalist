@@ -99,14 +99,6 @@ def run_fix_workbook(filepath: str) -> bool:
         click.echo("Filling formulas...")
         functions.fill_formula_wb(wb)
 
-        click.echo("Formatting text...")
-        functions.format_text(
-            wb,
-            indent_description=True,
-            bullet_description=True,
-            title_lineitem_or_description=True,
-        )
-
         click.echo("Formatting cells...")
         functions.format_cell_data(wb)
 
