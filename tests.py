@@ -353,6 +353,20 @@ class TestFormatDescriptionText(unittest.TestCase):
             format_description_text("20x cable ties", title_case=True), "20 × Cable Ties"
         )
 
+    def test_keeps_value_unit_x_count_suffix_in_order(self):
+        # Regression: the leading-multiplier pattern (for "x2 items" -> "2 × Items")
+        # used to blindly match just the "x 2" fragment here too, discarding "8GB"
+        # entirely and reordering into "2 ×" — producing "8GB 2 ×" instead of keeping
+        # the value and count together as "8GB × 2".
+        self.assertEqual(
+            format_description_text("Memory 8GB x 2, total 16GB", title_case=True),
+            "Memory 8 GB × 2, Total 16 GB",
+        )
+        self.assertEqual(
+            format_description_text("1080p and 4K x 2K at 60Hz", title_case=True),
+            "1080p and 4K × 2K at 60 Hz",
+        )
+
     def test_normalizes_asterisk_multiplier_without_corrupting_markdown_italics(self):
         # A bare "*" is a CommonMark emphasis delimiter — left untouched, a second
         # "*" later in the same string (e.g. a repeated multiplier) would italicize
@@ -384,6 +398,42 @@ class TestFormatDescriptionText(unittest.TestCase):
         self.assertEqual(
             format_description_text("unit(bracket),next", title_case=True),
             "Unit (Bracket), Next",
+        )
+
+    def test_normalizes_double_single_quote_inch_mark(self):
+        self.assertEqual(
+            format_description_text("Storage 2.5'' 1TB SSD", title_case=True),
+            'Storage 2.5" 1 TB SSD',
+        )
+        # A genuine double-quote inch mark elsewhere is untouched.
+        self.assertEqual(
+            format_description_text('27" Monitor', title_case=True), '27" Monitor'
+        )
+
+    def test_strips_optional_plural_paren_after_any_word(self):
+        self.assertEqual(
+            format_description_text(
+                "2 COM Port(s), 1 VGA port(s)", title_case=True
+            ),
+            "2 COM Port, 1 VGA Port",
+        )
+
+    def test_expands_with_shorthand(self):
+        self.assertEqual(
+            format_description_text(
+                "Air-conditioner unit w/ duct kit", title_case=True
+            ),
+            "Air-conditioner Unit With Duct Kit",
+        )
+        self.assertEqual(
+            format_description_text(
+                "Enclosure w/o External JB", title_case=True
+            ),
+            "Enclosure Without External JB",
+        )
+        # Must not corrupt a genuine part number/fraction with a bare "w" and slash.
+        self.assertEqual(
+            format_description_text('27" Monitor', title_case=True), '27" Monitor'
         )
 
     def test_normalizes_dimension_letter_chain_without_misreading_w_as_watts(self):

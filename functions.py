@@ -741,6 +741,45 @@ def set_paren_spacing(text):
     return text
 
 
+def set_double_single_quote_inches(text):
+    """Normalize a double straight single-quote inch mark (e.g. "2.5'' SSD") to a
+    proper double-quote character.
+
+    Some sources type this instead of a real double-quote — matching the inch
+    notation already used correctly elsewhere in the same catalog (e.g. `27" Monitor`,
+    `3.5" Enterprise HDD`).
+    """
+    return re.sub(r"(\d)''", r'\1"', text)
+
+
+def strip_optional_plural_paren(text):
+    """Strip a parenthesized "(s)" optional-plural marker after any word (e.g.
+    "Port(s)" -> "Port"), to the bare singular form which reads naturally regardless
+    of actual count.
+
+    This is the generic version of the same idea applied to month/hr/yr specifically
+    inside normalize_standard_tokens (which requires a preceding number); this one
+    has no such requirement, since ordinary nouns like "Port(s)" aren't unit words.
+    A space may already sit before the "(" once set_paren_spacing (which runs right
+    before this) has added one, so it's matched as optional here too.
+    """
+    return re.sub(r"\b([A-Za-z]+)\s?\(s\)", r"\1", text)
+
+
+def expand_with_shorthand(text):
+    """Expand "w/" / "w/o" spec-sheet shorthand to "with"/"without" (e.g. "Enclosure
+    w/o External JB").
+
+    "w/o" is checked first since "w/" would otherwise match as a prefix of it and
+    leave a dangling "o" behind. The trailing boundary is a lookahead for "not a word
+    char", not \\b — "w/" ends in "/", a non-word character, so \\b never fires
+    between it and a following space (both sides non-word, no transition).
+    """
+    text = re.sub(r"\bw/o(?![A-Za-z0-9])", "without", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bw/(?![A-Za-z0-9])", "with", text, flags=re.IGNORECASE)
+    return text
+
+
 _TITLE_CASE_LOWER = frozenset({
     "a", "an", "the",
     "and", "but", "or", "nor", "for", "yet", "so",
@@ -884,6 +923,18 @@ def set_x(text):
     - Words where x is just a letter ('Max 11.7', 'Flex 10G', 'Approx 100')
     - Cisco-style part numbers ('WS-C2960X-24TS-L', 'X2-10GB-SR', 'N9K-X9736C-EX')
     """
+    # "value+unit x count" SUFFIX form (e.g. "8GB x 2", "4K x 2K") must run first. The
+    # standalone-leading-multiplier pattern below ("x2 items" -> "2 × Items") would
+    # otherwise blindly match just the "x 2" fragment here too, discarding "8GB"
+    # entirely and reordering into "2 ×" — scrambling the whole phrase into "8GB 2 ×"
+    # instead of keeping the value and count together as "8GB × 2". Requiring 1+
+    # letters on the left (not just any digit) is what distinguishes this from a bare
+    # two-number chain like "20x30" (still deliberately left untouched, see set_x's
+    # own test — that shape is equally likely to be a resolution or part-number-style
+    # code).
+    text = re.sub(
+        r"(\d+[A-Za-z]+)\s?[xX]\s?(\d+[A-Za-z]*)(?![A-Za-z0-9-])", r"\1 × \2", text
+    )
     # Number-first: 20x, 30X (not glued to a letter/digit/- on either side)
     text = re.sub(r"(?<![A-Za-z])(\d+)[xX](?![A-Za-z0-9-])", r"\1 ×", text)
     # Symbol-first: x20, X30 — flip to number-first
@@ -1179,6 +1230,9 @@ def format_description_text(text, title_case=False):
     text = set_range_tilde(text)
     text = set_comma_space(text)
     text = set_paren_spacing(text)
+    text = set_double_single_quote_inches(text)
+    text = strip_optional_plural_paren(text)
+    text = expand_with_shorthand(text)
 
     # Length check for the title-case gate uses the text before dimension chains are
     # shrunk down to their placeholder tokens (which would otherwise make borderline-
