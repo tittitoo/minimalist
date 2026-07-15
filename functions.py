@@ -690,14 +690,41 @@ def set_nitty_gritty(text):
 def set_comma_space(text):
     """Fix having space before comma and not having space after comma.
 
-    Skips numeric thousand-separators (a comma followed by exactly 3 digits
-    with no 4th digit, e.g. "1,200"), regardless of what precedes the comma.
-    A weaker "digit precedes the comma" check misfires on designators that
-    merely end in a digit (e.g. "W7,3 radio" is not a grouped number).
+    Skips numeric thousand-separators, recognized as a digit immediately BEFORE
+    the comma AND exactly 3 digits immediately after with no 4th digit (e.g.
+    "1,200", "12,345,678"). Both sides must hold: requiring only the follow-side
+    count (as "W7,3 radio" alone would need, since "3 radio" isn't 3 digits
+    either way) doesn't stop a comma between an unrelated word and a 3-digit
+    number — e.g. "Cable,450V" or "Blue,112A" — from being misread as a
+    thousands-grouped number, since the token before the comma there ends in a
+    letter, not a digit.
     """
     text = re.sub(r"(\w+)\s,", r"\1,", text)
-    text = re.sub(r",\s*(?!\d{3}(?!\d))", ", ", text)
-    return text
+
+    def _repl(m):
+        offset = m.start()
+        before = text[offset - 1] if offset > 0 else None
+        after = text[m.end():]
+        is_thousands_sep = (
+            before is not None and before.isdigit() and re.match(r"\d{3}(?!\d)", after)
+        )
+        return m.group(0) if is_thousands_sep else ", "
+
+    return re.sub(r",\s*", _repl, text)
+
+
+def set_range_tilde(text):
+    """Normalize a numeric "to" range tilde to an en dash.
+
+    A tilde flanked by non-whitespace on the left and an optional minus sign
+    then a digit on the right is being used as a numeric range separator (e.g.
+    "20~31dB", "190.65THz~196.675THz", "-6.0~-1.0dBm") — a common technical-spec
+    convention. Left as a literal tilde it reads oddly, and in the `hote` web
+    app's markdown rendering a pair of tildes is read as GFM strikethrough
+    delimiters. Doesn't touch a leading "~" (handled separately, as a
+    bullet-marker synonym, in set_nitty_gritty).
+    """
+    return re.sub(r"(?<=\S)~(?=-?\d)", "–", text)
 
 
 def set_paren_spacing(text):
@@ -868,9 +895,22 @@ def set_x(text):
     return text
 
 
+def set_asterisk_multiplier(text):
+    """Normalize a literal "*" quantity multiplier (e.g. "2*200G/400G") to the
+    same '×' symbol as set_x above.
+
+    Left as a literal "*" this is actively dangerous, not just inconsistent: in
+    the `hote` web app's markdown rendering, CommonMark reads a single "*" as an
+    emphasis delimiter and pairs it with the NEXT "*" anywhere later in the same
+    string (e.g. a second multiplier further along) — italicizing every
+    character in between, not just the multiplier itself.
+    """
+    return re.sub(r"(?<![A-Za-z0-9])(\d+)\s?\*\s?(?=\d)", r"\1 × ", text)
+
+
 # Text longer than this looks ugly title-cased, so format_description_text() skips
 # title-casing past this length (matches the `hote` web app's same constant).
-MAX_TITLE_CASE_LENGTH = 60
+MAX_TITLE_CASE_LENGTH = 100
 
 # Units that follow a number (27mm, 100 ft, 5kW, 50Hz). Per the SI Brochure / ISO 80000,
 # a space is always required between a numeric value and its unit symbol, so the space
@@ -938,16 +978,37 @@ def normalize_standard_tokens(text):
     """
     for key, canonical in _UOM_CANONICAL.items():
         if key in _SUPERSCRIPT_ELIGIBLE:
+            # "^2"/"^3" (caret-exponent notation, e.g. "25mm^2") is an alternate way the
+            # same area/volume suffix shows up — treated the same as the bare-digit
+            # suffix. Leading boundary is a negative lookbehind rather than \b so a
+            # number glued to a preceding underscore (a field-delimiter artifact in some
+            # imported BOM text, e.g. "..._25mm2") is still recognized — \b requires a
+            # \w/\W transition, and underscore counts as \w, so it would otherwise block
+            # the match entirely.
             def _repl(m, _canonical=canonical):
                 exp = m.group(3)
                 suffix = _SUPERSCRIPT_DIGITS[exp] if exp else ""
                 return f"{m.group(1)} {_canonical}{suffix}"
             text = re.sub(
-                rf"\b(\d+(?:\.\d+)?)\s?({key})([23])?\b", _repl, text, flags=re.IGNORECASE
+                rf"(?<![a-zA-Z0-9])(\d+(?:\.\d+)?)\s?({key})\^?([23])?\b",
+                _repl,
+                text,
+                flags=re.IGNORECASE,
             )
         else:
+            # An optional parenthesized "(s)" right after the unit word (e.g.
+            # "60Month(s)") is a written-out plural marker, not part of the unit itself
+            # — consumed here so it doesn't survive as dangling trailing text (e.g.
+            # "60 mth (s)"). A space may already sit before the "(" by the time this
+            # runs, since set_paren_spacing (upstream in the pipeline) unconditionally
+            # inserts one before every "(" — so it's matched as optional here too. The
+            # trailing boundary is a negative lookahead rather than \b for the same
+            # reason: \b never fires right after ")" (")" and end-of-string are both
+            # non-word, so there's no \w/\W transition to anchor on). Leading boundary is
+            # the same underscore-tolerant lookbehind as the superscript-eligible branch
+            # above.
             text = re.sub(
-                rf"\b(\d+(?:\.\d+)?)\s?({key})\b",
+                rf"(?<![a-zA-Z0-9])(\d+(?:\.\d+)?)\s?({key})(?:\s?\(s\))?(?![a-zA-Z0-9_])",
                 lambda m, _c=canonical: f"{m.group(1)} {_c}",
                 text,
                 flags=re.IGNORECASE,
@@ -995,6 +1056,25 @@ def set_dimension_unit_chain(text):
     return pattern.sub(_repl, text)
 
 
+# A chain of 3+ numbers multiplied together with NO trailing unit at all (e.g. a
+# junction box's "160x160x91", W×D×H in implied mm) is still an unambiguous dimension
+# chain — unlike a bare TWO-number "NxN" (e.g. "20x30"), which set_x's own test
+# deliberately leaves untouched since that shape is equally likely to be a resolution
+# or a part-number-style code. Three or more numbers removes that ambiguity, so this
+# only fixes the "x" spacing/symbol — it doesn't invent a unit the source never gave.
+_NAKED_DIMENSION_CHAIN_RE = re.compile(
+    r"\b(\d+(?:\.\d+)?(?:\s?[xX]\s?\d+(?:\.\d+)?){2,})\b"
+)
+
+
+def set_naked_dimension_chain(text):
+    def _repl(m):
+        nums = [n.strip() for n in re.split(r"[xX]", m.group(1))]
+        return " × ".join(nums)
+
+    return _NAKED_DIMENSION_CHAIN_RE.sub(_repl, text)
+
+
 # Dimension chains where each number carries its own Width/Depth/Height/Length letter,
 # either glued after the number ("800W") or before it with a slash ("W/800") — e.g.
 # "800W X 1200D X 2100H" or "D/1200 × W/800 × H/2100". Requires 2+ segments (same
@@ -1038,6 +1118,48 @@ def protect_dimension_suffix_chains(text):
     return protected_text, restore
 
 
+# Digital bit-RATE written as "Xb/s" (X = k/m/g/t prefix, e.g. "8.5Gb/s") looks
+# identical to the digital STORAGE unit "XB" (kilobytes/megabytes/etc., in
+# _UOM_CANONICAL above) once case is folded — the trailing "/s" (per second) is the
+# only signal that this is a bit rate, not a byte count, and the source's own casing of
+# "b" can't be trusted either way. Protected the same way as dimension-suffix chains
+# above: normalize_standard_tokens' plain kb/mb/gb/tb (byte) entries have no way to know
+# to exclude a trailing "/s", so without protection "8.5Gb/s" would be misread as
+# "8.5 GB/s" (bytes/second, wrong unit family entirely).
+#
+# Uses its own delimiter (SOH, char code 1) rather than reusing _DIM_TOKEN_DELIM with a
+# letter tag to disambiguate — the token must stay pure digits between delimiters, same
+# as the dimension-chain tokens above: _ascii_capitalize/_ascii_lower (invoked by
+# title-casing) only skip ASCII *letters* embedded in a token, not digits, so any letter
+# tag would get case-folded there and break the exact-string match this restore() relies
+# on.
+_BIT_RATE_TOKEN_DELIM = "\x01"
+_BIT_RATE_SLASH_RE = re.compile(
+    r"\b(\d+(?:\.\d+)?)\s?([kmgt])[Bb]/[Ss]\b", re.IGNORECASE
+)
+
+
+def protect_bit_rate_slash(text):
+    """Hide "Xb/s" bit-rate notation from the rest of the pipeline, returning the
+    protected text and a restore function to put it back verbatim at the very end.
+    """
+    values = []
+
+    def _capture(m):
+        token = f"{_BIT_RATE_TOKEN_DELIM}{len(values)}{_BIT_RATE_TOKEN_DELIM}"
+        values.append(f"{m.group(1)} {m.group(2).upper()}b/s")
+        return token
+
+    protected_text = _BIT_RATE_SLASH_RE.sub(_capture, text)
+
+    def restore(t):
+        for i, val in enumerate(values):
+            t = t.replace(f"{_BIT_RATE_TOKEN_DELIM}{i}{_BIT_RATE_TOKEN_DELIM}", val, 1)
+        return t
+
+    return protected_text, restore
+
+
 def format_description_text(text, title_case=False):
     """
     Cleans up and normalizes free text for display, mirroring the `hote` web app's
@@ -1054,6 +1176,7 @@ def format_description_text(text, title_case=False):
     text = re.sub(r"^(-|~)", "•", text)
     text = re.sub(r"^[*?]\s", " • ", text)
     text = re.sub(r";$", ":", text)
+    text = set_range_tilde(text)
     text = set_comma_space(text)
     text = set_paren_spacing(text)
 
@@ -1064,14 +1187,19 @@ def format_description_text(text, title_case=False):
 
     protected_text, restore = protect_dimension_suffix_chains(text)
     text = protected_text
+    bit_rate_protected_text, restore_bit_rate = protect_bit_rate_slash(text)
+    text = bit_rate_protected_text
 
     text = set_dimension_unit_chain(text)
+    text = set_naked_dimension_chain(text)
     text = set_x(text)
+    text = set_asterisk_multiplier(text)
 
     if should_title_case:
         text = set_case_preserve_acronym(text, title=True)
 
     text = normalize_standard_tokens(text)
+    text = restore_bit_rate(text)
     text = restore(text)
     return text
 

@@ -83,6 +83,13 @@ class TestSetCommaSpace(unittest.TestCase):
         result = set_comma_space("a,b,c")
         self.assertIn(", ", result)
 
+    def test_inserts_space_when_token_before_comma_is_not_numeric(self):
+        # A 3-digit follow-side alone isn't enough to call it a thousands
+        # separator — the token before the comma must also end in a digit,
+        # otherwise "Cable,450V" would wrongly be left unchanged.
+        self.assertEqual(set_comma_space("Cable,450V"), "Cable, 450V")
+        self.assertEqual(set_comma_space("Blue,112A"), "Blue, 112A")
+
 
 class TestSetX(unittest.TestCase):
     """Tests for set_x function that normalizes quantity notation to 'N ×' format."""
@@ -296,10 +303,25 @@ class TestFormatDescriptionText(unittest.TestCase):
 
     def test_leaves_long_text_unchanged_by_title_casing(self):
         long_text = (
-            "this is a very long description that definitely exceeds "
-            "sixty characters in length"
+            "this is a very long description that definitely exceeds one "
+            "hundred characters in length, well past it"
         )
+        self.assertGreater(len(long_text), 100)
         self.assertEqual(format_description_text(long_text, title_case=True), long_text)
+
+    def test_title_cases_label_style_text_up_to_100_chars(self):
+        # Comma-separated attribute lists (not prose) stay title-cased up to the
+        # raised 100-char cutoff — data-driven from the products catalog, where
+        # label-style names top out around 94 chars.
+        self.assertEqual(
+            format_description_text(
+                "Motorola XiR P6600i NON-TIA (No-Display, No-Keypad, Non-I.S) "
+                "Portable Radio - APAC model",
+                title_case=True,
+            ),
+            "Motorola XiR P6600i NON-TIA (No-Display, No-Keypad, Non-I.S) "
+            "Portable Radio - APAC Model",
+        )
 
     def test_preserves_hyphenated_part_numbers_under_title_case(self):
         self.assertEqual(
@@ -329,6 +351,17 @@ class TestFormatDescriptionText(unittest.TestCase):
     def test_normalizes_quantity_x_notation(self):
         self.assertEqual(
             format_description_text("20x cable ties", title_case=True), "20 × Cable Ties"
+        )
+
+    def test_normalizes_asterisk_multiplier_without_corrupting_markdown_italics(self):
+        # A bare "*" is a CommonMark emphasis delimiter — left untouched, a second
+        # "*" later in the same string (e.g. a repeated multiplier) would italicize
+        # everything between the two, not just the multiplier itself.
+        self.assertEqual(
+            format_description_text(
+                "2*200G/400G board (2*100G capacity included)", title_case=True
+            ),
+            "2 × 200G/400G Board (2 × 100G Capacity Included)",
         )
 
     def test_fixes_comma_spacing_without_breaking_thousands_separator(self):
@@ -371,6 +404,89 @@ class TestFormatDescriptionText(unittest.TestCase):
     def test_lone_dimension_letter_is_still_read_as_its_unit(self):
         self.assertEqual(
             format_description_text("800w fan", title_case=True), "800 W Fan"
+        )
+
+    def test_normalizes_naked_dimension_chain_with_no_trailing_unit(self):
+        # A chain of 3+ numbers multiplied together is unambiguous even with no
+        # trailing unit at all (e.g. a junction box's "160x160x91", implied mm).
+        self.assertEqual(
+            format_description_text("JB (160x160x91)", title_case=True),
+            "JB (160 × 160 × 91)",
+        )
+        self.assertEqual(
+            format_description_text("Junction box (160X160X91)", title_case=True),
+            "Junction Box (160 × 160 × 91)",
+        )
+        # A bare two-number chain stays untouched — same ambiguity as set_x's own
+        # guard (could be a resolution or a part-number-style code).
+        self.assertEqual(
+            format_description_text("20x30 enclosure", title_case=True),
+            "20x30 Enclosure",
+        )
+
+    def test_normalizes_range_tilde_to_en_dash(self):
+        # A tilde used as a numeric "to" range separator would otherwise corrupt
+        # markdown rendering (GFM reads a tilde pair as strikethrough) in `hote`'s
+        # preview — normalized here too so both tools agree on the output text.
+        self.assertEqual(
+            format_description_text("Gain 20~31dB, Max 21.5dBm", title_case=True),
+            "Gain 20–31 dB, Max 21.5 dBm",
+        )
+        self.assertEqual(
+            format_description_text("190.65THz~196.675THz range", title_case=True),
+            "190.65THz–196.675THz Range",
+        )
+
+    def test_converts_caret_exponent_notation_to_superscript(self):
+        self.assertEqual(
+            format_description_text("25mm^2 wire", title_case=True), "25 mm² Wire"
+        )
+        self.assertEqual(
+            format_description_text("5m^3 tank", title_case=True), "5 m³ Tank"
+        )
+
+    def test_strips_parenthesized_plural_marker_when_normalizing_month(self):
+        self.assertEqual(
+            format_description_text("60Month(s) support", title_case=True),
+            "60 mth Support",
+        )
+        # Glued to a preceding underscore (a field-delimiter artifact in some
+        # imported data) must still be recognized.
+        self.assertEqual(
+            format_description_text("Basic Chassis_60Month(s)", title_case=True),
+            "Basic Chassis_60 mth",
+        )
+
+    def test_does_not_treat_comma_before_nonnumeric_token_as_thousands_separator(self):
+        self.assertEqual(
+            format_description_text(
+                "Power Cable,450V/750V,25mm^2,Blue,112A,CCC,CE", title_case=True
+            ),
+            "Power Cable, 450 V/750 V, 25 mm², Blue, 112 A, CCC, CE",
+        )
+
+    def test_normalizes_bit_rate_slash_notation_distinct_from_byte_storage(self):
+        # "Xb/s" (bit rate) looks identical to "XB" (byte storage) once case is
+        # folded — the trailing "/s" is the only signal distinguishing the two.
+        self.assertEqual(
+            format_description_text("8.5Gb/s-11.1Gb/s with CDR", title_case=True),
+            "8.5 Gb/s-11.1 Gb/s With CDR",
+        )
+        self.assertEqual(
+            format_description_text("10Mb/s uplink", title_case=True),
+            "10 Mb/s Uplink",
+        )
+        self.assertEqual(
+            format_description_text("1.5tb/s backbone", title_case=True),
+            "1.5 Tb/s Backbone",
+        )
+        # Byte storage and bit-rate-via-slash must resolve independently in the
+        # same string.
+        self.assertEqual(
+            format_description_text(
+                "500gb storage over an 8gb/s link", title_case=True
+            ),
+            "500 GB Storage Over an 8 Gb/s Link",
         )
 
     def test_always_normalizes_units_regardless_of_title_case_flag(self):
