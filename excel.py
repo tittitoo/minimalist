@@ -278,15 +278,17 @@ def fill_formula_wb():
     functions.format_cell_data(wb)
     update_status(app, "Applying conditional formatting...")
     functions.conditional_format_wb(wb, app=app)
-    update_status(app, "Filling subtotals...")
-    functions.fill_lastrow(wb)
     update_status(app, "Hiding columns...")
     functions.hide_columns_wb(wb)
     update_status(app, "Applying shading...")
     functions.shaded(wb)
-    # set_row_heights_wb (rows.autofit()) must stay last: Excel recalculates row
-    # heights whenever a VBA macro subsequently touches the sheet (shaded() runs
-    # one), overriding autofit's result if it ran first. See faf1d5b.
+    # fill_lastrow must run after shaded(): shaded()'s apply_ibd_grid_borders
+    # draws xlInsideHorizontal grid lines across every row boundary in I:BD,
+    # which would otherwise overwrite the subtotal row's blue top/bottom
+    # border (apply_lastrow_border) at that exact boundary. Painting the blue
+    # border last makes it win.
+    update_status(app, "Filling subtotals...")
+    functions.fill_lastrow(wb)
     update_status(app, "Setting row heights...")
     functions.set_row_heights_wb(wb)
     original_sheet.activate()

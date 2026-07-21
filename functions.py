@@ -1571,13 +1571,24 @@ def set_row_heights_wb(wb):
     """
     Autofit row heights for every data sheet.
 
-    rows.autofit() measures against the actual rendered layout, so it needs
-    screen updating on to compute correct heights — called from fill_formula_wb,
-    which runs under @disable_screen_updating for the whole operation, autofit
-    would otherwise size rows against a stale/un-rendered layout and produce
-    wildly oversized rows on Windows. Restore the caller's setting afterward
-    rather than leaving it on, in case more @disable_screen_updating-wrapped
-    work follows in the same call.
+    rows.autofit() is only reliable on Windows when the target sheet is the
+    ACTIVE sheet at the time of the call — verified directly against a real
+    workbook: calling it on a non-active sheet produced wrong (oversized)
+    heights for some rows and correct heights for others in the same range,
+    while explicitly activating the sheet first was consistently correct.
+    fill_formula_wb runs under @disable_screen_updating for the whole
+    operation, and autofit also needs screen updating on to measure the
+    rendered layout correctly, so that's restored here too (and reset
+    afterward, in case more @disable_screen_updating-wrapped work follows).
+
+    _set_wrap_row_heights (the ReportLab-metrics calculator used elsewhere in
+    this codebase) was tried here instead of autofit, but its MDW calibration
+    is deliberately narrow — tuned to match the PDF export renderer, which has
+    tighter effective character spacing than Excel's own screen rendering — so
+    it over-wraps borderline lines that genuinely fit on one line on screen,
+    producing a phantom blank second line. That calibration is correct for
+    PDF-bound flows (Simple Proposal, print-prep) but wrong for this one, which
+    sizes rows for on-screen viewing/editing, not export.
     """
     app = wb.app
     original_screen_updating = app.screen_updating
@@ -1585,7 +1596,10 @@ def set_row_heights_wb(wb):
     try:
         for sheet in wb.sheets:
             if not should_skip_sheet(sheet.name):
-                sheet.range(f"2:{sheet.range('C1500').end('up').row}").rows.autofit()
+                sheet.activate()
+                last_row = sheet.range("C1500").end("up").row
+                if last_row >= 2:
+                    sheet.range(f"2:{last_row}").rows.autofit()
     finally:
         app.screen_updating = original_screen_updating
 
@@ -2657,12 +2671,24 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 # _SP_MDW_PX calibrated empirically per platform against known single/multi-line boundary cases
 # at col_width=55.  Widths are measured on stripped text (leading spaces removed); the 3-space
 # indent added by format_text is ~10pt and is implicitly absorbed into the MDW calibration.
-# MDW=8.0 calibrated against the Windows PDF renderer (not screen renderer).
-# rows.autofit() sizes to screen metrics, but PDF export uses a different font renderer
-# with slightly narrower effective character width — text that fits 2 lines on screen
-# can wrap to 3 lines in PDF, causing clipping.  MDW=8.0 (avail=330.75pt) matches
-# the PDF renderer closely enough to predict the correct line count on both platforms.
-_SP_MDW_PX    = 8.0
+#
+# Platform-specific: Windows Excel renders a wider physical column than Mac for the same
+# col_width=55, so the same borderline text that genuinely wraps to 2 lines on Mac fits on
+# 1 line on Windows. A single shared MDW can't satisfy both — Mac=8.0 vs Windows=8.8 were
+# re-derived by comparing confirmed 1-line vs genuinely-2-line descriptions from real
+# Windows PDF output (Commercial proposal line items + Technical Notes), bounding the
+# correct avail_pt to [349, 388]pt at col_width=55; 8.8 (avail=363.75pt) sits centered
+# in that range with margin both directions.
+#
+# This constant has swung back and forth before — worth knowing why: 260b5da/b1658d9
+# originally found Windows needed a higher MDW (8.5, then 8.7) than Mac's 8.0 to avoid
+# phantom blank lines from the same wider-column effect. 9db7c4c then collapsed both
+# platforms to 8.0 while fixing a *different* bug (rows.autofit() clipping text because
+# screen rendering and PDF export use different renderers) — but in switching Windows
+# from autofit to this ReportLab calculation, it also discarded Windows' own MDW tuning,
+# reintroducing the phantom-line problem this constant now fixes again. If clipping
+# reappears on Windows, the fix is likely narrowing MDW slightly, not re-collapsing to 8.0.
+_SP_MDW_PX    = 8.8 if sys.platform == "win32" else 8.0
 
 
 def _format_iso_date(val):
