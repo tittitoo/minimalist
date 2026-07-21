@@ -2668,26 +2668,32 @@ _SP_ROW_H       = 18.0  # single-line row height for Arial 12pt; 18pt clears des
 _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between content groups
                              # (Mac top-padding ≥ 2.5pt; 15.75 and 16.5 both still clip)
 # Excel col_width → available text width (pt): avail = (col_width × _SP_MDW_PX + 1) × 0.75
-# _SP_MDW_PX calibrated empirically against known single/multi-line boundary cases at
-# col_width=55.  Widths are measured on stripped text (leading spaces removed); the 3-space
-# indent added by format_text is ~10pt and is implicitly absorbed into the MDW calibration.
+# This is a linear approximation of Excel's own (Truncate-based, non-linear) column-width-
+# to-pixels formula, so a single MDW fit at one col_width doesn't necessarily hold exactly
+# at another — verified empirically: at col_width=55/60 (BOQ Description column) the safe
+# range is wide, but at col_width=68.43 (TN/T&C sheets, wider) one case needed the low end
+# of what's still compatible with the 55/60 cases. Re-verified against 20 confirmed real-PDF
+# cases spanning all three widths (Commercial/Technical proposal line items + TN sheet items
+# A-E) — MDW must stay in [9.15, 9.3] to satisfy all of them simultaneously; 9.2 sits
+# centered in that window. See TestSpWrapLinesRealPdfRegression in tests.py for the actual
+# cases — add to that set before ever moving this constant again, and re-run the full
+# regression suite, not just the one new failing text.
 #
-# Re-derived from a real Commercial proposal PDF (Cisco IE-9320 line items) confirmed
-# generated on *both* Mac and Windows showing the identical phantom-blank-line pattern —
-# a set of confirmed 1-line and genuinely-2-line descriptions bounded the correct avail_pt
-# to [349, 388]pt at col_width=55; 8.8 (avail=363.75pt) sits centered in that range with
-# margin both directions. Not platform-specific: the old MDW=8.0 was too narrow on both.
-#
-# This constant has swung back and forth before, including a platform split — worth
-# knowing why: 260b5da/b1658d9 found Windows needed a higher MDW (8.5, then 8.7) than
-# Mac's 8.0 to avoid phantom blank lines, attributed at the time to Windows rendering a
-# wider physical column for the same col_width. 9db7c4c then collapsed both platforms to
-# 8.0 while fixing a *different* bug (rows.autofit() clipping text because screen
-# rendering and PDF export use different renderers), discarding that tuning in the
-# process. The identical-on-both-platforms bug reported here shows the "Windows renders
-# wider" framing wasn't the real explanation — 8.0 was simply too narrow everywhere. If
-# clipping reappears, the fix is likely narrowing MDW slightly, not re-collapsing to 8.0.
-_SP_MDW_PX    = 8.8
+# This constant has swung back and forth many times before — worth knowing why: 260b5da/
+# b1658d9 found Windows needed a higher MDW (8.5, then 8.7) than Mac's 8.0, attributed at
+# the time to Windows rendering a wider physical column for the same col_width. 9db7c4c
+# collapsed both platforms to 8.0 while fixing a *different* bug (rows.autofit() clipping
+# text because screen rendering and PDF export use different renderers), discarding that
+# tuning. A later regression (this session) showed the "Windows renders wider" framing was
+# never the real explanation — the same phantom-line bug reproduced identically on Mac.
+# Root cause (confirmed via Microsoft/community sources): Windows PDF export in this app
+# goes through "Microsoft Print to PDF" (fixed 600 DPI, non-configurable), while autofit/
+# screen-based approaches are display-scaling-dependent and vary per machine — so a fixed
+# formula calibrated against real 600 DPI PDF output is inherently more reproducible than
+# matching autofit, but the formula is only as accurate as the col_width range it's been
+# checked against. If clipping reappears, narrow MDW slightly — but first add the new case
+# to the regression suite so the fix is provable, not another blind guess.
+_SP_MDW_PX    = 9.2
 
 
 def _format_iso_date(val):

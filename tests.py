@@ -614,6 +614,56 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
         for text in two_line:
             self.assertEqual(_sp_wrap_lines(text, 60), 2, f"expected 2 lines at col_width=60: {text!r}")
 
+    def test_confirmed_tn_sheet_items_at_wider_col_width(self):
+        # Same workbook, sheet TN ("Technical Notes and Clarifications" A-E),
+        # confirmed against the real generated Technical PDF at col_width=68.43
+        # (TN/T&C sheets use a wider column than the BOQ Description column).
+        # Item D specifically needed the low end of the MDW range still
+        # compatible with the col_width=55/60 cases above — this is what
+        # pinned MDW down to [9.15, 9.3] instead of a wider range.
+        cases = [
+            (
+                "Coating and painting as per manufacturers' standard unless "
+                "specifically mentioned in the proposal.",
+                2,
+            ),
+            (
+                "Inclusions:\n"
+                "- Central Rack including server, network equipment, internal "
+                "wiring, patch cables, and accessories\n"
+                "- CCTV Cameras each with Wall Mount Bracket and Junction Box\n"
+                "- CCTV Workstations\n"
+                "- CCTV VMS and Client Station Software",
+                6,
+            ),
+            (
+                "Exclusions (to be provided by client):\n"
+                "- External Field Cables\n"
+                "- Cable Supports\n"
+                "- Mounting Poles (if necessary)",
+                4,
+            ),
+            (
+                "All civil works such as running of cables, carpentry, "
+                "foundational works or any hot works, equipment installation "
+                "and field cable termination are to be provided by the Client.",
+                2,
+            ),
+            (
+                "Work permits required are to be provided by the Client. Work "
+                "Permit refers to the permit given to our engineer/technician "
+                "that allows him to do work on-site after completing the "
+                "required site safety training. This is different from the "
+                "work visa, which is already included in the Mob/Demob fee.",
+                4,
+            ),
+        ]
+        for text, expected in cases:
+            self.assertEqual(
+                _sp_wrap_lines(text, 68.43), expected,
+                f"expected {expected} lines at col_width=68.43: {text[:50]!r}",
+            )
+
 
 class TestNumberTitleLogic(unittest.TestCase):
     """Tests for the vectorized number_title logic."""
