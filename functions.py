@@ -3454,6 +3454,47 @@ def apply_remove_h_borders(sheet):
         sheet.range(f"A3:H{last_row - 2}").api.Borders(xlInsideHorizontal).LineStyle = xlNone
 
 
+def apply_ibd_grid_borders(sheet):
+    """
+    Draw the I:BD inside grid lines only (thin, theme3) — the subset of
+    apply_format_column_border() that shaded()'s VBA macro doesn't touch.
+
+    shaded() only sets the Interior fill on I:BD; Excel's default view gridlines
+    don't render through a cell fill, so a sheet shaded before ever going through
+    Fix Workbook (which calls apply_format_column_border) would otherwise show a
+    blank gray block with no grid at all.
+
+    Windows: Python/xlwings API.  Mac: VBA (appscript bridge doesn't expose Borders).
+    """
+    if sys.platform == "darwin":
+        sheet.activate()
+        run_macro("format_ibd_grid_border")
+        return
+    xlContinuous = 1
+    xlNone = -4142
+    xlThin = 2
+    xlDiagonalDown = 5
+    xlDiagonalUp = 6
+    xlEdgeRight = 10
+    xlInsideVertical = 11
+    xlInsideHorizontal = 12
+
+    cols_ibd = sheet.range("I:BD")
+    cols_ibd.api.Borders(xlDiagonalDown).LineStyle = xlNone
+    cols_ibd.api.Borders(xlDiagonalUp).LineStyle = xlNone
+    cols_ibd.api.Borders(xlEdgeRight).LineStyle = xlNone
+    border_v = cols_ibd.api.Borders(xlInsideVertical)
+    border_v.LineStyle = xlContinuous
+    border_v.ThemeColor = 3
+    border_v.TintAndShade = -0.249946592608417
+    border_v.Weight = xlThin
+    border_h = cols_ibd.api.Borders(xlInsideHorizontal)
+    border_h.LineStyle = xlContinuous
+    border_h.ThemeColor = 3
+    border_h.TintAndShade = -0.249946592608417
+    border_h.Weight = xlThin
+
+
 def apply_format_column_border(sheet):
     """
     Apply column border formatting to the sheet.
@@ -3527,19 +3568,7 @@ def apply_format_column_border(sheet):
     clear_border(col_h, xlInsideVertical)
 
     # Columns I:BD: inside borders with theme3
-    cols_ibd = sheet.range("I:BD")
-    clear_diagonals(cols_ibd)
-    clear_border(cols_ibd, xlEdgeRight)
-    border_v = cols_ibd.api.Borders(xlInsideVertical)
-    border_v.LineStyle = xlContinuous
-    border_v.ThemeColor = 3
-    border_v.TintAndShade = -0.249946592608417
-    border_v.Weight = xlThin
-    border_h = cols_ibd.api.Borders(xlInsideHorizontal)
-    border_h.LineStyle = xlContinuous
-    border_h.ThemeColor = 3
-    border_h.TintAndShade = -0.249946592608417
-    border_h.Weight = xlThin
+    apply_ibd_grid_borders(sheet)
 
     # Row 1: clear all borders
     row1 = sheet.range("1:1")
@@ -3791,9 +3820,14 @@ def shaded(wb, shaded=True):
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if not should_skip_sheet(sheet):
-            wb.sheets[sheet].activate()
+            ws = wb.sheets[sheet]
+            ws.activate()
             if shaded:
                 run_macro("shaded")
+                # shaded()'s Interior fill hides Excel's default view gridlines, so
+                # draw the real I:BD grid borders too — otherwise a sheet shaded
+                # before Fix Workbook ever ran shows a blank gray block.
+                apply_ibd_grid_borders(ws)
             else:
                 run_macro("unshaded")
     current_sheet.activate()

@@ -424,6 +424,34 @@ appTGGL bTGGL:=False
 appTGGL
 End Sub
 
+Sub format_ibd_grid_border()
+    ' I:BD inside grid lines only — the subset of format_column_border() that
+    ' shaded()/unshaded() need to redraw the grid without touching the A:H
+    ' column border colors. Needed because Excel's default view gridlines
+    ' don't render through the gray Interior fill shaded() applies.
+    Dim activeRange As Range
+    Set activeRange = Selection
+
+    Columns("I:BD").Select
+    Selection.Borders(xlDiagonalDown).LineStyle = xlNone
+    Selection.Borders(xlDiagonalUp).LineStyle = xlNone
+    Selection.Borders(xlEdgeRight).LineStyle = xlNone
+    With Selection.Borders(xlInsideVertical)
+        .LineStyle = xlContinuous
+        .ThemeColor = 3
+        .TintAndShade = -0.249946592608417
+        .Weight = xlThin
+    End With
+    With Selection.Borders(xlInsideHorizontal)
+        .LineStyle = xlContinuous
+        .ThemeColor = 3
+        .TintAndShade = -0.249946592608417
+        .Weight = xlThin
+    End With
+
+    activeRange.Select
+End Sub
+
 Sub format_col_a_left_border()
     ' Left teal border on column A from row 2 down — shared by technical and commercial proposals.
     With ActiveSheet.Range("A2:A1048576").Borders(xlEdgeLeft)
