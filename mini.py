@@ -114,6 +114,9 @@ def run_fix_workbook(filepath: str) -> bool:
         click.echo("Hiding columns...")
         functions.hide_columns_wb(wb)
 
+        click.echo("Applying shading...")
+        functions.shaded(wb)
+
         click.echo("Recalculating...")
         app.calculate()
 
