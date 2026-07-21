@@ -3788,7 +3788,7 @@ def indent_description(wb):
 
 def shaded(wb, shaded=True):
     """Added Shaded region"""
-    # current_sheet = wb.sheets.active
+    current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
         if not should_skip_sheet(sheet):
             wb.sheets[sheet].activate()
@@ -3796,8 +3796,7 @@ def shaded(wb, shaded=True):
                 run_macro("shaded")
             else:
                 run_macro("unshaded")
-                # pass
-    # wb.sheets[current_sheet].activate()
+    current_sheet.activate()
 
 
 def internal_costing(wb):
