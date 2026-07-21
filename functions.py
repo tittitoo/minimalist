@@ -2668,27 +2668,26 @@ _SP_ROW_H       = 18.0  # single-line row height for Arial 12pt; 18pt clears des
 _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between content groups
                              # (Mac top-padding ≥ 2.5pt; 15.75 and 16.5 both still clip)
 # Excel col_width → available text width (pt): avail = (col_width × _SP_MDW_PX + 1) × 0.75
-# _SP_MDW_PX calibrated empirically per platform against known single/multi-line boundary cases
-# at col_width=55.  Widths are measured on stripped text (leading spaces removed); the 3-space
+# _SP_MDW_PX calibrated empirically against known single/multi-line boundary cases at
+# col_width=55.  Widths are measured on stripped text (leading spaces removed); the 3-space
 # indent added by format_text is ~10pt and is implicitly absorbed into the MDW calibration.
 #
-# Platform-specific: Windows Excel renders a wider physical column than Mac for the same
-# col_width=55, so the same borderline text that genuinely wraps to 2 lines on Mac fits on
-# 1 line on Windows. A single shared MDW can't satisfy both — Mac=8.0 vs Windows=8.8 were
-# re-derived by comparing confirmed 1-line vs genuinely-2-line descriptions from real
-# Windows PDF output (Commercial proposal line items + Technical Notes), bounding the
-# correct avail_pt to [349, 388]pt at col_width=55; 8.8 (avail=363.75pt) sits centered
-# in that range with margin both directions.
+# Re-derived from a real Commercial proposal PDF (Cisco IE-9320 line items) confirmed
+# generated on *both* Mac and Windows showing the identical phantom-blank-line pattern —
+# a set of confirmed 1-line and genuinely-2-line descriptions bounded the correct avail_pt
+# to [349, 388]pt at col_width=55; 8.8 (avail=363.75pt) sits centered in that range with
+# margin both directions. Not platform-specific: the old MDW=8.0 was too narrow on both.
 #
-# This constant has swung back and forth before — worth knowing why: 260b5da/b1658d9
-# originally found Windows needed a higher MDW (8.5, then 8.7) than Mac's 8.0 to avoid
-# phantom blank lines from the same wider-column effect. 9db7c4c then collapsed both
-# platforms to 8.0 while fixing a *different* bug (rows.autofit() clipping text because
-# screen rendering and PDF export use different renderers) — but in switching Windows
-# from autofit to this ReportLab calculation, it also discarded Windows' own MDW tuning,
-# reintroducing the phantom-line problem this constant now fixes again. If clipping
-# reappears on Windows, the fix is likely narrowing MDW slightly, not re-collapsing to 8.0.
-_SP_MDW_PX    = 8.8 if sys.platform == "win32" else 8.0
+# This constant has swung back and forth before, including a platform split — worth
+# knowing why: 260b5da/b1658d9 found Windows needed a higher MDW (8.5, then 8.7) than
+# Mac's 8.0 to avoid phantom blank lines, attributed at the time to Windows rendering a
+# wider physical column for the same col_width. 9db7c4c then collapsed both platforms to
+# 8.0 while fixing a *different* bug (rows.autofit() clipping text because screen
+# rendering and PDF export use different renderers), discarding that tuning in the
+# process. The identical-on-both-platforms bug reported here shows the "Windows renders
+# wider" framing wasn't the real explanation — 8.0 was simply too narrow everywhere. If
+# clipping reappears, the fix is likely narrowing MDW slightly, not re-collapsing to 8.0.
+_SP_MDW_PX    = 8.8
 
 
 def _format_iso_date(val):
