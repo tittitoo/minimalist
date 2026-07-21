@@ -1599,6 +1599,16 @@ def set_row_heights_wb(wb):
                 sheet.activate()
                 last_row = sheet.range("C1500").end("up").row
                 if last_row >= 2:
+                    # Only column C is meant to wrap (matches every other explicit
+                    # wrap_text assignment in this codebase — everywhere else sets
+                    # it False, nothing sets it True outside C). Some templates
+                    # carry wrap_text=True on other columns (A/B/D-H) as inherited
+                    # cell formatting, which autofit measures too — a price column
+                    # with wrap_text on and a narrow column width can inflate the
+                    # whole row's height even though C's own content is fine.
+                    sheet.range("A:B").wrap_text = False
+                    sheet.range("C:C").wrap_text = True
+                    sheet.range("D:BD").wrap_text = False
                     sheet.range(f"2:{last_row}").rows.autofit()
     finally:
         app.screen_updating = original_screen_updating
