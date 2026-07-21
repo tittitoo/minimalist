@@ -1568,9 +1568,26 @@ def hide_columns_wb(wb):
 
 
 def set_row_heights_wb(wb):
-    for sheet in wb.sheets:
-        if not should_skip_sheet(sheet.name):
-            sheet.range(f"2:{sheet.range('C1500').end('up').row}").rows.autofit()
+    """
+    Autofit row heights for every data sheet.
+
+    rows.autofit() measures against the actual rendered layout, so it needs
+    screen updating on to compute correct heights — called from fill_formula_wb,
+    which runs under @disable_screen_updating for the whole operation, autofit
+    would otherwise size rows against a stale/un-rendered layout and produce
+    wildly oversized rows on Windows. Restore the caller's setting afterward
+    rather than leaving it on, in case more @disable_screen_updating-wrapped
+    work follows in the same call.
+    """
+    app = wb.app
+    original_screen_updating = app.screen_updating
+    app.screen_updating = True
+    try:
+        for sheet in wb.sheets:
+            if not should_skip_sheet(sheet.name):
+                sheet.range(f"2:{sheet.range('C1500').end('up').row}").rows.autofit()
+    finally:
+        app.screen_updating = original_screen_updating
 
 
 def summary(wb, discount=False, detail=False, simulation=True, discount_level=15):
