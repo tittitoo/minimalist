@@ -282,6 +282,11 @@ def fill_formula_wb():
     functions.fill_lastrow(wb)
     update_status(app, "Hiding columns...")
     functions.hide_columns_wb(wb)
+    update_status(app, "Applying shading...")
+    functions.shaded(wb)
+    # set_row_heights_wb (rows.autofit()) must stay last: Excel recalculates row
+    # heights whenever a VBA macro subsequently touches the sheet (shaded() runs
+    # one), overriding autofit's result if it ran first. See faf1d5b.
     update_status(app, "Setting row heights...")
     functions.set_row_heights_wb(wb)
     original_sheet.activate()
