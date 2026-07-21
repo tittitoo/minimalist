@@ -27,6 +27,7 @@ from functions import (
     normalize_standard_tokens,
     set_dimension_unit_chain,
     format_description_text,
+    _sp_wrap_lines,
     SKIP_SHEETS,
     SHEET_ALIASES,
     resolve_sheet_name,
@@ -549,6 +550,69 @@ class TestFormatDescriptionText(unittest.TestCase):
     def test_returns_empty_string_for_falsy_input(self):
         self.assertEqual(format_description_text(None, title_case=True), "")
         self.assertEqual(format_description_text("", title_case=True), "")
+
+
+class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
+    """Regression cases for _sp_wrap_lines pinned against real generated PDFs.
+
+    _SP_MDW_PX predicts how many lines Excel's actual print/export renderer
+    (Windows: "Microsoft Print to PDF", fixed at 600 DPI) will wrap a
+    Description cell to — it does NOT predict on-screen/autofit wrapping,
+    which is display-scaling-dependent and varies per machine. Every case
+    here was confirmed against an actual generated Commercial/Technical PDF
+    (col_width=55/60, Arial 12pt), not just eyeballed in Excel. When a real
+    PDF shows a new phantom-blank-line or clipped-text case, add it here
+    with the source file/row noted, so recalibrating _SP_MDW_PX later can't
+    silently regress a case already fixed.
+    """
+
+    def test_confirmed_single_line_cases_do_not_get_a_phantom_second_line(self):
+        # Commercial J12815 GEV CCTV R2, sheet CCTV, "Cisco IE-9320-24P4X-E"
+        # line items — confirmed single-line in the real Windows Commercial PDF
+        # (col_width=55), but mispredicted as 2 lines (phantom blank line)
+        # under the old MDW=8.0.
+        cases = [
+            "Cisco DNA Essentials License for IE9300 Series · IE9300-DNA-E",
+            "IE 9300 DNA Essentials, 3 yr Term License · IE9300-DNA-E-3Y",
+            "Digital Download Code for Software License · DIGITAL-DL-CODE",
+            "Not Related to an IoT Solution; for Tracking Only. · IOT-OTHER",
+            "Software for Catalyst IE9300 Rugged Series · IE9300_sw",
+        ]
+        for text in cases:
+            self.assertEqual(_sp_wrap_lines(text, 55), 1, f"expected 1 line: {text!r}")
+
+    def test_confirmed_two_line_cases_still_wrap(self):
+        # Same source/sheet — confirmed genuinely 2 lines in the real Commercial
+        # PDF (col_width=55), must not be pushed down to 1 line when
+        # _SP_MDW_PX is raised to fix the phantom-line cases above.
+        cases = [
+            "24 Port PoE+ Downlinks With 4x10G Uplinks (720 W) · IE-9320-24P4X-E",
+            "SNTC-8X5XNBD 24 Port PoE+ Downlinks With 4x10G Uplink, 36 mth · CON-SNT-IE932PXE",
+            "Higher PoE, 400 W PSU for IE9300, 100-240 VAC/100-250 VDC · PWR-RGD-AC-DC-400",
+            "Cisco CAB-STK-0.5 m 50 cm Stacking Cable for Catalyst IE9300 · CAB-STK-0.5 m",
+            "Network Plug-n-Play Connect for Zero-touch Device Deployment · NETWORK-PNP-LIC",
+        ]
+        for text in cases:
+            self.assertEqual(_sp_wrap_lines(text, 55), 2, f"expected 2 lines: {text!r}")
+
+    def test_confirmed_at_technical_col_width_too(self):
+        # Same workbook/rows, re-verified live at col_width=60 (the Technical
+        # proposal width — wider than Commercial's 55, so a case that's 2
+        # lines at 55 can legitimately become 1 line at 60; only re-assert
+        # the subset actually re-checked at this width, not all 10 cases).
+        one_line = [
+            "Cisco DNA Essentials License for IE9300 Series · IE9300-DNA-E",
+            "IE 9300 DNA Essentials, 3 yr Term License · IE9300-DNA-E-3Y",
+            "Digital Download Code for Software License · DIGITAL-DL-CODE",
+        ]
+        two_line = [
+            "SNTC-8X5XNBD 24 Port PoE+ Downlinks With 4x10G Uplink, 36 mth · CON-SNT-IE932PXE",
+            "Network Plug-n-Play Connect for Zero-touch Device Deployment · NETWORK-PNP-LIC",
+        ]
+        for text in one_line:
+            self.assertEqual(_sp_wrap_lines(text, 60), 1, f"expected 1 line at col_width=60: {text!r}")
+        for text in two_line:
+            self.assertEqual(_sp_wrap_lines(text, 60), 2, f"expected 2 lines at col_width=60: {text!r}")
 
 
 class TestNumberTitleLogic(unittest.TestCase):
