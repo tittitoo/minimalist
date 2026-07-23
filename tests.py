@@ -395,6 +395,68 @@ class TestFormatDescriptionText(unittest.TestCase):
             "1080p and 4K × 2K at 60 Hz",
         )
 
+    def test_does_not_misread_qty_unit_bullet_separator_as_leading_multiplier(self):
+        # Regression: the leading-multiplier pattern (for "x 2 items" -> "2 × Items")
+        # used to fire on "lot x 6-Way ..." too, reading the "6" as the multiplier
+        # count and reordering into "1 lot 6 ×-Way Universal PDU" — corrupting a real
+        # catalog bullet.
+        self.assertEqual(
+            format_description_text("1 lot x 6-Way Universal PDU", title_case=True),
+            "1 lot x 6-Way Universal PDU",
+        )
+        self.assertEqual(
+            format_description_text("x 2 items", title_case=True), "2 × Items"
+        )
+
+    def test_normalizes_qty_unit_codes_glued_to_a_number(self):
+        # ea/set/lot/trp/md are the app's established qty-unit codes (see the UNITS
+        # constants in the `hote` web app) — glued to a number the same spacing rule
+        # applies as any other unit of measure.
+        self.assertEqual(
+            format_description_text("1lot x Cable Management Unit", title_case=True),
+            "1 lot x Cable Management Unit",
+        )
+        self.assertEqual(
+            format_description_text("1lot x 6-Way Universal PDU", title_case=True),
+            "1 lot x 6-Way Universal PDU",
+        )
+        self.assertEqual(
+            format_description_text("2ea spare fuses", title_case=True),
+            "2 ea Spare Fuses",
+        )
+        self.assertEqual(
+            format_description_text("3sets of connectors", title_case=True),
+            "3 set of Connectors",
+        )
+        self.assertEqual(
+            format_description_text("5md assembly", title_case=True), "5 md Assembly"
+        )
+        self.assertEqual(
+            format_description_text("1trp site survey", title_case=True),
+            "1 trp Site Survey",
+        )
+
+    def test_keeps_qty_unit_codes_lowercase_mid_string_even_when_already_spaced(self):
+        # Regression: title-casing ran before normalize_standard_tokens, so an
+        # already-spaced unit word like "1 lot x ..." briefly became "1 Lot x ..." —
+        # usually corrected back by normalize_standard_tokens' case-insensitive pass,
+        # but now held lowercase directly by the title-casing step itself as a stated
+        # exception, same as "a/of/to/...".
+        self.assertEqual(
+            format_description_text("1 lot x 6-Way Universal PDU", title_case=True),
+            "1 lot x 6-Way Universal PDU",
+        )
+        self.assertEqual(
+            format_description_text("2 ea spare fuses", title_case=True),
+            "2 ea Spare Fuses",
+        )
+        self.assertEqual(
+            format_description_text(
+                "5 md assembly of connectors", title_case=True
+            ),
+            "5 md Assembly of Connectors",
+        )
+
     def test_normalizes_asterisk_multiplier_without_corrupting_markdown_italics(self):
         # A bare "*" is a CommonMark emphasis delimiter — left untouched, a second
         # "*" later in the same string (e.g. a repeated multiplier) would italicize

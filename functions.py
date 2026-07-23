@@ -804,6 +804,15 @@ _TITLE_CASE_LOWER = frozenset({
     "at", "by", "in", "of", "on", "to", "up", "as",
 })
 
+# Established qty-unit codes (see the UNITS constants in ProductPane.vue /
+# SupplierQuotePane.vue / EngineeredServicePane.vue in the `hote` web app) — kept
+# lowercase mid-string the same way grammar words above are, rather than relying
+# solely on normalize_standard_tokens to re-lowercase them afterwards. That pass only
+# fires when the unit is within one space of a preceding digit; this exception makes
+# the lowercase rule hold unconditionally at the title-casing step itself, e.g.
+# "1 lot x ..." never becomes "1 Lot x ..." even briefly.
+_UNIT_CODE_LOWER = frozenset({"ea", "set", "lot", "trp", "md", "mth", "hr", "yr"})
+
 
 def _ascii_lower(text):
     """str.lower() but only folds ASCII letters.
@@ -848,9 +857,9 @@ def title_case_ignore_double_char(text):
     titled_words = []
     for i, word in enumerate(words):
         core = word.strip(string.punctuation).lower()
-        if i != 0 and i != last_idx and core in _TITLE_CASE_LOWER:
-            # Articles, conjunctions, short prepositions stay lowercase
-            # regardless of how the user typed them, unless first or last word
+        if i != 0 and i != last_idx and (core in _TITLE_CASE_LOWER or core in _UNIT_CODE_LOWER):
+            # Articles, conjunctions, short prepositions, and qty-unit codes stay
+            # lowercase regardless of how the user typed them, unless first or last word
             titled_words.append(_ascii_lower(word))
         elif len(word.strip(string.punctuation)) > 2:
             # To prevent cases like 'mm)' from becoming 'Mm)'
@@ -965,8 +974,15 @@ def set_x(text):
     text = re.sub(r"(?<![A-Za-z0-9-])[xX](\d+)(?![A-Za-z0-9-])", r"\1 ×", text)
     # Number-first with space: 20 x, 20 X (same digit-exclusion reasoning as above)
     text = re.sub(r"(?<![A-Za-z0-9])(\d+) [xX](?!\S)", r"\1 ×", text)
-    # Symbol-first with space: x 20, X 20 — flip to number-first
-    text = re.sub(r"(?<![A-Za-z])[xX] (\d+)", r"\1 ×", text)
+    # Symbol-first with space: x 20, X 20 — flip to number-first. Trailing guard
+    # mirrors the two glued-digit patterns above (?![A-Za-z0-9-]) — without it, this
+    # "leading multiplier" pattern also fires on the "{qty} {unit} x {description}"
+    # bullet convention whenever the description happens to start with a digit (e.g.
+    # "1 lot x 6-Way Universal PDU"), reading the "6" as the multiplier count and
+    # reordering into "1 lot 6 ×-Way Universal PDU". A real leading count is always a
+    # bare number (nothing glued directly after it, e.g. "x 2 items"), never followed
+    # by a hyphen/letter/digit continuation of the same token.
+    text = re.sub(r"(?<![A-Za-z])[xX] (\d+)(?![A-Za-z0-9-])", r"\1 ×", text)
     # A "×" (the actual multiplication sign, not x/X) glued to a digit on one side
     # only — e.g. "4× 256 GB" pasted from a supplier spec — is left untouched by every
     # pattern above, since those all key off literal x/X. Pad it the same way.
@@ -1016,6 +1032,15 @@ _UOM_CANONICAL = {
     "mth": "mth", "mths": "mth", "month": "mth", "months": "mth",
     "hr": "hr", "hrs": "hr", "hour": "hr", "hours": "hr",
     "yr": "yr", "yrs": "yr", "year": "yr", "years": "yr",
+    # Remaining qty-unit codes from the same UNITS constants (ea/set/lot/trp/md) —
+    # added after a real catalog bug surfaced a glued "1lot x Cable Management Unit"
+    # bullet (should read "1 lot x ..."). These are counting units, not SI, but the
+    # same number-glued-to-unit spacing rule applies.
+    "ea": "ea",
+    "set": "set", "sets": "set",
+    "lot": "lot", "lots": "lot",
+    "trp": "trp",
+    "md": "md",
 }
 
 # Length-type units that can carry an area (²) or volume (³) exponent suffix directly
