@@ -780,6 +780,24 @@ def expand_with_shorthand(text):
     return text
 
 
+_SPACED_CAT_STANDARD_RE = re.compile(r"\bcat\.?\s*(5\s?e|6\s?a|6\s?e|5|6|7|8)\b", re.IGNORECASE)
+
+
+def collapse_spaced_cat_standard(text):
+    """Collapse spaced Cat standard mentions like "Cat. 6 A", "Cat 6A", "cat 6 a" — all
+    are the Cat6A cabling standard, typed
+    with stray punctuation/spacing between the "Cat" prefix, the category number, and
+    the A/E suffix letter. _STANDARD_DESIGNATORS only matches an already-compact whole
+    word ("cat6a"), so this collapses the spaced-out variants into that compact form
+    first. Must run before title-casing: title-casing treats a standalone "A" as the
+    English article "a" (it's in _TITLE_CASE_LOWER) and would lowercase it away before
+    it ever reaches the token it's actually a suffix of. The 2-char suffixes (5e/6a/6e)
+    are tried before their bare-digit prefix (5/6) so e.g. "Cat 6 A" doesn't get grabbed
+    by the "6" alternative first, leaving a dangling "a" behind.
+    """
+    return _SPACED_CAT_STANDARD_RE.sub(lambda m: f"cat{re.sub(r'\s', '', m.group(1))}", text)
+
+
 _TITLE_CASE_LOWER = frozenset({
     "a", "an", "the",
     "and", "but", "or", "nor", "for", "yet", "so",
@@ -935,14 +953,25 @@ def set_x(text):
     text = re.sub(
         r"(\d+[A-Za-z]+)\s?[xX]\s?(\d+[A-Za-z]*)(?![A-Za-z0-9-])", r"\1 × \2", text
     )
-    # Number-first: 20x, 30X (not glued to a letter/digit/- on either side)
-    text = re.sub(r"(?<![A-Za-z])(\d+)[xX](?![A-Za-z0-9-])", r"\1 ×", text)
+    # Number-first: 20x, 30X. The lookbehind excludes a preceding DIGIT as well as a
+    # letter — not just the letter itself — because \d+ is variable-length and
+    # backtracks: with only a letter excluded, "LTD002X" (letter-glued digits ending in
+    # X, no hyphen after) slipped through by having the regex start its match one digit
+    # late (at the "0" in "002", itself preceded by another digit, not a letter),
+    # corrupting a real part number into "LTD002 ×". Requiring the character before the
+    # WHOLE digit run to be non-alphanumeric closes that backtracking gap.
+    text = re.sub(r"(?<![A-Za-z0-9])(\d+)[xX](?![A-Za-z0-9-])", r"\1 ×", text)
     # Symbol-first: x20, X30 — flip to number-first
     text = re.sub(r"(?<![A-Za-z0-9-])[xX](\d+)(?![A-Za-z0-9-])", r"\1 ×", text)
-    # Number-first with space: 20 x, 20 X
-    text = re.sub(r"(?<![A-Za-z])(\d+) [xX](?!\S)", r"\1 ×", text)
+    # Number-first with space: 20 x, 20 X (same digit-exclusion reasoning as above)
+    text = re.sub(r"(?<![A-Za-z0-9])(\d+) [xX](?!\S)", r"\1 ×", text)
     # Symbol-first with space: x 20, X 20 — flip to number-first
     text = re.sub(r"(?<![A-Za-z])[xX] (\d+)", r"\1 ×", text)
+    # A "×" (the actual multiplication sign, not x/X) glued to a digit on one side
+    # only — e.g. "4× 256 GB" pasted from a supplier spec — is left untouched by every
+    # pattern above, since those all key off literal x/X. Pad it the same way.
+    text = re.sub(r"(\d)×", r"\1 ×", text)
+    text = re.sub(r"×(\d)", r"× \1", text)
     return text
 
 
@@ -1012,7 +1041,7 @@ _UOM_NO_SPACE = {"u": "U"}
 # Compound word+digit(+letter) standard designators where the number is *inside* the
 # token (Cat6a, IP65), not preceded by an external number — matched as whole words.
 _STANDARD_DESIGNATORS = {
-    "cat5": "Cat5", "cat5e": "Cat5e", "cat6": "Cat6", "cat6a": "Cat6a",
+    "cat5": "Cat5", "cat5e": "Cat5e", "cat6": "Cat6", "cat6a": "Cat6A",
     "cat6e": "Cat6e", "cat7": "Cat7", "cat8": "Cat8",
     "ip20": "IP20", "ip22": "IP22", "ip31": "IP31", "ip40": "IP40", "ip44": "IP44",
     "ip54": "IP54", "ip65": "IP65", "ipx6": "IPX6", "ip66": "IP66", "ip67": "IP67",
@@ -1233,6 +1262,7 @@ def format_description_text(text, title_case=False):
     text = set_double_single_quote_inches(text)
     text = strip_optional_plural_paren(text)
     text = expand_with_shorthand(text)
+    text = collapse_spaced_cat_standard(text)
 
     # Length check for the title-case gate uses the text before dimension chains are
     # shrunk down to their placeholder tokens (which would otherwise make borderline-

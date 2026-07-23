@@ -27,6 +27,7 @@ from functions import (
     normalize_standard_tokens,
     set_dimension_unit_chain,
     format_description_text,
+    collapse_spaced_cat_standard,
     _sp_wrap_lines,
     SKIP_SHEETS,
     SHEET_ALIASES,
@@ -136,6 +137,19 @@ class TestSetX(unittest.TestCase):
 
     def test_preserves_cisco_part_number_letter_x_digit_letter(self):
         self.assertEqual(set_x("N9K-X9736C-EX"), "N9K-X9736C-EX")
+
+    def test_preserves_part_number_ending_in_digits_plus_x(self):
+        # Regression: the number-first regex only checked the single character
+        # immediately before the digit run, so backtracking let it start matching
+        # mid-token (the digit before "02X" is itself a digit, not a letter, so the
+        # old lookbehind passed) — corrupting "LTD002X" into "LTD002 ×".
+        self.assertEqual(set_x("LTD002X"), "LTD002X")
+
+    def test_pads_already_present_multiplication_sign_glued_to_digit(self):
+        # A "×" pasted from a supplier spec, glued to a digit on one side only,
+        # is left untouched by every x/X-keyed pattern above — padded separately.
+        self.assertEqual(set_x("4× 256"), "4 × 256")
+        self.assertEqual(set_x("2×1.2"), "2 × 1.2")
 
 
 class TestSetCasePreserveAcronym(unittest.TestCase):
@@ -258,8 +272,21 @@ class TestNormalizeStandardTokens(unittest.TestCase):
         self.assertEqual(normalize_standard_tokens("5m3 tank"), "5 m³ tank")
 
     def test_normalizes_cat_family_standards(self):
-        self.assertEqual(normalize_standard_tokens("cat6a patch cord"), "Cat6a patch cord")
-        self.assertEqual(normalize_standard_tokens("CAT6A patch cord"), "Cat6a patch cord")
+        self.assertEqual(normalize_standard_tokens("cat6a patch cord"), "Cat6A patch cord")
+        self.assertEqual(normalize_standard_tokens("CAT6A patch cord"), "Cat6A patch cord")
+
+    def test_collapses_spaced_cat_standard(self):
+        # collapse_spaced_cat_standard only removes the internal spacing/punctuation —
+        # it preserves whatever casing the input had, since normalize_standard_tokens
+        # (which consumes its output) matches case-insensitively.
+        self.assertEqual(collapse_spaced_cat_standard("Cat. 6 A patch cord"), "cat6A patch cord")
+        self.assertEqual(collapse_spaced_cat_standard("Cat 6A patch cord"), "cat6A patch cord")
+        self.assertEqual(collapse_spaced_cat_standard("cat. 5 e cable"), "cat5e cable")
+        self.assertEqual(collapse_spaced_cat_standard("Cat 6 keystone"), "cat6 keystone")
+
+    def test_format_description_text_normalizes_spaced_cat_standard(self):
+        self.assertEqual(format_description_text("Cat. 6 A patch cord"), "Cat6A patch cord")
+        self.assertEqual(format_description_text("Cat 6 A patch cord"), "Cat6A patch cord")
 
     def test_normalizes_ip_ratings(self):
         self.assertEqual(normalize_standard_tokens("ip65 rated"), "IP65 rated")
