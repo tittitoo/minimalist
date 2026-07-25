@@ -1590,7 +1590,10 @@ def _set_wrap_row_heights(sheet, col_width=55):
         text = str(val).strip() if val else ""
         if not text:
             continue
-        lines = _sp_wrap_lines(text, col_width)
+        # "*** ..." rows are italic clarification comments (rendered in wider Arial
+        # Italic); they need the italic-aware wrap count or their last line clips.
+        italic = text.startswith("***")
+        lines = _sp_wrap_lines(text, col_width, italic=italic)
         row_num = i + 2
         sheet.range(f"{row_num}:{row_num}").row_height = _SP_ROW_H * lines
 
@@ -2760,6 +2763,36 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 # to the regression suite so the fix is provable, not another blind guess.
 _SP_MDW_PX    = 9.2
 
+# Italic comment rows (the "*** ..." clarification notes) wrap to MORE lines in the real
+# PDF than _sp_wrap_lines predicts, so the row — sized for the smaller count — clips its
+# last line.  Two mechanisms cause this, both absent from the non-italic Helvetica metric
+# the wrapper uses:
+#   1. Excel renders these rows in Arial *Italic*, whose glyph advances are slightly wider
+#      than regular Arial.  (ReportLab's Helvetica-Oblique is metrically IDENTICAL to
+#      Helvetica, so simply "measuring with the oblique font" changes nothing — an
+#      empirical inflation factor is the only lever.)
+#   2. The real renderer occasionally breaks a hyphenated word ("Ka-band" -> "Ka-"/"band")
+#      that the whitespace-only wrapper keeps whole.  A blanket inflation happens to
+#      account for the observed hyphen-break rows too, and — crucially — hyphen-breaking is
+#      NOT added to _sp_wrap_lines globally, because that would also break the many
+#      non-italic BOQ part numbers (WS-C2960X-24TS-L, · IE9300-DNA-E) that legitimately
+#      predict 1 line today.
+# Applied ONLY to italic comment rows (avail_pt divided by this factor there); regular rows
+# are untouched (factor 1.0), so the whole existing _SP_MDW_PX calibration is preserved.
+#
+# Calibrated against BOTH real Windows PDFs in this session (Commercial and Technical,
+# "Microsoft Print to PDF" 600 DPI), cross-checking all 62 matchable "*** ..." comment rows
+# via `pdftotext -layout` true line counts.  Predictions use the NOMINAL col_width the code
+# passes (55 commercial / 60 technical), same convention as the _SP_MDW_PX cases:
+#   - 6 confirmed clips are all fixed at factor >= 1.017
+#   - the first phantom-blank-line (over-inflation) appears at factor 1.043
+#   => valid window [1.017, 1.043); 1.030 sits centered, ~0.013 margin either side, and
+#      reproduces the true line count for all 62 rows exactly.
+# Same discipline as _SP_MDW_PX: see TestSpWrapLinesItalicRegression in tests.py for the
+# pinned real cases — add to that set (with the source PDF/row) before ever moving this,
+# and re-run the full regression suite rather than eyeballing a single new failure.
+_SP_ITALIC_INFLATE = 1.030
+
 
 def _format_iso_date(val):
     """Return val as YYYY-MM-DD string if it is a date/datetime; else return as-is."""
@@ -2808,7 +2841,7 @@ _JASON_BLUE = (0, 91, 191)     # #005BBF — Jason Blue
 _COMMENT_GREY = (127, 127, 127)  # mid-grey for comment rows
 
 
-def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT):
+def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT, italic=False):
     """Return the number of word-wrapped lines *text* occupies in an Excel column.
 
     Matches Excel's WrapText word-break behaviour using ReportLab font metrics.
@@ -2817,9 +2850,15 @@ def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT):
     Helvetica is metrically equivalent to Arial; change *font* and *pt* to match
     whatever font is actually written to the sheet.  *col_width* is the Excel
     column_width value (same units as Range.column_width).
+
+    *italic* narrows the available width by _SP_ITALIC_INFLATE, so italic comment
+    rows (rendered in wider Arial Italic) predict the higher line count the real PDF
+    actually wraps them to — see _SP_ITALIC_INFLATE for the calibration.
     """
     from reportlab.pdfbase.pdfmetrics import stringWidth as _sw
     avail_pt = (col_width * _SP_MDW_PX + 1) * 0.75
+    if italic:
+        avail_pt /= _SP_ITALIC_INFLATE
     text = str(text).strip()
     if not text:
         return 1
@@ -3449,7 +3488,8 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 _desc = _brow[2] if _brow and len(_brow) > 2 else None
                 if _desc is None:
                     continue
-                _lines = _sp_wrap_lines(_desc, _c_w)
+                _italic = str(_desc).strip().startswith("***")
+                _lines = _sp_wrap_lines(_desc, _c_w, italic=_italic)
                 if _lines > 1:
                     ps.range(f"{data_start + _ri}:{data_start + _ri}").row_height = _SP_ROW_H * _lines
 

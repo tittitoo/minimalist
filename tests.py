@@ -754,6 +754,83 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
             )
 
 
+class TestSpWrapLinesItalicRegression(unittest.TestCase):
+    """Regression cases for italic-comment wrapping, pinned against real PDFs.
+
+    "*** ..." clarification comments render in Arial Italic, which wraps to more
+    lines than the non-italic Helvetica metric predicts — so the row, sized for the
+    smaller count, clips its last line.  _sp_wrap_lines(..., italic=True) applies
+    _SP_ITALIC_INFLATE to correct this.  Every case here was confirmed against the
+    actual generated Windows PDF (via `pdftotext -layout`) for
+    "J12824 EKIUM - VENUS FPSO - NAVCOM B1" — Commercial (col_width=55) and Technical
+    (col_width=60).  Across all 62 matchable comment rows the italic prediction matched
+    the true PDF line count exactly; these are the boundary cases that pin the factor.
+    """
+
+    def test_confirmed_clip_cases_need_the_extra_italic_line(self):
+        # (text, col_width, non_italic_pred, true_italic_lines). Each clipped in the
+        # real PDF because the non-italic prediction was one line short.
+        cases = [
+            # Technical VSAT r211 — the "Satellite phone" note (screenshot)
+            ("*** Satellite phone is not in the specification. Therefore, propose as an option.", 60, 1, 2),
+            # Technical Berthing Aids r49
+            ("*** Two (2) Powerbankc can keep a CAT MAX System Running for 45 hours.", 60, 1, 2),
+            # Technical VSAT r44 — real PDF also hyphen-breaks "Ka-band"; inflation covers it
+            ("*** The specification does not mention any BUC requirement. Therefore, only "
+             "C-band BUC is included in the offer. The other two Ku-band and Ka-band will "
+             "add only dummy BUC. Please advise the require band BUC and its power.", 60, 3, 4),
+            # Commercial RADAR r52 — the "X-Band" note (screenshot)
+            ("*** Current Assumption is X-band Antenna and the Processor Unit distance is "
+             "within 50mtr. Client to advise if more than 50mtr is required.", 55, 2, 3),
+            # Commercial ES r23
+            ("*** Commissioning man-days quantity is an estimate based on past experience. "
+             "Extra man-days are billable at the man-day rates indicated.", 55, 2, 3),
+        ]
+        for text, cw, non_italic, true_italic in cases:
+            self.assertEqual(
+                _sp_wrap_lines(text, cw), non_italic,
+                f"non-italic baseline changed: {text[:40]!r}",
+            )
+            self.assertEqual(
+                _sp_wrap_lines(text, cw, italic=True), true_italic,
+                f"expected {true_italic} italic lines at col={cw}: {text[:40]!r}",
+            )
+
+    def test_stable_italic_cases_are_not_over_inflated(self):
+        # Genuinely-fitting italic comments that must NOT gain a phantom blank line
+        # when the inflation factor is applied (true count == non-italic count here).
+        cases = [
+            # Technical VSAT r95 — nearest to the phantom edge (flips only at factor 1.043)
+            ("*** FO cores are not specify in the Block Diagram. Assume that each FO cable "
+             "has 24 cores. Please advise the FO cable information.", 60, 2),
+            # Technical RADAR r47 — the S-band twin of the clipped X-band note; fits at 2
+            ("*** Current Assumption is S-band Radar Antenna and the Processor Unit distance "
+             "is within 50mtr. Client to advise if more than 50mtr is required.", 60, 2),
+            # Commercial VSAT r129
+            ("*** DWDM equipment and all other subsea communication connection methods are "
+             "not included in JEN's scope of supply and shall be provided by others.", 55, 3),
+        ]
+        for text, cw, expected in cases:
+            self.assertEqual(
+                _sp_wrap_lines(text, cw, italic=True), expected,
+                f"italic over-inflated to a phantom line at col={cw}: {text[:40]!r}",
+            )
+
+    def test_italic_factor_never_reduces_line_count(self):
+        # Italic can only ever ADD lines vs the non-italic prediction, never remove.
+        for text in [
+            "*** Short note",
+            "*** A longer clarification comment that wraps across two full lines in the column",
+            "*** Current Assumption is X-band Antenna and the Processor Unit distance is "
+            "within 50mtr. Client to advise if more than 50mtr is required.",
+        ]:
+            for cw in (55, 60, 68.43):
+                self.assertGreaterEqual(
+                    _sp_wrap_lines(text, cw, italic=True),
+                    _sp_wrap_lines(text, cw),
+                )
+
+
 class TestNumberTitleLogic(unittest.TestCase):
     """Tests for the vectorized number_title logic."""
 
