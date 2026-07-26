@@ -629,6 +629,104 @@ class TestFormatDescriptionText(unittest.TestCase):
             "500 GB Storage Over an 8 Gb/s Link",
         )
 
+    def test_normalizes_flashes_per_minute_unit(self):
+        self.assertEqual(
+            format_description_text("120FPM xenon beacon", title_case=True),
+            "120 fpm Xenon Beacon",
+        )
+        self.assertEqual(
+            format_description_text("60fpm xenon beacon", title_case=True),
+            "60 fpm Xenon Beacon",
+        )
+
+    def test_inserts_space_in_glued_ex_protection_type_markings(self):
+        cases = [
+            ("Exd IIC T6 enclosure", "Ex d IIC T6 Enclosure"),
+            ("Exde IIC T4 junction box", "Ex de IIC T4 Junction Box"),
+            ("Exeb IIC T6 terminal box", "Ex eb IIC T6 Terminal Box"),
+            ("Exdb IIC Gb rated", "Ex db IIC Gb Rated"),
+            ("Exia IIC T4 barrier", "Ex ia IIC T4 Barrier"),
+            # Already spaced — must pass through unchanged.
+            ("Ex d IIC T6 enclosure", "Ex d IIC T6 Enclosure"),
+            ("Ex db eb IIC T6 Gb", "Ex db eb IIC T6 Gb"),
+        ]
+        for text, expected in cases:
+            self.assertEqual(format_description_text(text, title_case=True), expected)
+
+    def test_ex_protection_spacing_does_not_corrupt_ordinary_ex_words(self):
+        cases = [
+            ("Express delivery available", "Express Delivery Available"),
+            ("Extra bracket included", "Extra Bracket Included"),
+            ("Extreme temperature rating", "Extreme Temperature Rating"),
+            ("Exempt from certification", "Exempt From Certification"),
+            ("Exercise caution", "Exercise Caution"),
+            ("Exodus of legacy units", "Exodus of Legacy Units"),
+            ("Exotic materials used", "Exotic Materials Used"),
+            ("Exhaust fan included", "Exhaust Fan Included"),
+            ("Exist in inventory", "Exist in Inventory"),
+            ("Exact dimensions given", "Exact Dimensions Given"),
+        ]
+        for text, expected in cases:
+            self.assertEqual(format_description_text(text, title_case=True), expected)
+
+    def test_preserves_atex_iecex_certificate_numbers_ending_in_x(self):
+        cases = [
+            (
+                "ATEX ITS18ATEX103970X / IECEx ITS 18.0052X · Ex db op is IIC T6 Gb",
+                "ATEX ITS18ATEX103970X / IECEx ITS 18.0052X · Ex db op is IIC T6 Gb",
+            ),
+            (
+                "Atex Certificate: SIRA06ATEX1097X",
+                "Atex Certificate: SIRA06ATEX1097X",
+            ),
+            (
+                "IECEX Certifcate: IECEx CML 18.0177X, IECEx SIM 15.0002X",
+                "IECEX Certifcate: IECEx CML 18.0177X, IECEx SIM 15.0002X",
+            ),
+        ]
+        for text, expected in cases:
+            self.assertEqual(format_description_text(text, title_case=True), expected)
+
+    def test_normalizes_microsecond_unit_both_micro_sign_variants(self):
+        # µ (MICRO SIGN U+00B5) and μ (GREEK SMALL LETTER MU U+03BC) look identical
+        # but are different codepoints — both must canonicalize to the same form.
+        self.assertEqual(
+            format_description_text("inrush 70A/120µs", title_case=True),
+            "Inrush 70 A/120 µs",
+        )
+        self.assertEqual(
+            format_description_text("inrush 70A/120μs", title_case=True),
+            "Inrush 70 A/120 µs",
+        )
+
+    def test_normalizes_nautical_mile_unit(self):
+        # Uppercase "NM" is unambiguous. Lowercase "nm" is disambiguated from the
+        # nanometre unit by magnitude: visibility ratings are 1-2 digits, while
+        # wavelength specs (nanometres) are always 3 digits and must stay untouched.
+        self.assertEqual(
+            format_description_text(
+                "6nm dbl masthead, black anodized", title_case=True
+            ),
+            "6 NM Dbl Masthead, Black Anodized",
+        )
+        self.assertEqual(
+            format_description_text("3nm 225°", title_case=True), "3 NM 225°"
+        )
+        self.assertEqual(
+            format_description_text("visibility 6nm", title_case=True),
+            "Visibility 6 NM",
+        )
+        self.assertEqual(
+            format_description_text(
+                "Light Colour: Green, 530nm", title_case=True
+            ),
+            "Light Colour: Green, 530nm",
+        )
+        self.assertEqual(
+            format_description_text("1550nm fiber wavelength", title_case=True),
+            "1550nm Fiber Wavelength",
+        )
+
     def test_always_normalizes_units_regardless_of_title_case_flag(self):
         # Units/standards normalize even when title_case=False (long text, or a
         # Format type that's never title-cased).

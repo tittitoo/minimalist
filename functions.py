@@ -1004,6 +1004,106 @@ def set_asterisk_multiplier(text):
     return re.sub(r"(?<![A-Za-z0-9])(\d+)\s?\*\s?(?=\d)", r"\1 × ", text)
 
 
+# Hazardous-area protection-type markings (IEC 60079 series, e.g. "Ex d", "Ex de",
+# "Ex eb") are sometimes glued with no space in supplier source text ("Exd IIC T6"
+# instead of "Ex d IIC T6"). Each code is kept <=2 chars deliberately:
+# title_case_ignore_double_char (invoked via set_case_preserve_acronym) already
+# leaves words that short completely untouched (not even capitalized), so once split
+# out here "d"/"de"/"eb"/etc. survive title-casing with their required lowercase form
+# intact, with no extra handling needed (same reasoning as the existing
+# _UNIT_CODE_LOWER short-word passthrough). Longest-first so e.g. "de" is tried
+# before a bare "d" would otherwise swallow just the first letter.
+_EX_PROTECTION_TYPES = [
+    "de", "db", "eb", "mb", "ma", "tb", "tc", "ia", "ib", "ic", "nA", "nC", "nL", "nR",
+    "px", "py", "pz", "pv", "d", "e", "m", "n", "o", "p", "q", "s", "t",
+]
+# Case-sensitive, matching the standard's own casing convention ("Ex" capitalized,
+# protection letters lowercase) — real source text is already cased this way, only
+# the space is missing. The lookahead is what keeps this safe against ordinary
+# English words starting with "Ex" (Express, Extra, Exempt, Exodus, Exist, ...): it
+# only fires when the matched code is immediately followed by an uppercase letter
+# (the start of a gas-group token like "IIC"), a digit, whitespace, or end of
+# string — the shape every real glued Ex marking takes, but not what follows "t" in
+# "Extra" or "e" in "Exercise" (both continue with a lowercase letter).
+_EX_PROTECTION_RE = re.compile(
+    r"\bEx(" + "|".join(_EX_PROTECTION_TYPES) + r")(?=[A-Z0-9]|\s|$)"
+)
+
+
+def set_ex_protection_spacing(text):
+    """Insert the required space in a glued Ex protection-type marking
+    ("Exd" -> "Ex d", "Exeb" -> "Ex eb")."""
+    return _EX_PROTECTION_RE.sub(r"Ex \1", text)
+
+
+# ATEX/IECEx hazardous-area certificate numbers (e.g. "ITS18ATEX103970X",
+# "SIRA06ATEX1097X", IECEx "18.0052X") end in a bare "X" suffix — standard notation
+# meaning "special conditions of use apply" — that looks exactly like the "20X"
+# quantity shorthand set_x() normalizes elsewhere. Worse, the certificate-number
+# pattern (letters+digits immediately followed by "X" then more digits, e.g.
+# "...ATEX103970X") also matches set_x's "value+unit x count" suffix pattern
+# ("18ATE" + "X" + "103970X"), which inserts a "×" *inside* the certificate number
+# and, by introducing a new space, exposes the remaining "103970X" to the plain
+# digit+X pattern on a later pass too — corrupting one cert number into two separate
+# "×" insertions. Protected the same way as dimension-suffix chains and bit-rate
+# notation above: placeholder substitution before set_x ever runs, restored verbatim
+# afterward.
+_CERT_TOKEN_DELIM = "\x02"
+_CERT_NUMBER_RE = re.compile(
+    r"\b[A-Z]{2,5}\d{2}ATEX\d{3,7}X?\b|\b\d{2}\.\d{3,6}X?\b"
+)
+
+
+def protect_cert_numbers(text):
+    """Hide ATEX/IECEx certificate numbers from the rest of the pipeline, returning
+    the protected text and a restore function to put them back verbatim at the very
+    end."""
+    certs = []
+
+    def _capture(m):
+        token = f"{_CERT_TOKEN_DELIM}{len(certs)}{_CERT_TOKEN_DELIM}"
+        certs.append(m.group(0))
+        return token
+
+    protected_text = _CERT_NUMBER_RE.sub(_capture, text)
+
+    def restore(t):
+        for i, cert in enumerate(certs):
+            t = t.replace(f"{_CERT_TOKEN_DELIM}{i}{_CERT_TOKEN_DELIM}", cert, 1)
+        return t
+
+    return protected_text, restore
+
+
+# Nautical mile ("NM") — matched case-SENSITIVELY, unlike every other unit above (all
+# of which use re.IGNORECASE). This catalog includes fiber-optic products where
+# wavelengths like "1550nm" are common free-text mentions — lowercase "nm" means
+# nanometre, a completely different unit, and matching it case-insensitively here
+# would silently turn a wavelength spec into a distance. "NM" is also always written
+# uppercase by aviation/maritime convention, so restricting the match to that exact
+# casing costs nothing.
+_NAUTICAL_MILE_RE = re.compile(r"(?<![a-zA-Z0-9])(\d+(?:\.\d+)?)\s?NM(?![a-zA-Z0-9])")
+
+
+def set_nautical_mile(text):
+    return _NAUTICAL_MILE_RE.sub(lambda m: f"{m.group(1)} NM", text)
+
+
+# Lowercase glued "nm" (e.g. navigation-light visibility ratings — "3nm 225°", "6nm
+# dbl masthead") is the *other* half of the same nanometre/nautical-mile ambiguity
+# noted above, deliberately left unhandled by the case-sensitive rule above.
+# Disambiguated by magnitude instead of case: COLREG navigation-light visibility
+# ratings are always a single- or double-digit number of nautical miles (1/2/3/5/6nm
+# in real catalog data), while visible-light wavelengths are always three digits
+# (e.g. "530nm", "630nm" — also present in real catalog data). Capping the match at
+# 2 digits is what keeps a wavelength spec from being misread as a distance.
+_NM_LOWER_RE = re.compile(r"(?<![a-zA-Z0-9])(\d{1,2}(?:\.\d+)?)\s?nm(?![a-zA-Z0-9])")
+
+
+def set_nautical_mile_lower(text):
+    return _NM_LOWER_RE.sub(lambda m: f"{m.group(1)} NM", text)
+
+
 # Text longer than this looks ugly title-cased, so format_description_text() skips
 # title-casing past this length (matches the `hote` web app's same constant).
 MAX_TITLE_CASE_LENGTH = 100
@@ -1019,6 +1119,15 @@ _UOM_CANONICAL = {
     "v": "V", "a": "A", "ah": "Ah", "w": "W", "kw": "kW", "kva": "kVA", "hp": "hp",
     "db": "dB", "dbi": "dBi", "dbm": "dBm", "vdc": "VDC", "vac": "VAC",
     "psi": "psi", "rpm": "rpm",
+    # Flashes per minute — beacon/strobe flash-rate spec (e.g. "60fpm"/"120fpm"),
+    # same lowercase-glued-abbreviation shape as rpm above.
+    "fpm": "fpm",
+    # Microseconds (inrush-current specs, e.g. "70A / 120µs") — two keys for the two
+    # Unicode characters a source document might use for the micro prefix (µ MICRO
+    # SIGN U+00B5, the character most PDF text extraction produces, and μ GREEK SMALL
+    # LETTER MU U+03BC, visually identical but a different codepoint some sources use
+    # instead) — both canonicalize to the same MICRO SIGN form.
+    "µs": "µs", "μs": "µs",
     "bps": "bps", "kbps": "Kbps", "mbps": "Mbps", "gbps": "Gbps",
     # Digital storage (bytes) — distinct from the bit-rate units above (kbps/mbps/gbps).
     # The \b...\b word-boundary matching means "50gb" and "50gbps" never collide: neither
@@ -1288,6 +1397,7 @@ def format_description_text(text, title_case=False):
     text = strip_optional_plural_paren(text)
     text = expand_with_shorthand(text)
     text = collapse_spaced_cat_standard(text)
+    text = set_ex_protection_spacing(text)
 
     # Length check for the title-case gate uses the text before dimension chains are
     # shrunk down to their placeholder tokens (which would otherwise make borderline-
@@ -1298,6 +1408,8 @@ def format_description_text(text, title_case=False):
     text = protected_text
     bit_rate_protected_text, restore_bit_rate = protect_bit_rate_slash(text)
     text = bit_rate_protected_text
+    cert_protected_text, restore_certs = protect_cert_numbers(text)
+    text = cert_protected_text
 
     text = set_dimension_unit_chain(text)
     text = set_naked_dimension_chain(text)
@@ -1308,8 +1420,11 @@ def format_description_text(text, title_case=False):
         text = set_case_preserve_acronym(text, title=True)
 
     text = normalize_standard_tokens(text)
+    text = set_nautical_mile(text)
+    text = set_nautical_mile_lower(text)
     text = restore_bit_rate(text)
     text = restore(text)
+    text = restore_certs(text)
     return text
 
 
