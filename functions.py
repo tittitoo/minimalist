@@ -1128,6 +1128,13 @@ _UOM_CANONICAL = {
     # LETTER MU U+03BC, visually identical but a different codepoint some sources use
     # instead) — both canonicalize to the same MICRO SIGN form.
     "µs": "µs", "μs": "µs",
+    # Bare micro prefix used AS the unit itself — coating/anodizing thickness specs
+    # (e.g. "50µ" = 50 micrometres). Distinct from µs (microseconds) above; the
+    # trailing lookahead in normalize_standard_tokens already keeps the two from
+    # colliding — "50µs" fails this key's boundary check (next char "s" is
+    # alphanumeric) and falls through to the µs key instead, regardless of
+    # iteration order.
+    "µ": "µ", "μ": "µ",
     "bps": "bps", "kbps": "Kbps", "mbps": "Mbps", "gbps": "Gbps",
     # Digital storage (bytes) — distinct from the bit-rate units above (kbps/mbps/gbps).
     # The \b...\b word-boundary matching means "50gb" and "50gbps" never collide: neither

@@ -699,6 +699,23 @@ class TestFormatDescriptionText(unittest.TestCase):
             "Inrush 70 A/120 µs",
         )
 
+    def test_normalizes_bare_micron_unit_without_colliding_with_microseconds(self):
+        # "50µ" (coating/anodizing thickness) is distinct from "50µs" (microseconds,
+        # tested above) — the trailing boundary check keeps the two units from
+        # colliding regardless of dict iteration order.
+        self.assertEqual(
+            format_description_text(
+                "anodized aluminum 50µ, PMMA lens", title_case=True
+            ),
+            "Anodized Aluminum 50 µ, PMMA Lens",
+        )
+        self.assertEqual(
+            format_description_text(
+                "anodized aluminum 50μ, PMMA lens", title_case=True
+            ),
+            "Anodized Aluminum 50 µ, PMMA Lens",
+        )
+
     def test_normalizes_nautical_mile_unit(self):
         # Uppercase "NM" is unambiguous. Lowercase "nm" is disambiguated from the
         # nanometre unit by magnitude: visibility ratings are 1-2 digits, while
