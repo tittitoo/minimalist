@@ -1730,6 +1730,7 @@ def fill_lastrow_sheet(wb, sheet):  # type: ignore
         row_range.vertical_alignment = "center"
         sheet.range(f"F{sr}").formula = '="Subtotal(" & Config!B12 & ")"'
         sheet.range(f"F{sr}").font.size = 9
+        sheet.range(f"F{sr}").horizontal_alignment = "left"
         sheet.range(f"G{sr}").formula = f"=SUM(G3:G{last_row + 1})"
         # Default
         sheet.range(f"V{sr}").formula = f"=SUM(V3:V{last_row + 1})"
