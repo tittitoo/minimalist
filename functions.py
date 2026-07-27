@@ -4166,22 +4166,38 @@ def format_text(
             desc_col = systems.loc[mask, "Description"].str.strip().str.lstrip("• ")
 
             if bullet_description:
-                # Handle # prefix -> ‣ bullet
-                starts_hash = desc_col.str.startswith("#")
+                # Handle ## prefix -> ▹ grandchild bullet (checked before single # below,
+                # since "##..." also starts with "#")
+                starts_double_hash = desc_col.str.startswith("##")
+                # Handle # prefix (not ##) -> ‣ bullet
+                starts_hash = desc_col.str.startswith("#") & ~starts_double_hash
+                # Handle ▹ prefix -> ▹ grandchild bullet (already pasted from hote, third
+                # nesting level — see indentBulletLine/prefixForDepth in ConfigurationPane.vue)
+                starts_grandchild = desc_col.str.startswith("▹")
                 # Handle ‣ prefix -> ‣ bullet
                 starts_triangle = desc_col.str.startswith("‣")
                 # Default -> • bullet
 
                 result = pd.Series(index=desc_col.index, dtype=str)
+                result[starts_double_hash] = "         ▹ " + desc_col[
+                    starts_double_hash
+                ].str.lstrip("# ")
+                result[starts_grandchild] = "         ▹ " + desc_col[
+                    starts_grandchild
+                ].str.lstrip("▹ ")
                 result[starts_hash] = "      ‣ " + desc_col[starts_hash].str.lstrip(
                     "# "
                 )
                 result[starts_triangle] = "      ‣ " + desc_col[
                     starts_triangle
                 ].str.lstrip("‣ ")
-                result[~starts_hash & ~starts_triangle] = (
-                    "   • " + desc_col[~starts_hash & ~starts_triangle]
+                other = (
+                    ~starts_double_hash
+                    & ~starts_grandchild
+                    & ~starts_hash
+                    & ~starts_triangle
                 )
+                result[other] = "   • " + desc_col[other]
                 systems.loc[mask, "Description"] = result
             else:
                 systems.loc[mask, "Description"] = "   " + desc_col
