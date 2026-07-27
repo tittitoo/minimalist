@@ -851,6 +851,42 @@ class TestFormatDescriptionText(unittest.TestCase):
             "1550nm Fiber Wavelength",
         )
 
+    def test_normalizes_hectopascal_unit(self):
+        self.assertEqual(
+            format_description_text("500-1100 hpa pressure range", title_case=True),
+            "500-1100 hPa Pressure Range",
+        )
+
+    def test_normalizes_knots_and_mph_units(self):
+        self.assertEqual(
+            format_description_text("wind speed 40kt gust", title_case=True),
+            "Wind Speed 40 kt Gust",
+        )
+        self.assertEqual(
+            format_description_text("40kts gust", title_case=True), "40 kt Gust"
+        )
+        self.assertEqual(
+            format_description_text("speed 30knots", title_case=True),
+            "Speed 30 kt",
+        )
+        self.assertEqual(
+            format_description_text("60mph rated", title_case=True), "60 mph Rated"
+        )
+
+    def test_normalizes_milliwatt_without_colliding_with_megawatt(self):
+        # "mW" (milliwatt) must be spaced, but the case-sensitive match must not
+        # touch a genuine "MW" (megawatt) spec — six orders of magnitude apart.
+        self.assertEqual(
+            format_description_text(
+                "275 mW average (10 W peak)", title_case=True
+            ),
+            "275 mW Average (10 W Peak)",
+        )
+        self.assertEqual(
+            format_description_text("5 MW generator", title_case=True),
+            "5 MW Generator",
+        )
+
     def test_normalizes_spelled_out_degree_unit(self):
         # A leading "-" is not used here (it would otherwise trigger the unrelated
         # leading-dash-to-bullet-marker rule at the very start of the pipeline).

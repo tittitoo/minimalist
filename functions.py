@@ -1217,6 +1217,22 @@ def set_nautical_mile_lower(text):
     return _NM_LOWER_RE.sub(lambda m: f"{m.group(1)} NM", text)
 
 
+# Milliwatt ("mW") vs megawatt ("MW") — the same order-of-magnitude collision risk as the
+# nm/NM pair above, just far more severe (6 orders of magnitude, not 6 powers of a much
+# smaller ratio). _UOM_CANONICAL's generic loop matches case-insensitively, so a naive "mw"
+# entry there would silently rewrite "5 MW" (a genuine megawatt spec) into "5 mW" — kept out
+# of that dictionary entirely and handled here instead, matched only against the exact
+# conventional SI casing (lowercase m, uppercase W) radar/RF spec sheets actually use (e.g.
+# "275 mW average (10 W peak)" transmitted power). "MW"/"Mw"/other casings are deliberately
+# left untouched rather than guessed — better to under-format an unusual casing than risk
+# misreading a megawatt spec as milliwatt.
+_MILLIWATT_RE = re.compile(r"(?<![a-zA-Z0-9])(\d+(?:\.\d+)?)\s?mW(?![a-zA-Z0-9])")
+
+
+def set_milliwatt(text):
+    return _MILLIWATT_RE.sub(lambda m: f"{m.group(1)} mW", text)
+
+
 # Text longer than this looks ugly title-cased, so format_description_text() skips
 # title-casing past this length (matches the `hote` web app's same constant).
 MAX_TITLE_CASE_LENGTH = 100
@@ -1252,6 +1268,14 @@ _UOM_CANONICAL = {
     "ma": "mA", "mah": "mAh",
     "db": "dB", "dbi": "dBi", "dbm": "dBm", "vdc": "VDC", "vac": "VAC",
     "psi": "psi", "rpm": "rpm", "cd": "cd",
+    # Hectopascal — barometric pressure sensor specs (Vaisala PTB330 etc.: "500 ...
+    # 1100 hPa"). No case-insensitive collision risk in this domain the way nm/mW have.
+    "hpa": "hPa",
+    # Wind/vessel speed — "kt"/"kts"/"knot(s)" all canonicalize to "kt"; "mph" is left
+    # as its own literal symbol (already the conventional written form, nothing to
+    # canonicalize to).
+    "kt": "kt", "kts": "kt", "knot": "kt", "knots": "kt",
+    "mph": "mph",
     # Flashes per minute — beacon/strobe flash-rate spec (e.g. "60fpm"/"120fpm"),
     # same lowercase-glued-abbreviation shape as rpm above.
     "fpm": "fpm",
@@ -1558,6 +1582,7 @@ def format_description_text(text, title_case=False):
     text = normalize_standard_tokens(text)
     text = set_nautical_mile(text)
     text = set_nautical_mile_lower(text)
+    text = set_milliwatt(text)
     text = restore_bit_rate(text)
     text = restore(text)
     text = restore_certs(text)
