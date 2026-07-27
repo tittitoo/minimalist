@@ -766,17 +766,37 @@ def strip_optional_plural_paren(text):
     return re.sub(r"\b([A-Za-z]+)\s?\(s\)", r"\1", text)
 
 
-def expand_with_shorthand(text):
-    """Expand "w/" / "w/o" spec-sheet shorthand to "with"/"without" (e.g. "Enclosure
-    w/o External JB").
+def expand_shorthand(text):
+    """Expand "c/w" / "w/" / "w/o" / "Equiv" / "Incl" spec-sheet shorthand to their
+    full words (e.g. "Bracket c/w mounting screws", "Enclosure w/o External JB",
+    "Equiv. to OEM part", "Incl: mounting kit") for client-facing text.
 
-    "w/o" is checked first since "w/" would otherwise match as a prefix of it and
-    leave a dangling "o" behind. The trailing boundary is a lookahead for "not a word
-    char", not \\b — "w/" ends in "/", a non-word character, so \\b never fires
-    between it and a following space (both sides non-word, no transition).
+    "w/o" is checked before "w/" since "w/" would otherwise match as a prefix of it
+    and leave a dangling "o" behind; "c/w" doesn't share that ordering hazard ("w/"
+    needs a literal "/" right after the "w", which "c/w" never has).
+
+    The trailing lookahead on the slash forms blocks a following DIGIT only, not a
+    letter — letters must be allowed through so a glued word expands too (e.g.
+    "w/FLX2" -> "with FLX2", pulled verbatim from a real product name), but a digit
+    right after the slash is the dimension-chain notation protect_dimension_suffix_chains
+    handles later (e.g. "W/800" in "D/1200 × W/800 × H/2100" — width 800, not "with
+    800") and must be left alone here. The trailing `\\s?` consumes a single
+    already-present space (the pipeline's very first step already collapsed any run
+    of spaces down to one) so the fixed trailing space baked into each replacement is
+    never doubled — this is also what turns the glued case into a properly spaced
+    word instead of "withFLX2".
+
+    "Equiv"/"Incl" are plain words, not slash forms, so they get an ordinary
+    \\b...\\b-adjacent lookahead instead — no digit is required before them the way
+    UOM_CANONICAL's units need one. Only the shorthand letters themselves are
+    replaced, so trailing punctuation the user typed right after (the ":" in
+    "Incl:") is left in place rather than consumed.
     """
-    text = re.sub(r"\bw/o(?![A-Za-z0-9])", "without", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bw/(?![A-Za-z0-9])", "with", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bc/w(?!\d)\s?", "complete with ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bw/o(?!\d)\s?", "without ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bw/(?!\d)\s?", "with ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bequiv(?![A-Za-z0-9])", "equivalent", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bincl(?![A-Za-z0-9])", "including", text, flags=re.IGNORECASE)
     return text
 
 
@@ -796,6 +816,49 @@ def collapse_spaced_cat_standard(text):
     by the "6" alternative first, leaving a dangling "a" behind.
     """
     return _SPACED_CAT_STANDARD_RE.sub(lambda m: f"cat{re.sub(r'\s', '', m.group(1))}", text)
+
+
+_DEGREE_UNIT_RE = re.compile(
+    r"(?<![a-zA-Z0-9])(\d+(?:\.\d+)?)\s?(?:deg\.?|°)\s?([cf])(?![a-zA-Z0-9])",
+    re.IGNORECASE,
+)
+
+
+def set_degree_unit(text):
+    """Normalize spelled-out "Deg C"/"Deg F" (e.g. "-40 Deg C to +55 Deg C" operating
+    temperature range) to "°C"/"°F", and normalize spacing on an already-literal
+    degree symbol too (source pasted straight from a datasheet may already contain
+    "°C" glued with no space, or stray spacing like "55 ° C") — either form is
+    matched by the "deg\\.?|°" alternation and always rewritten to the same canonical
+    "N °C" spacing.
+
+    Requires a digit immediately before (allowing the same optional single space as
+    every other UOM entry) so a bare "Deg"/"°" mid-sentence with no value attached is
+    left alone; the sign (+/-) in front of the digit isn't part of \\d and is
+    untouched by the match, same as everywhere else in this module. Space kept
+    before "°C" (not glued) per the same SI-spacing convention as every other unit —
+    "°" and the letter itself stay glued together as one symbol.
+    """
+    return _DEGREE_UNIT_RE.sub(lambda m: f"{m.group(1)} °{m.group(2).upper()}", text)
+
+
+_SPACED_VOLTAGE_TYPE_RE = re.compile(
+    r"(?<![a-zA-Z0-9])(\d+(?:\.\d+)?)\s?V\s+(AC|DC)\b", re.IGNORECASE
+)
+
+
+def set_spaced_voltage_type(text):
+    """Collapse a spaced "V AC"/"V DC" into the industry-standard glued "VAC"/"VDC"
+    symbol (e.g. "110/220 V AC to 24 V DC" -> "110/220 VAC to 24 VDC").
+
+    _UOM_CANONICAL's own vac/vdc keys only match once "V" and "AC"/"DC" are already
+    glued together, so this collapses the spaced form into that shape first — same
+    role collapse_spaced_cat_standard plays for "Cat 6 A" ahead of the
+    _STANDARD_DESIGNATORS lookup.
+    """
+    return _SPACED_VOLTAGE_TYPE_RE.sub(
+        lambda m: f"{m.group(1)} V{m.group(2).upper()}", text
+    )
 
 
 _TITLE_CASE_LOWER = frozenset({
@@ -969,7 +1032,13 @@ def set_x(text):
     # late (at the "0" in "002", itself preceded by another digit, not a letter),
     # corrupting a real part number into "LTD002 ×". Requiring the character before the
     # WHOLE digit run to be non-alphanumeric closes that backtracking gap.
-    text = re.sub(r"(?<![A-Za-z0-9])(\d+)[xX](?![A-Za-z0-9-])", r"\1 ×", text)
+    # "NEMA 4X" / "NEMA-4X" (enclosure rating — the trailing X is a corrosion-
+    # resistance suffix letter, not a multiplier) would otherwise match this exact
+    # shape: nothing glued after the X, same as a real "4X" quantity. Excluded by
+    # name via lookbehind rather than trying to generalize a rule, since there's no
+    # local shape that tells the two apart — a real multiplier equally often has
+    # nothing glued after it either (e.g. "4X zoom").
+    text = re.sub(r"(?<!NEMA[ -])(?<![A-Za-z0-9])(\d+)[xX](?![A-Za-z0-9-])", r"\1 ×", text)
     # Symbol-first: x20, X30 — flip to number-first
     text = re.sub(r"(?<![A-Za-z0-9-])[xX](\d+)(?![A-Za-z0-9-])", r"\1 ×", text)
     # Number-first with space: 20 x, 20 X (same digit-exclusion reasoning as above)
@@ -1115,10 +1184,30 @@ MAX_TITLE_CASE_LENGTH = 100
 # bare "V" floating in prose is not.
 _UOM_CANONICAL = {
     "mm": "mm", "cm": "cm", "km": "km", "m": "m", "mtr": "m", "ft": "ft", "in": "in", "kg": "kg",
+    # Spelled-out "meter"/"metre" -> "m", space preserved same as every other entry
+    # here (previously its own _UOM_WORD_TO_SYMBOL dict that deliberately collapsed
+    # the space — changed so "1 Meter" reads "1 m", not "1m", matching mm/kg/Hz below
+    # and the SI Brochure spacing rule this whole dictionary otherwise follows).
+    "meter": "m", "meters": "m", "metre": "m", "metres": "m",
     "hz": "Hz", "khz": "kHz", "mhz": "MHz", "ghz": "GHz",
     "v": "V", "a": "A", "ah": "Ah", "w": "W", "kw": "kW", "kva": "kVA", "hp": "hp",
+    # "ohm"/"ohms" cover the spelled-out word; "Ω" itself is a separate key so an
+    # already-literal symbol glued to a digit (source pasted straight from a
+    # datasheet, e.g. "50Ω") also gets the space enforced — same gap the
+    # degree-symbol handling had to close for "°C" already present in source text,
+    # not just spelled-out "Deg C".
+    "ohm": "Ω", "ohms": "Ω", "Ω": "Ω",
+    # Milli- current/capacity units (battery specs: "500mA" draw, "2075mAh"
+    # capacity) — kept as their own keys rather than relying on the bare a/ah entries
+    # above, since those require the digit to sit immediately before the unit
+    # letters and would never see past the leading "m". Case-insensitive matching
+    # plus the trailing lookahead in normalize_standard_tokens (unit must be
+    # followed by a non-alphanumeric boundary) means "ma" can't accidentally swallow
+    # the first two letters of "mah" — the lookahead fails when the very next
+    # character is the "h", so the "mah" key still gets its turn.
+    "ma": "mA", "mah": "mAh",
     "db": "dB", "dbi": "dBi", "dbm": "dBm", "vdc": "VDC", "vac": "VAC",
-    "psi": "psi", "rpm": "rpm",
+    "psi": "psi", "rpm": "rpm", "cd": "cd",
     # Flashes per minute — beacon/strobe flash-rate spec (e.g. "60fpm"/"120fpm"),
     # same lowercase-glued-abbreviation shape as rpm above.
     "fpm": "fpm",
@@ -1143,11 +1232,18 @@ _UOM_CANONICAL = {
     "mp": "MP", "fps": "FPS",
     # "mth"/"hr"/"yr" are the established qty-unit codes for Month/Hour/Year across the
     # codebase's UNITS constants — mirrored here so free-text mentions (Cisco service
-    # terms, etc.) match that standard. Kept space-preserving (not in _UOM_WORD_TO_SYMBOL)
-    # since these are conventionally shown with a space (e.g. "3 hr", "2 ea").
+    # terms, etc.) match that standard.
     "mth": "mth", "mths": "mth", "month": "mth", "months": "mth",
     "hr": "hr", "hrs": "hr", "hour": "hr", "hours": "hr",
     "yr": "yr", "yrs": "yr", "year": "yr", "years": "yr",
+    # Minutes -> "min" (not "m" — that's already taken by meters above, and reusing
+    # it would make "15 m" ambiguous between 15 minutes and 15 metres). "mins" needs
+    # its own key separate from "min": the trailing lookahead below rejects a match
+    # immediately followed by another letter/digit, and a bare plural "s" glued onto
+    # "min" is exactly that — it's not the same shape as the parenthesized "(s)"
+    # optional-plural handled elsewhere in this function, which only strips a
+    # literal "(s)", not an already-committed plural spelling.
+    "min": "min", "mins": "min", "minute": "min", "minutes": "min",
     # Remaining qty-unit codes from the same UNITS constants (ea/set/lot/trp/md) —
     # added after a real catalog bug surfaced a glued "1lot x Cable Management Unit"
     # bullet (should read "1 lot x ..."). These are counting units, not SI, but the
@@ -1164,16 +1260,6 @@ _UOM_CANONICAL = {
 # Unicode superscript character rather than left as a literal trailing digit.
 _SUPERSCRIPT_ELIGIBLE = {"mm", "cm", "km", "m", "in", "ft"}
 _SUPERSCRIPT_DIGITS = {"2": "²", "3": "³"}
-
-# Full unit WORDS (not abbreviations) that collapse the space when normalized to their
-# symbol/abbreviation — e.g. "0.2 meter" -> "0.2m", "50 ohm" -> "50Ω". Unlike
-# _UOM_CANONICAL above (abbreviation-to-abbreviation, spacing preserved as typed),
-# spelling out the full word implies a looser style that should tighten up once
-# abbreviated, matching how "27mm"/"5kW" are conventionally written attached.
-_UOM_WORD_TO_SYMBOL = {
-    "meter": "m", "meters": "m", "metre": "m", "metres": "m",
-    "ohm": "Ω", "ohms": "Ω",
-}
 
 # Abbreviations that are industry convention (not SI) to attach directly to the number
 # with no space at all — e.g. rack units "1U", "42U", never "1 U".
@@ -1234,13 +1320,6 @@ def normalize_standard_tokens(text):
                 text,
                 flags=re.IGNORECASE,
             )
-    for key, symbol in _UOM_WORD_TO_SYMBOL.items():
-        text = re.sub(
-            rf"\b(\d+(?:\.\d+)?)\s?({key})\b",
-            lambda m, _s=symbol: f"{m.group(1)}{_s}",
-            text,
-            flags=re.IGNORECASE,
-        )
     for key, canonical in _UOM_NO_SPACE.items():
         text = re.sub(
             rf"\b(\d+)\s?({key})\b",
@@ -1397,13 +1476,19 @@ def format_description_text(text, title_case=False):
     text = re.sub(r"^(-|~)", "•", text)
     text = re.sub(r"^[*?]\s", " • ", text)
     text = re.sub(r";$", ":", text)
+    # A trailing comma (e.g. "Cat6 UTP Patch Cord, LSOH, 1 m Length, 4P,") is leftover
+    # from a comma-separated spec list that just happens to end on a delimiter, not a
+    # real comma in the description — dropped rather than left dangling.
+    text = re.sub(r",+$", "", text)
     text = set_range_tilde(text)
     text = set_comma_space(text)
     text = set_paren_spacing(text)
     text = set_double_single_quote_inches(text)
     text = strip_optional_plural_paren(text)
-    text = expand_with_shorthand(text)
+    text = expand_shorthand(text)
     text = collapse_spaced_cat_standard(text)
+    text = set_degree_unit(text)
+    text = set_spaced_voltage_type(text)
     text = set_ex_protection_spacing(text)
 
     # Length check for the title-case gate uses the text before dimension chains are
@@ -1432,7 +1517,11 @@ def format_description_text(text, title_case=False):
     text = restore_bit_rate(text)
     text = restore(text)
     text = restore_certs(text)
-    return text
+    # expand_shorthand's slash-form replacements always end in a space (needed to
+    # properly separate a glued-on following word, e.g. "w/FLX2" -> "with FLX2") —
+    # trim it back off for the rare case a source string ends right on one of those
+    # forms with nothing after it.
+    return text.rstrip()
 
 
 def fill_formula(sheet):

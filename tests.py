@@ -28,6 +28,9 @@ from functions import (
     set_dimension_unit_chain,
     format_description_text,
     collapse_spaced_cat_standard,
+    set_degree_unit,
+    set_spaced_voltage_type,
+    expand_shorthand,
     _sp_wrap_lines,
     SKIP_SHEETS,
     SHEET_ALIASES,
@@ -150,6 +153,17 @@ class TestSetX(unittest.TestCase):
         # is left untouched by every x/X-keyed pattern above — padded separately.
         self.assertEqual(set_x("4× 256"), "4 × 256")
         self.assertEqual(set_x("2×1.2"), "2 × 1.2")
+
+    def test_preserves_nema_enclosure_rating_suffix(self):
+        # "NEMA 4X" / "NEMA-4X" (enclosure rating — trailing X is a
+        # corrosion-resistance suffix letter, not a multiplier) has the exact same
+        # local shape as a real "4X" quantity (nothing glued after the X) — excluded
+        # by name via lookbehind since there's no other way to tell them apart.
+        self.assertEqual(set_x("NEMA 4X enclosure"), "NEMA 4X enclosure")
+        self.assertEqual(set_x("NEMA-4X enclosure"), "NEMA-4X enclosure")
+        # An ordinary multiplier right after "NEMA" text (not the enclosure rating
+        # shape) still normalizes.
+        self.assertEqual(set_x("4X zoom"), "4 × zoom")
 
 
 class TestSetCasePreserveAcronym(unittest.TestCase):
@@ -293,12 +307,22 @@ class TestNormalizeStandardTokens(unittest.TestCase):
         self.assertEqual(normalize_standard_tokens("ipx6 rated"), "IPX6 rated")
         self.assertEqual(normalize_standard_tokens("ip69k washdown"), "IP69K washdown")
 
-    def test_normalizes_spelled_out_meter_collapsing_space(self):
-        self.assertEqual(normalize_standard_tokens("40 meter"), "40m")
-        self.assertEqual(normalize_standard_tokens("0.2 meter cable"), "0.2m cable")
+    def test_normalizes_spelled_out_meter_keeping_space(self):
+        # Space preserved like every other unit here — a prior version folded
+        # meter/metre into their own space-collapsing dict, inconsistent with
+        # mm/kg/Hz below.
+        self.assertEqual(normalize_standard_tokens("40 meter"), "40 m")
+        self.assertEqual(normalize_standard_tokens("0.2 meter cable"), "0.2 m cable")
+        self.assertEqual(normalize_standard_tokens("40 Metre"), "40 m")
 
-    def test_normalizes_spelled_out_ohm_to_symbol(self):
-        self.assertEqual(normalize_standard_tokens("50 ohm resistor"), "50Ω resistor")
+    def test_normalizes_spelled_out_ohm_to_symbol_keeping_space(self):
+        self.assertEqual(normalize_standard_tokens("50 ohm resistor"), "50 Ω resistor")
+        self.assertEqual(normalize_standard_tokens("50 Ohms"), "50 Ω")
+
+    def test_normalizes_already_literal_ohm_symbol_spacing(self):
+        # A "50Ω" pasted straight from a datasheet wasn't getting the space
+        # enforced before — only the spelled-out "ohm" word was.
+        self.assertEqual(normalize_standard_tokens("50Ω resistor"), "50 Ω resistor")
 
     def test_does_not_corrupt_ordinary_words_with_dictionary_substrings(self):
         self.assertEqual(
@@ -315,6 +339,57 @@ class TestSetDimensionUnitChain(unittest.TestCase):
 
     def test_leaves_single_unit_mention_untouched(self):
         self.assertEqual(set_dimension_unit_chain("27mm bracket"), "27mm bracket")
+
+
+class TestSetDegreeUnit(unittest.TestCase):
+    """Tests for set_degree_unit: spelled-out Deg C/F and literal ° symbol spacing."""
+
+    def test_normalizes_spelled_out_deg_c(self):
+        self.assertEqual(set_degree_unit("-40 Deg C"), "-40 °C")
+        self.assertEqual(set_degree_unit("55 Deg F"), "55 °F")
+
+    def test_normalizes_already_glued_degree_symbol(self):
+        self.assertEqual(set_degree_unit("55°C"), "55 °C")
+
+    def test_normalizes_stray_spacing_around_degree_symbol(self):
+        self.assertEqual(set_degree_unit("55 ° C"), "55 °C")
+
+    def test_leaves_bare_deg_with_no_value_alone(self):
+        self.assertEqual(set_degree_unit("Deg C rating"), "Deg C rating")
+
+
+class TestSetSpacedVoltageType(unittest.TestCase):
+    """Tests for set_spaced_voltage_type: collapsing spaced "V AC"/"V DC" into VAC/VDC."""
+
+    def test_collapses_spaced_v_ac(self):
+        self.assertEqual(set_spaced_voltage_type("110 V AC supply"), "110 VAC supply")
+
+    def test_collapses_spaced_v_dc(self):
+        self.assertEqual(set_spaced_voltage_type("24 V DC unit"), "24 VDC unit")
+
+    def test_leaves_already_glued_form_untouched(self):
+        self.assertEqual(set_spaced_voltage_type("230VAC supply"), "230VAC supply")
+
+
+class TestExpandShorthand(unittest.TestCase):
+    """Tests for expand_shorthand: c/w, w/, w/o, Equiv, Incl spec-sheet shorthand."""
+
+    def test_expands_c_w(self):
+        self.assertEqual(
+            expand_shorthand("Bracket c/w mounting screws"),
+            "Bracket complete with mounting screws",
+        )
+
+    def test_expands_w_slash_glued_to_next_word(self):
+        self.assertEqual(expand_shorthand("MT74H52A w/FLX2 cable"), "MT74H52A with FLX2 cable")
+
+    def test_does_not_expand_w_slash_followed_by_digit(self):
+        # That shape is dimension-chain notation (e.g. "W/800"), not the shorthand.
+        self.assertEqual(expand_shorthand("D/1200 x W/800 x H/2100"), "D/1200 x W/800 x H/2100")
+
+    def test_expands_equiv_and_incl(self):
+        self.assertEqual(expand_shorthand("Equiv. to OEM part"), "equivalent. to OEM part")
+        self.assertEqual(expand_shorthand("Incl: mounting kit"), "including: mounting kit")
 
 
 class TestFormatDescriptionText(unittest.TestCase):
@@ -525,6 +600,38 @@ class TestFormatDescriptionText(unittest.TestCase):
         self.assertEqual(
             format_description_text('27" Monitor', title_case=True), '27" Monitor'
         )
+
+    def test_expands_c_w_equiv_incl_shorthand(self):
+        self.assertEqual(
+            format_description_text(
+                "Bracket c/w mounting screws", title_case=True
+            ),
+            "Bracket Complete With Mounting Screws",
+        )
+        self.assertEqual(
+            format_description_text("Equiv. to OEM part", title_case=True),
+            "Equivalent. to OEM Part",
+        )
+        self.assertEqual(
+            format_description_text("Incl: mounting kit", title_case=True),
+            "Including: Mounting Kit",
+        )
+
+    def test_expands_shorthand_glued_directly_to_next_word(self):
+        # "w/FLX2 Cable" (no space after the slash — common in real product names,
+        # e.g. "MT74H52A w/FLX2 cable") must still expand; only a following DIGIT is
+        # excluded (that shape is dimension-chain notation, e.g. "W/800", handled
+        # separately by protect_dimension_suffix_chains).
+        self.assertEqual(
+            format_description_text("MT74H52A w/FLX2 cable", title_case=True),
+            "MT74H52A With FLX2 Cable",
+        )
+
+    def test_shorthand_expansion_trims_trailing_space_at_end_of_string(self):
+        # expand_shorthand's slash-form replacements always end in a space (needed
+        # to properly separate a glued-on following word) — must be trimmed back off
+        # if the source string ends right on one of those forms with nothing after.
+        self.assertEqual(format_description_text("w/", title_case=True), "With")
 
     def test_normalizes_dimension_letter_chain_without_misreading_w_as_watts(self):
         self.assertEqual(
@@ -742,6 +849,72 @@ class TestFormatDescriptionText(unittest.TestCase):
         self.assertEqual(
             format_description_text("1550nm fiber wavelength", title_case=True),
             "1550nm Fiber Wavelength",
+        )
+
+    def test_normalizes_spelled_out_degree_unit(self):
+        # A leading "-" is not used here (it would otherwise trigger the unrelated
+        # leading-dash-to-bullet-marker rule at the very start of the pipeline).
+        self.assertEqual(
+            format_description_text(
+                "Operating range: -40 Deg C to +55 Deg C", title_case=False
+            ),
+            "Operating range: -40 °C to +55 °C",
+        )
+
+    def test_normalizes_already_literal_degree_symbol_spacing(self):
+        # A source pasted straight from a datasheet may already contain "°C" glued
+        # with no space, or stray spacing like "55 ° C" — both forms are rewritten
+        # to the same canonical "N °C" spacing, not just the spelled-out "Deg C".
+        self.assertEqual(
+            format_description_text("55°C rated", title_case=True), "55 °C Rated"
+        )
+        self.assertEqual(
+            format_description_text("55 ° C rated", title_case=True),
+            "55 °C Rated",
+        )
+
+    def test_collapses_spaced_voltage_type_to_vac_vdc(self):
+        # The industrial-standard symbol is the combined "VAC"/"VDC" (no internal
+        # space), but a source description may have "V" and "AC"/"DC" typed as
+        # separate words.
+        self.assertEqual(
+            format_description_text(
+                "110/220 V AC to 24 V DC", title_case=True
+            ),
+            "110/220 VAC to 24 VDC",
+        )
+
+    def test_normalizes_ma_mah_spacing(self):
+        self.assertEqual(
+            format_description_text("500mA draw", title_case=True), "500 mA Draw"
+        )
+        self.assertEqual(
+            format_description_text("2075mAh capacity", title_case=True),
+            "2075 mAh Capacity",
+        )
+
+    def test_normalizes_candela_unit(self):
+        self.assertEqual(
+            format_description_text("32 Cd beacon", title_case=True),
+            "32 cd Beacon",
+        )
+
+    def test_normalizes_minute_unit(self):
+        self.assertEqual(
+            format_description_text("15 min assembly", title_case=True),
+            "15 min Assembly",
+        )
+        self.assertEqual(
+            format_description_text("15 minutes assembly", title_case=True),
+            "15 min Assembly",
+        )
+
+    def test_strips_trailing_comma(self):
+        self.assertEqual(
+            format_description_text(
+                "Cat6 UTP Patch Cord, LSOH, 1 m Length, 4P,", title_case=True
+            ),
+            "Cat6 UTP Patch Cord, LSOH, 1 m Length, 4P",
         )
 
     def test_always_normalizes_units_regardless_of_title_case_flag(self):
