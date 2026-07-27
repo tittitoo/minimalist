@@ -3183,7 +3183,7 @@ def _sp_write_column_header(ps, hdr_row, mode, currency, has_scope=True):
     rng.font.name = "Aptos"
     rng.font.size = 9
     rng.row_height = 17
-    rng.vertical_alignment = "center"   # Windows; Mac relies on template pre-styling
+    set_range_alignment(rng, vertical="center")
     # Right-align Unit Price and Total headers to match the numbers below them.
     # Mac relies on template pre-styling (row 16 excluded from left override).
     if sys.platform == "win32":
@@ -3694,7 +3694,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 pass
 
         # Top-align all columns so numbers/qty/scope sit at the top of wrapped rows
-        ps.range(f"A{data_start}:H{r - 1}").vertical_alignment = "top"
+        set_range_alignment(ps.range(f"A{data_start}:H{r - 1}"), vertical="top")
         # Right-align No. column (A) so sub-numbers (.1) and integers align flush right
         if sys.platform == "win32":
             try:
