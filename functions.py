@@ -129,6 +129,50 @@ def apply_lastrow_border(row_range):
         get_macro_nb().macro("apply_subtotal_borders")(row_num)
 
 
+_XL_H_ALIGN = {"left": -4131, "center": -4108, "right": -4152}
+_XL_V_ALIGN = {"top": -4160, "center": -4108, "bottom": -4107}
+# appscript (Mac) constant names for the same alignment values — resolved lazily so
+# this module still imports cleanly on Windows, where appscript isn't installed.
+_MAC_H_ALIGN_NAMES = {
+    "left": "horizontal_align_left",
+    "center": "horizontal_align_center",
+    "right": "horizontal_align_right",
+}
+_MAC_V_ALIGN_NAMES = {"top": "valign_top", "center": "valign_center", "bottom": "valign_bottom"}
+
+
+def set_range_alignment(rng, horizontal=None, vertical=None):
+    """
+    Set horizontal/vertical alignment on a range, cross-platform.
+
+    xlwings has no horizontal_alignment/vertical_alignment Range property in this
+    codebase's pinned version — assigning those attribute names silently creates a
+    harmless, invisible Python instance attribute instead of raising or doing
+    anything to the actual cell, so a naive `rng.vertical_alignment = "center"`
+    looks like it should work but has zero visible effect. The real COM/AppleScript
+    property must be set via .api, same pattern as the Strikethrough handling above.
+
+    Args:
+        rng: xlwings Range.
+        horizontal: "left" | "center" | "right", or None to leave unchanged.
+        vertical: "top" | "center" | "bottom", or None to leave unchanged.
+    """
+    try:
+        if sys.platform == "win32":
+            if horizontal is not None:
+                rng.api.HorizontalAlignment = _XL_H_ALIGN[horizontal]
+            if vertical is not None:
+                rng.api.VerticalAlignment = _XL_V_ALIGN[vertical]
+        else:
+            from appscript import k
+            if horizontal is not None:
+                rng.api.horizontal_alignment.set(getattr(k, _MAC_H_ALIGN_NAMES[horizontal]))
+            if vertical is not None:
+                rng.api.vertical_alignment.set(getattr(k, _MAC_V_ALIGN_NAMES[vertical]))
+    except Exception:
+        pass
+
+
 def _has_problematic_path_chars(path: Path) -> bool:
     """Check if path contains characters that cause issues with macOS AppleScript."""
     problematic_chars = ["@", "#", "%"]
@@ -1727,10 +1771,10 @@ def fill_lastrow_sheet(wb, sheet):  # type: ignore
         sr = last_row + 2  # subtotal row (last_row+1 is spacer)
         row_range = sheet.range(f"{sr}:{sr}")
         apply_lastrow_border(row_range)
-        row_range.vertical_alignment = "center"
+        set_range_alignment(row_range, vertical="center")
         sheet.range(f"F{sr}").formula = '="Subtotal(" & Config!B12 & ")"'
         sheet.range(f"F{sr}").font.size = 9
-        sheet.range(f"F{sr}").horizontal_alignment = "left"
+        set_range_alignment(sheet.range(f"F{sr}"), horizontal="left")
         sheet.range(f"G{sr}").formula = f"=SUM(G3:G{last_row + 1})"
         # Default
         sheet.range(f"V{sr}").formula = f"=SUM(V3:V{last_row + 1})"
