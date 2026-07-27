@@ -255,6 +255,13 @@ def fill_formula():
     functions.format_cell_data_sheet(ws)
     update_status(app, "Applying shading...")
     functions.shade_sheet(ws)
+    # fill_lastrow_sheet must run after shade_sheet(): shade_sheet()'s
+    # apply_ibd_grid_borders draws xlInsideHorizontal grid lines across every row
+    # boundary in I:BD, which would otherwise overwrite the subtotal row's blue
+    # top/bottom border (apply_lastrow_border) at that exact boundary. Painting the
+    # blue border last makes it win.
+    update_status(app, "Filling subtotals...")
+    functions.fill_lastrow_sheet(wb, ws)
 
 
 # Fix the whole workbook. The function name will later change to fix_workbook
