@@ -253,6 +253,8 @@ def fill_formula():
     # Reset font sizes to default (Arial 12 for data, 9 for headers)
     update_status(app, "Formatting cells...")
     functions.format_cell_data_sheet(ws)
+    update_status(app, "Applying shading...")
+    functions.shade_sheet(ws)
 
 
 # Fix the whole workbook. The function name will later change to fix_workbook

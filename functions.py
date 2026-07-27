@@ -4179,21 +4179,31 @@ def indent_description(wb):
                     )
 
 
+def shade_sheet(ws, shaded=True):
+    """
+    Apply or remove the shaded region on a single sheet.
+
+    The underlying VBA macros ("shaded"/"unshaded") operate on ActiveSheet, so ws
+    is activated first. No-op for skipped sheets (Config, Cover, Summary, etc.).
+    """
+    if should_skip_sheet(ws.name):
+        return
+    ws.activate()
+    if shaded:
+        run_macro("shaded")
+        # shaded()'s Interior fill hides Excel's default view gridlines, so
+        # draw the real I:BD grid borders too — otherwise a sheet shaded
+        # before Fix Workbook ever ran shows a blank gray block.
+        apply_ibd_grid_borders(ws)
+    else:
+        run_macro("unshaded")
+
+
 def shaded(wb, shaded=True):
-    """Added Shaded region"""
+    """Add/remove the shaded region across every (non-skipped) sheet in the workbook."""
     current_sheet = wb.sheets.active
     for sheet in wb.sheet_names:
-        if not should_skip_sheet(sheet):
-            ws = wb.sheets[sheet]
-            ws.activate()
-            if shaded:
-                run_macro("shaded")
-                # shaded()'s Interior fill hides Excel's default view gridlines, so
-                # draw the real I:BD grid borders too — otherwise a sheet shaded
-                # before Fix Workbook ever ran shows a blank gray block.
-                apply_ibd_grid_borders(ws)
-            else:
-                run_macro("unshaded")
+        shade_sheet(wb.sheets[sheet], shaded=shaded)
     current_sheet.activate()
 
 
