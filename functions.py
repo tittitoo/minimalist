@@ -1727,6 +1727,7 @@ def fill_lastrow_sheet(wb, sheet):  # type: ignore
         sr = last_row + 2  # subtotal row (last_row+1 is spacer)
         row_range = sheet.range(f"{sr}:{sr}")
         apply_lastrow_border(row_range)
+        row_range.vertical_alignment = "center"
         sheet.range(f"F{sr}").formula = '="Subtotal(" & Config!B12 & ")"'
         sheet.range(f"F{sr}").font.size = 9
         sheet.range(f"G{sr}").formula = f"=SUM(G3:G{last_row + 1})"
