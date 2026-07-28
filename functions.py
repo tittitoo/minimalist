@@ -1306,6 +1306,12 @@ _UOM_CANONICAL = {
     # variant) covered too, same defensive reasoning as µs/μs above.
     "um": "µm", "μm": "µm",
     "bps": "bps", "kbps": "Kbps", "mbps": "Mbps", "gbps": "Gbps",
+    # Gigabit Ethernet port speed (e.g. "2 x 1GbE RJ45", "1x 10GbE SFP+") — distinct from
+    # the plain bit-rate "gbps" above (a raw throughput figure); "GbE" specifically denotes
+    # an Ethernet port/interface speed rating. No ordering dependency with "gb" (digital
+    # storage) below — its own boundary check never fires on "1GbE" since the "E" right
+    # after blocks that key's match.
+    "gbe": "GbE",
     # Digital storage (bytes) — distinct from the bit-rate units above (kbps/mbps/gbps).
     # The \b...\b word-boundary matching means "50gb" and "50gbps" never collide: neither
     # pattern's required boundary falls inside the other's literal string.
