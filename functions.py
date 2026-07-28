@@ -844,6 +844,14 @@ def expand_shorthand(text):
     return text
 
 
+def standardize_lsoh_acronym(text):
+    """"LSOH" (Low Smoke, Zero Halogen cable jacket rating) is a synonym for "LSZH" —
+    both are used interchangeably across cable/patch-cord datasheets, but LSZH is the
+    standardized spelling for our catalog. Always uppercase output regardless of input
+    casing."""
+    return re.sub(r"\bLSOH\b", "LSZH", text, flags=re.IGNORECASE)
+
+
 _SPACED_CAT_STANDARD_RE = re.compile(r"\bcat\.?\s*(5\s?e|6\s?a|6\s?e|5|6|7|8)\b", re.IGNORECASE)
 
 
@@ -1559,6 +1567,7 @@ def format_description_text(text, title_case=False):
     text = set_double_single_quote_inches(text)
     text = strip_optional_plural_paren(text)
     text = expand_shorthand(text)
+    text = standardize_lsoh_acronym(text)
     text = collapse_spaced_cat_standard(text)
     text = set_degree_unit(text)
     text = set_spaced_voltage_type(text)
