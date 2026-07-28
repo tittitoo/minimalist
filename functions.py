@@ -1292,6 +1292,11 @@ _UOM_CANONICAL = {
     # alphanumeric) and falls through to the µs key instead, regardless of
     # iteration order.
     "µ": "µ", "μ": "µ",
+    # Micrometre ("µm") — fiber-optic pigtail/patch-cord core/cladding specs are almost
+    # always typed as plain-ASCII "um" (e.g. "9/125um" for 9µm core / 125µm cladding
+    # single-mode fiber), since the micro sign isn't easy to type. "μm" (Greek mu
+    # variant) covered too, same defensive reasoning as µs/μs above.
+    "um": "µm", "μm": "µm",
     "bps": "bps", "kbps": "Kbps", "mbps": "Mbps", "gbps": "Gbps",
     # Digital storage (bytes) — distinct from the bit-rate units above (kbps/mbps/gbps).
     # The \b...\b word-boundary matching means "50gb" and "50gbps" never collide: neither
