@@ -15,6 +15,7 @@ import pandas as pd
 import re
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 # Import functions to test
 from functions import (
@@ -42,7 +43,7 @@ from functions import (
     _find_workbook_in_rfqs,
     sanitize_config_string,
     sanitize_config_date,
-    apply_option_scope_style,
+    apply_scope_style,
 )
 from datetime import datetime
 
@@ -342,7 +343,7 @@ class TestSetDimensionUnitChain(unittest.TestCase):
         self.assertEqual(set_dimension_unit_chain("27mm bracket"), "27mm bracket")
 
 
-class _MockOptionFont:
+class _MockScopeFont:
     """Records bold/color assignments for one range address."""
 
     def __init__(self, sink, addr):
@@ -366,11 +367,11 @@ class _MockOptionFont:
         self._sink.append((self._addr, "color", value))
 
 
-class _MockOptionRange:
+class _MockScopeRange:
     def __init__(self, addr, value=None, sink=None):
         self.addr = addr
         self._value = value
-        self.font = _MockOptionFont(sink if sink is not None else [], addr)
+        self.font = _MockScopeFont(sink if sink is not None else [], addr)
 
     @property
     def value(self):
@@ -380,38 +381,38 @@ class _MockOptionRange:
         return self
 
 
-class MockOptionSheet:
-    """Minimal sheet double supporting only the .range(...) calls
-    apply_option_scope_style makes, so its batching logic is testable without Excel."""
+class MockScopeSheet:
+    """Minimal sheet double supporting only the .range(...) calls apply_scope_style
+    makes, so its batching logic is testable without Excel."""
 
     def __init__(self, h_values, al_values=None):
         self.h_values = h_values
-        # Defaults to "Title" for every row when omitted, so existing tests that
-        # don't care about the AL split still exercise the bold path.
+        # Defaults to "Title" for every row when omitted, so tests that don't care
+        # about the AL split still exercise the bold path.
         self.al_values = al_values if al_values is not None else ["Title"] * len(h_values)
         self.calls = []  # (addr, prop, value) in call order
 
     def range(self, addr):
         last_row = len(self.h_values) + 2
         if addr == "C1500":
-            r = _MockOptionRange(addr)
+            r = _MockScopeRange(addr)
             r.row = last_row
             return r
         if addr == f"H3:H{last_row}":
-            return _MockOptionRange(addr, value=list(self.h_values))
+            return _MockScopeRange(addr, value=list(self.h_values))
         if addr == f"AL3:AL{last_row}":
-            return _MockOptionRange(addr, value=list(self.al_values))
-        return _MockOptionRange(addr, sink=self.calls)
+            return _MockScopeRange(addr, value=list(self.al_values))
+        return _MockScopeRange(addr, sink=self.calls)
 
 
-class TestApplyOptionScopeStyle(unittest.TestCase):
-    """Tests for apply_option_scope_style's contiguous-run batching logic."""
+class TestApplyScopeStyle(unittest.TestCase):
+    """Tests for apply_scope_style's per-Scope-value coloring and Title-only bold."""
 
     def test_batches_contiguous_runs_and_sets_bold_blue_for_option(self):
         # H3="", H4="OPTION", H5="OPTION", H6="", H7="OPTION" — all Title rows here,
         # so this only exercises the option/non-option split, not the AL-bold split.
-        sheet = MockOptionSheet(["", "OPTION", "OPTION", "", "OPTION"])
-        apply_option_scope_style(sheet)
+        sheet = MockScopeSheet(["", "OPTION", "OPTION", "", "OPTION"])
+        apply_scope_style(sheet)
 
         bold_true = {addr for addr, prop, val in sheet.calls if prop == "bold" and val is True}
         bold_false = {addr for addr, prop, val in sheet.calls if prop == "bold" and val is False}
@@ -428,11 +429,11 @@ class TestApplyOptionScopeStyle(unittest.TestCase):
         # H3="OPTION" on a Title row (bold+blue); H4="OPTION" on a Description
         # sub-item row (blue only, not bold) — mirrors the real BOQ layout where an
         # OPTION Title has an OPTION Description nested under it.
-        sheet = MockOptionSheet(
+        sheet = MockScopeSheet(
             h_values=["OPTION", "OPTION"],
             al_values=["Title", "Description"],
         )
-        apply_option_scope_style(sheet)
+        apply_scope_style(sheet)
 
         bold_calls = {addr: val for addr, prop, val in sheet.calls if prop == "bold"}
         color_calls = {addr: val for addr, prop, val in sheet.calls if prop == "color"}
@@ -442,9 +443,46 @@ class TestApplyOptionScopeStyle(unittest.TestCase):
         self.assertEqual(color_calls["H3:H3"], (4, 50, 255))
         self.assertEqual(color_calls["H4:H4"], (4, 50, 255))
 
+    def test_colors_each_scope_value_distinctly(self):
+        sheet = MockScopeSheet(
+            h_values=["INCLUDED", "WAIVED", "TBA"],
+            al_values=["Description", "Description", "Description"],
+        )
+        apply_scope_style(sheet)
+        color_calls = {addr: val for addr, prop, val in sheet.calls if prop == "color"}
+        self.assertEqual(color_calls["H3:H3"], (0, 128, 0))
+        self.assertEqual(color_calls["H4:H4"], (127, 127, 127))
+        self.assertEqual(color_calls["H5:H5"], (255, 140, 0))
+
+    def test_removed_gets_red_and_strikethrough_regardless_of_row_type(self):
+        # REMOVED strikethrough applies on every row type (unlike bold, which is
+        # Title-only) — it marks content as voided wherever it appears.
+        sheet = MockScopeSheet(
+            h_values=["REMOVED", "REMOVED"],
+            al_values=["Title", "Description"],
+        )
+        with patch("functions.set_range_strikethrough") as mock_strike:
+            apply_scope_style(sheet)
+
+        strike_calls = {c.args[0].addr: c.args[1] for c in mock_strike.call_args_list}
+        self.assertEqual(strike_calls, {"H3:H3": True, "H4:H4": True})
+
+        color_calls = {addr: val for addr, prop, val in sheet.calls if prop == "color"}
+        bold_calls = {addr: val for addr, prop, val in sheet.calls if prop == "bold"}
+        self.assertEqual(color_calls["H3:H3"], (192, 0, 0))
+        self.assertEqual(color_calls["H4:H4"], (192, 0, 0))
+        self.assertEqual(bold_calls["H3:H3"], True)
+        self.assertEqual(bold_calls["H4:H4"], False)
+
+    def test_non_removed_rows_get_strikethrough_cleared(self):
+        sheet = MockScopeSheet(h_values=["OPTION"], al_values=["Title"])
+        with patch("functions.set_range_strikethrough") as mock_strike:
+            apply_scope_style(sheet)
+        mock_strike.assert_called_once_with(mock_strike.call_args.args[0], False)
+
     def test_no_op_when_sheet_has_no_data_rows(self):
-        sheet = MockOptionSheet([])
-        apply_option_scope_style(sheet)
+        sheet = MockScopeSheet([])
+        apply_scope_style(sheet)
         self.assertEqual(sheet.calls, [])
 
 

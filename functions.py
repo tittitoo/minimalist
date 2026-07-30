@@ -173,6 +173,25 @@ def set_range_alignment(rng, horizontal=None, vertical=None):
         pass
 
 
+def set_range_strikethrough(rng, value):
+    """
+    Set strikethrough on a range, cross-platform.
+
+    Font.strikethrough is not a real xlwings property either (same class of gap as
+    vertical_alignment/horizontal_alignment above — assigning it silently no-ops
+    instead of raising or doing anything), so the real COM/AppleScript property
+    must be set via .api. Same platform-branching pattern already used inline
+    elsewhere in this module for carrying over source strikethrough formatting.
+    """
+    try:
+        if sys.platform == "win32":
+            rng.api.Font.Strikethrough = value
+        else:
+            rng.font.api.strikethrough.set(value)
+    except Exception:
+        pass
+
+
 def _has_problematic_path_chars(path: Path) -> bool:
     """Check if path contains characters that cause issues with macOS AppleScript."""
     problematic_chars = ["@", "#", "%"]
@@ -3896,12 +3915,33 @@ def apply_conditional_format(sheet):
     fc.Font.Bold = True
     fc.StopIfTrue = False
 
-def apply_option_scope_style(sheet):
+
+# Font color (and strikethrough for REMOVED) applied to column H based on its Scope
+# value. Bold is layered on top separately, only when the row's Format (column AL)
+# is "Title" — see apply_scope_style. Colors: OPTION=blue (established convention,
+# matches the Scope-like column on the Summary sheet), INCLUDED=green (reuses the
+# existing green already used for Summary's scope-percentage column), WAIVED=gray
+# (reuses the existing _COMMENT_GREY), TBA=orange, REMOVED=red — REMOVED also gets
+# strikethrough regardless of row type, since that's marking content as voided
+# everywhere it appears, not a hierarchy-level accent like bold is.
+_SCOPE_STYLE = {
+    "OPTION": {"color": (4, 50, 255)},
+    "INCLUDED": {"color": (0, 128, 0)},
+    "WAIVED": {"color": _COMMENT_GREY},
+    "TBA": {"color": (255, 140, 0)},
+    "REMOVED": {"color": (192, 0, 0), "strikethrough": True},
+}
+_SCOPE_STYLE_DEFAULT = {"color": (0, 0, 0)}
+
+
+def apply_scope_style(sheet):
     """
-    Blue-color Scope="OPTION" cells in column H; plain/black everything else. Bold
-    is added on top only when the row's Format (column AL) is "Title" — matching
-    that row's own bold weight from column C's row-type styling — so a sub-item
-    Description/Lineitem row marked OPTION reads blue at regular weight, not bold.
+    Color column H per its Scope value (OPTION/INCLUDED/WAIVED/TBA/REMOVED), plain
+    black for anything else. Bold is added on top only when the row's Format
+    (column AL) is "Title" — matching that row's own bold weight from column C's
+    row-type styling — so a sub-item Description/Lineitem row with a Scope value
+    reads in its color at regular weight, not bold. REMOVED additionally gets
+    strikethrough on every row regardless of Title/non-Title.
 
     Deliberately direct cell formatting, not Conditional Formatting: Excel's
     FormatConditions collection isn't exposed via AppleScript at all on Mac, so
@@ -3912,7 +3952,8 @@ def apply_option_scope_style(sheet):
     Mac at all. font.bold/font.color are genuine, working cross-platform xlwings
     Range properties (unlike e.g. vertical_alignment, which looks like a real
     property but silently no-ops), so plain direct assignment here works identically
-    on both platforms with no VBA dependency.
+    on both platforms with no VBA dependency. Strikethrough has no real xlwings
+    property either, so that one goes through set_range_strikethrough() instead.
 
     Batches contiguous same-status rows into single range writes to keep COM/
     AppleScript round trips down, same discipline as the formula-filling batching
@@ -3928,12 +3969,12 @@ def apply_option_scope_style(sheet):
     if not isinstance(al_values, list):
         al_values = [al_values]
 
-    # Each state is (is_option, is_bold) — is_bold only ever True alongside
-    # is_option, since bold is an OPTION-only accent, not an independent style.
-    states = [
-        (h == "OPTION", h == "OPTION" and al == "Title")
-        for h, al in zip(h_values, al_values)
-    ]
+    def _state(h, al):
+        style = _SCOPE_STYLE.get(h, _SCOPE_STYLE_DEFAULT)
+        bold = al == "Title" and h in _SCOPE_STYLE
+        return (style["color"], bold, style.get("strikethrough", False))
+
+    states = [_state(h, al) for h, al in zip(h_values, al_values)]
     start = 0
     while start < len(states):
         state = states[start]
@@ -3941,13 +3982,10 @@ def apply_option_scope_style(sheet):
         while end + 1 < len(states) and states[end + 1] == state:
             end += 1
         rng = sheet.range(f"H{start + 3}:H{end + 3}")
-        is_option, is_bold = state
-        if is_option:
-            rng.font.color = (4, 50, 255)
-            rng.font.bold = is_bold
-        else:
-            rng.font.color = (0, 0, 0)
-            rng.font.bold = False
+        color, bold, strikethrough = state
+        rng.font.color = color
+        rng.font.bold = bold
+        set_range_strikethrough(rng, strikethrough)
         start = end + 1
 
 
@@ -4147,7 +4185,7 @@ def conditional_format_wb(wb, app=None):
             # any code appended after it inside apply_conditional_format would
             # never run on Mac either. Called here as its own direct-formatting
             # step instead, so it runs regardless of which path the above took.
-            apply_option_scope_style(sheet)
+            apply_scope_style(sheet)
 
             apply_remove_h_borders(sheet)
             apply_format_column_border(sheet)
