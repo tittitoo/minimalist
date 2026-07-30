@@ -4222,25 +4222,28 @@ def format_text(
             desc_col = systems.loc[mask, "Description"].str.strip().str.lstrip("• ")
 
             if bullet_description:
-                # Handle ## prefix -> ▹ grandchild bullet (checked before single # below,
+                # Handle ## prefix -> ◦ grandchild bullet (checked before single # below,
                 # since "##..." also starts with "#")
                 starts_double_hash = desc_col.str.startswith("##")
                 # Handle # prefix (not ##) -> ‣ bullet
                 starts_hash = desc_col.str.startswith("#") & ~starts_double_hash
-                # Handle ▹ prefix -> ▹ grandchild bullet (already pasted from hote, third
-                # nesting level — see indentBulletLine/prefixForDepth in ConfigurationPane.vue)
-                starts_grandchild = desc_col.str.startswith("▹")
+                # Handle ◦ prefix -> ◦ grandchild bullet (already pasted from hote, third
+                # nesting level — see indentBulletLine/prefixForDepth in ConfigurationPane.vue).
+                # ▹ (the old third-level marker, replaced in hote for rendering too large
+                # next to ‣) is still recognized here too, for any content typed/pasted
+                # before that change.
+                starts_grandchild = desc_col.str.startswith("◦") | desc_col.str.startswith("▹")
                 # Handle ‣ prefix -> ‣ bullet
                 starts_triangle = desc_col.str.startswith("‣")
                 # Default -> • bullet
 
                 result = pd.Series(index=desc_col.index, dtype=str)
-                result[starts_double_hash] = "         ▹ " + desc_col[
+                result[starts_double_hash] = "         ◦ " + desc_col[
                     starts_double_hash
                 ].str.lstrip("# ")
-                result[starts_grandchild] = "         ▹ " + desc_col[
+                result[starts_grandchild] = "         ◦ " + desc_col[
                     starts_grandchild
-                ].str.lstrip("▹ ")
+                ].str.lstrip("◦▹ ")
                 result[starts_hash] = "      ‣ " + desc_col[starts_hash].str.lstrip(
                     "# "
                 )

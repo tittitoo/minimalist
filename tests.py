@@ -1331,6 +1331,36 @@ class TestFormatTextLogic(unittest.TestCase):
         self.assertTrue(systems.loc[0, "Description"].startswith("      ‣ "))
         self.assertTrue(systems.loc[1, "Description"].startswith("   • "))
 
+    def test_double_hash_and_grandchild_prefixes_become_grandchild_bullet(self):
+        """Test that ## and an existing ◦/▹ prefix all become the ◦ grandchild bullet.
+
+        ▹ (U+25B9 WHITE RIGHT-POINTING SMALL TRIANGLE) was hote's original third-level
+        marker; it rendered visibly larger than ‣ at the same font size, so hote switched
+        to ◦ (U+25E6 WHITE BULLET). Both are still recognized here for any content typed
+        or pasted before that change — see functions.py's format_text.
+        """
+        systems = pd.DataFrame({
+            "Description": ["## Deep item", "◦ Already grandchild", "▹ Old-style grandchild", "Regular item"],
+            "Format": ["Description", "Description", "Description", "Description"],
+        })
+
+        mask = systems["Format"] == "Description"
+        desc_col = systems.loc[mask, "Description"].str.strip().str.lstrip("• ")
+        starts_double_hash = desc_col.str.startswith("##")
+        starts_grandchild = desc_col.str.startswith("◦") | desc_col.str.startswith("▹")
+
+        result = pd.Series(index=desc_col.index, dtype=str)
+        result[starts_double_hash] = "         ◦ " + desc_col[starts_double_hash].str.lstrip("# ")
+        result[starts_grandchild] = "         ◦ " + desc_col[starts_grandchild].str.lstrip("◦▹ ")
+        other = ~starts_double_hash & ~starts_grandchild
+        result[other] = "   • " + desc_col[other]
+        systems.loc[mask, "Description"] = result
+
+        self.assertEqual(systems.loc[0, "Description"], "         ◦ Deep item")
+        self.assertEqual(systems.loc[1, "Description"], "         ◦ Already grandchild")
+        self.assertEqual(systems.loc[2, "Description"], "         ◦ Old-style grandchild")
+        self.assertTrue(systems.loc[3, "Description"].startswith("   • "))
+
 
 class TestSkipSheets(unittest.TestCase):
     """Test that SKIP_SHEETS constant is defined correctly."""
