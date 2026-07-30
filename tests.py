@@ -451,8 +451,8 @@ class TestApplyScopeStyle(unittest.TestCase):
         apply_scope_style(sheet)
         color_calls = {addr: val for addr, prop, val in sheet.calls if prop == "color"}
         self.assertEqual(color_calls["H3:H3"], (0, 128, 0))
-        self.assertEqual(color_calls["H4:H4"], (127, 127, 127))
-        self.assertEqual(color_calls["H5:H5"], (255, 140, 0))
+        self.assertEqual(color_calls["H4:H4"], (255, 140, 0))
+        self.assertEqual(color_calls["H5:H5"], (127, 127, 127))
 
     def test_removed_gets_red_and_strikethrough_regardless_of_row_type(self):
         # REMOVED strikethrough applies on every row type (unlike bold, which is

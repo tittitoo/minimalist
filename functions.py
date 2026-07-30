@@ -3920,15 +3920,15 @@ def apply_conditional_format(sheet):
 # value. Bold is layered on top separately, only when the row's Format (column AL)
 # is "Title" — see apply_scope_style. Colors: OPTION=blue (established convention,
 # matches the Scope-like column on the Summary sheet), INCLUDED=green (reuses the
-# existing green already used for Summary's scope-percentage column), WAIVED=gray
-# (reuses the existing _COMMENT_GREY), TBA=orange, REMOVED=red — REMOVED also gets
+# existing green already used for Summary's scope-percentage column), WAIVED=orange,
+# TBA=gray (reuses the existing _COMMENT_GREY), REMOVED=red — REMOVED also gets
 # strikethrough regardless of row type, since that's marking content as voided
 # everywhere it appears, not a hierarchy-level accent like bold is.
 _SCOPE_STYLE = {
     "OPTION": {"color": (4, 50, 255)},
     "INCLUDED": {"color": (0, 128, 0)},
-    "WAIVED": {"color": _COMMENT_GREY},
-    "TBA": {"color": (255, 140, 0)},
+    "WAIVED": {"color": (255, 140, 0)},
+    "TBA": {"color": _COMMENT_GREY},
     "REMOVED": {"color": (192, 0, 0), "strikethrough": True},
 }
 _SCOPE_STYLE_DEFAULT = {"color": (0, 0, 0)}
