@@ -384,8 +384,11 @@ class MockOptionSheet:
     """Minimal sheet double supporting only the .range(...) calls
     apply_option_scope_style makes, so its batching logic is testable without Excel."""
 
-    def __init__(self, h_values):
+    def __init__(self, h_values, al_values=None):
         self.h_values = h_values
+        # Defaults to "Title" for every row when omitted, so existing tests that
+        # don't care about the AL split still exercise the bold path.
+        self.al_values = al_values if al_values is not None else ["Title"] * len(h_values)
         self.calls = []  # (addr, prop, value) in call order
 
     def range(self, addr):
@@ -396,6 +399,8 @@ class MockOptionSheet:
             return r
         if addr == f"H3:H{last_row}":
             return _MockOptionRange(addr, value=list(self.h_values))
+        if addr == f"AL3:AL{last_row}":
+            return _MockOptionRange(addr, value=list(self.al_values))
         return _MockOptionRange(addr, sink=self.calls)
 
 
@@ -403,7 +408,8 @@ class TestApplyOptionScopeStyle(unittest.TestCase):
     """Tests for apply_option_scope_style's contiguous-run batching logic."""
 
     def test_batches_contiguous_runs_and_sets_bold_blue_for_option(self):
-        # H3="", H4="OPTION", H5="OPTION", H6="", H7="OPTION"
+        # H3="", H4="OPTION", H5="OPTION", H6="", H7="OPTION" — all Title rows here,
+        # so this only exercises the option/non-option split, not the AL-bold split.
         sheet = MockOptionSheet(["", "OPTION", "OPTION", "", "OPTION"])
         apply_option_scope_style(sheet)
 
@@ -417,6 +423,24 @@ class TestApplyOptionScopeStyle(unittest.TestCase):
         self.assertEqual(color_calls["H7:H7"], (4, 50, 255))
         self.assertEqual(color_calls["H3:H3"], (0, 0, 0))
         self.assertEqual(color_calls["H6:H6"], (0, 0, 0))
+
+    def test_bolds_option_only_on_title_rows_not_sub_item_rows(self):
+        # H3="OPTION" on a Title row (bold+blue); H4="OPTION" on a Description
+        # sub-item row (blue only, not bold) — mirrors the real BOQ layout where an
+        # OPTION Title has an OPTION Description nested under it.
+        sheet = MockOptionSheet(
+            h_values=["OPTION", "OPTION"],
+            al_values=["Title", "Description"],
+        )
+        apply_option_scope_style(sheet)
+
+        bold_calls = {addr: val for addr, prop, val in sheet.calls if prop == "bold"}
+        color_calls = {addr: val for addr, prop, val in sheet.calls if prop == "color"}
+
+        self.assertEqual(bold_calls["H3:H3"], True)
+        self.assertEqual(bold_calls["H4:H4"], False)
+        self.assertEqual(color_calls["H3:H3"], (4, 50, 255))
+        self.assertEqual(color_calls["H4:H4"], (4, 50, 255))
 
     def test_no_op_when_sheet_has_no_data_rows(self):
         sheet = MockOptionSheet([])

@@ -3898,7 +3898,10 @@ def apply_conditional_format(sheet):
 
 def apply_option_scope_style(sheet):
     """
-    Bold + blue-color Scope="OPTION" cells in column H; plain/black everything else.
+    Blue-color Scope="OPTION" cells in column H; plain/black everything else. Bold
+    is added on top only when the row's Format (column AL) is "Title" — matching
+    that row's own bold weight from column C's row-type styling — so a sub-item
+    Description/Lineitem row marked OPTION reads blue at regular weight, not bold.
 
     Deliberately direct cell formatting, not Conditional Formatting: Excel's
     FormatConditions collection isn't exposed via AppleScript at all on Mac, so
@@ -3918,24 +3921,33 @@ def apply_option_scope_style(sheet):
     last_row = sheet.range("C1500").end("up").row
     if last_row < 3:
         return
-    values = sheet.range(f"H3:H{last_row}").value
-    if not isinstance(values, list):
-        values = [values]
+    h_values = sheet.range(f"H3:H{last_row}").value
+    al_values = sheet.range(f"AL3:AL{last_row}").value
+    if not isinstance(h_values, list):
+        h_values = [h_values]
+    if not isinstance(al_values, list):
+        al_values = [al_values]
 
-    is_option = [v == "OPTION" for v in values]
+    # Each state is (is_option, is_bold) — is_bold only ever True alongside
+    # is_option, since bold is an OPTION-only accent, not an independent style.
+    states = [
+        (h == "OPTION", h == "OPTION" and al == "Title")
+        for h, al in zip(h_values, al_values)
+    ]
     start = 0
-    while start < len(is_option):
-        state = is_option[start]
+    while start < len(states):
+        state = states[start]
         end = start
-        while end + 1 < len(is_option) and is_option[end + 1] == state:
+        while end + 1 < len(states) and states[end + 1] == state:
             end += 1
         rng = sheet.range(f"H{start + 3}:H{end + 3}")
-        if state:
-            rng.font.bold = True
+        is_option, is_bold = state
+        if is_option:
             rng.font.color = (4, 50, 255)
+            rng.font.bold = is_bold
         else:
-            rng.font.bold = False
             rng.font.color = (0, 0, 0)
+            rng.font.bold = False
         start = end + 1
 
 
