@@ -3849,7 +3849,8 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
 def apply_conditional_format(sheet):
     """
-    Apply conditional formatting to column C (row type styles) and D:G (Title bold).
+    Apply conditional formatting to column C (row type styles), D:G (Title bold),
+    and H (bold blue Scope="OPTION").
     Uses xlwings API - no sheet activation required.
     """
     xlExpression = 2
@@ -3895,6 +3896,22 @@ def apply_conditional_format(sheet):
     fc.SetFirstPriority()
     fc.Font.Bold = True
     fc.StopIfTrue = False
+
+    # --- Column H: bold blue when Scope is OPTION ---
+    # Not a template-level rule (verified against Template.xlsx directly — only column
+    # C has any Conditional Formatting there) and not written anywhere else in this
+    # codebase either, so a workbook relied on this surviving purely as leftover direct
+    # cell formatting from however the row was first created/copied — fragile, and
+    # apparently didn't survive on Mac. Made an explicit, self-enforcing rule instead,
+    # same pattern as the column C rules above. Color matches the existing Scope-column
+    # blue used on the Summary sheet (see summary()'s H20:H font.color = (4, 50, 255)).
+    col_h = sheet.range("H:H")
+    col_h.api.FormatConditions.Delete()
+    fc = col_h.api.FormatConditions.Add(Type=xlExpression, Formula1='=$H1="OPTION"')
+    fc.SetFirstPriority()
+    fc.Font.Bold = True
+    fc.Font.Color = 16724484  # RGB(4, 50, 255) as a BGR long (R + G*256 + B*65536)
+    fc.StopIfTrue = True
 
 
 def apply_teal_border(sheet, col_letter, edge):
