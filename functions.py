@@ -1969,7 +1969,7 @@ def set_row_heights_wb(wb):
     PDF-bound flows (Simple Proposal, print-prep) but wrong for this one, which
     sizes rows for on-screen viewing/editing, not export.
 
-    Also top-aligns A:H for the same rows — nothing in this codebase ever set
+    Also top-aligns A:AW for the same rows — nothing in this codebase ever set
     vertical alignment on ordinary data rows before, so it fell back to the
     template's inherited default (bottom). Invisible on single-line rows, but once
     autofit grows a row to fit column C's wrapped description, every other column's
@@ -1998,7 +1998,7 @@ def set_row_heights_wb(wb):
                     sheet.range("D:BD").wrap_text = False
                     sheet.range(f"2:{last_row}").rows.autofit()
                     set_range_alignment(
-                        sheet.range(f"A2:H{last_row}"), vertical="top"
+                        sheet.range(f"A2:AW{last_row}"), vertical="top"
                     )
     finally:
         app.screen_updating = original_screen_updating
