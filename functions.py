@@ -3849,8 +3849,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
 def apply_conditional_format(sheet):
     """
-    Apply conditional formatting to column C (row type styles), D:G (Title bold),
-    and H (bold blue Scope="OPTION").
+    Apply conditional formatting to column C (row type styles) and D:G (Title bold).
     Uses xlwings API - no sheet activation required.
     """
     xlExpression = 2
@@ -3897,21 +3896,47 @@ def apply_conditional_format(sheet):
     fc.Font.Bold = True
     fc.StopIfTrue = False
 
-    # --- Column H: bold blue when Scope is OPTION ---
-    # Not a template-level rule (verified against Template.xlsx directly — only column
-    # C has any Conditional Formatting there) and not written anywhere else in this
-    # codebase either, so a workbook relied on this surviving purely as leftover direct
-    # cell formatting from however the row was first created/copied — fragile, and
-    # apparently didn't survive on Mac. Made an explicit, self-enforcing rule instead,
-    # same pattern as the column C rules above. Color matches the existing Scope-column
-    # blue used on the Summary sheet (see summary()'s H20:H font.color = (4, 50, 255)).
-    col_h = sheet.range("H:H")
-    col_h.api.FormatConditions.Delete()
-    fc = col_h.api.FormatConditions.Add(Type=xlExpression, Formula1='=$H1="OPTION"')
-    fc.SetFirstPriority()
-    fc.Font.Bold = True
-    fc.Font.Color = 16724484  # RGB(4, 50, 255) as a BGR long (R + G*256 + B*65536)
-    fc.StopIfTrue = True
+def apply_option_scope_style(sheet):
+    """
+    Bold + blue-color Scope="OPTION" cells in column H; plain/black everything else.
+
+    Deliberately direct cell formatting, not Conditional Formatting: Excel's
+    FormatConditions collection isn't exposed via AppleScript at all on Mac, so
+    col.api.FormatConditions.Add(...) (the mechanism apply_conditional_format above
+    uses for columns C and D:G) raises immediately there, and the whole call falls
+    back to a legacy VBA macro that was never updated to include this rule — meaning
+    a Conditional-Formatting-based version of this rule would silently never run on
+    Mac at all. font.bold/font.color are genuine, working cross-platform xlwings
+    Range properties (unlike e.g. vertical_alignment, which looks like a real
+    property but silently no-ops), so plain direct assignment here works identically
+    on both platforms with no VBA dependency.
+
+    Batches contiguous same-status rows into single range writes to keep COM/
+    AppleScript round trips down, same discipline as the formula-filling batching
+    elsewhere in this module.
+    """
+    last_row = sheet.range("C1500").end("up").row
+    if last_row < 3:
+        return
+    values = sheet.range(f"H3:H{last_row}").value
+    if not isinstance(values, list):
+        values = [values]
+
+    is_option = [v == "OPTION" for v in values]
+    start = 0
+    while start < len(is_option):
+        state = is_option[start]
+        end = start
+        while end + 1 < len(is_option) and is_option[end + 1] == state:
+            end += 1
+        rng = sheet.range(f"H{start + 3}:H{end + 3}")
+        if state:
+            rng.font.bold = True
+            rng.font.color = (4, 50, 255)
+        else:
+            rng.font.bold = False
+            rng.font.color = (0, 0, 0)
+        start = end + 1
 
 
 def apply_teal_border(sheet, col_letter, edge):
@@ -4102,6 +4127,15 @@ def conditional_format_wb(wb, app=None):
                 sheet.activate()
                 run_macro("conditional_format")
                 _restore()
+
+            # Independent of the try/except above: apply_conditional_format's
+            # column C/D:G rules go through COM-only FormatConditions, which isn't
+            # exposed via AppleScript on Mac at all — that call raises immediately
+            # there and the whole function falls back to the VBA macro, meaning
+            # any code appended after it inside apply_conditional_format would
+            # never run on Mac either. Called here as its own direct-formatting
+            # step instead, so it runs regardless of which path the above took.
+            apply_option_scope_style(sheet)
 
             apply_remove_h_borders(sheet)
             apply_format_column_border(sheet)

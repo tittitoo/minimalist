@@ -42,6 +42,7 @@ from functions import (
     _find_workbook_in_rfqs,
     sanitize_config_string,
     sanitize_config_date,
+    apply_option_scope_style,
 )
 from datetime import datetime
 
@@ -339,6 +340,88 @@ class TestSetDimensionUnitChain(unittest.TestCase):
 
     def test_leaves_single_unit_mention_untouched(self):
         self.assertEqual(set_dimension_unit_chain("27mm bracket"), "27mm bracket")
+
+
+class _MockOptionFont:
+    """Records bold/color assignments for one range address."""
+
+    def __init__(self, sink, addr):
+        self._sink = sink
+        self._addr = addr
+
+    @property
+    def bold(self):
+        raise NotImplementedError
+
+    @bold.setter
+    def bold(self, value):
+        self._sink.append((self._addr, "bold", value))
+
+    @property
+    def color(self):
+        raise NotImplementedError
+
+    @color.setter
+    def color(self, value):
+        self._sink.append((self._addr, "color", value))
+
+
+class _MockOptionRange:
+    def __init__(self, addr, value=None, sink=None):
+        self.addr = addr
+        self._value = value
+        self.font = _MockOptionFont(sink if sink is not None else [], addr)
+
+    @property
+    def value(self):
+        return self._value
+
+    def end(self, direction):
+        return self
+
+
+class MockOptionSheet:
+    """Minimal sheet double supporting only the .range(...) calls
+    apply_option_scope_style makes, so its batching logic is testable without Excel."""
+
+    def __init__(self, h_values):
+        self.h_values = h_values
+        self.calls = []  # (addr, prop, value) in call order
+
+    def range(self, addr):
+        last_row = len(self.h_values) + 2
+        if addr == "C1500":
+            r = _MockOptionRange(addr)
+            r.row = last_row
+            return r
+        if addr == f"H3:H{last_row}":
+            return _MockOptionRange(addr, value=list(self.h_values))
+        return _MockOptionRange(addr, sink=self.calls)
+
+
+class TestApplyOptionScopeStyle(unittest.TestCase):
+    """Tests for apply_option_scope_style's contiguous-run batching logic."""
+
+    def test_batches_contiguous_runs_and_sets_bold_blue_for_option(self):
+        # H3="", H4="OPTION", H5="OPTION", H6="", H7="OPTION"
+        sheet = MockOptionSheet(["", "OPTION", "OPTION", "", "OPTION"])
+        apply_option_scope_style(sheet)
+
+        bold_true = {addr for addr, prop, val in sheet.calls if prop == "bold" and val is True}
+        bold_false = {addr for addr, prop, val in sheet.calls if prop == "bold" and val is False}
+        color_calls = {addr: val for addr, prop, val in sheet.calls if prop == "color"}
+
+        self.assertEqual(bold_true, {"H4:H5", "H7:H7"})
+        self.assertEqual(bold_false, {"H3:H3", "H6:H6"})
+        self.assertEqual(color_calls["H4:H5"], (4, 50, 255))
+        self.assertEqual(color_calls["H7:H7"], (4, 50, 255))
+        self.assertEqual(color_calls["H3:H3"], (0, 0, 0))
+        self.assertEqual(color_calls["H6:H6"], (0, 0, 0))
+
+    def test_no_op_when_sheet_has_no_data_rows(self):
+        sheet = MockOptionSheet([])
+        apply_option_scope_style(sheet)
+        self.assertEqual(sheet.calls, [])
 
 
 class TestSetDegreeUnit(unittest.TestCase):
