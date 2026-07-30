@@ -946,11 +946,13 @@ class TestFormatDescriptionText(unittest.TestCase):
         )
 
     def test_strips_trailing_comma(self):
+        # "LSOH" -> "LSZH" here too since standardize_lsoh_acronym runs in the same
+        # pipeline — confirms trailing-comma stripping composes correctly with it.
         self.assertEqual(
             format_description_text(
                 "Cat6 UTP Patch Cord, LSOH, 1 m Length, 4P,", title_case=True
             ),
-            "Cat6 UTP Patch Cord, LSOH, 1 m Length, 4P",
+            "Cat6 UTP Patch Cord, LSZH, 1 m Length, 4P",
         )
 
     def test_always_normalizes_units_regardless_of_title_case_flag(self):

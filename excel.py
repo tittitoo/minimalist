@@ -418,7 +418,7 @@ def format_text():
 def indent_description():
     wb = xw.Book.caller()
     functions.fill_formula_wb(wb)
-    # functions.format_text(wb, indent_description=True, bullet_description=True)
+    functions.format_text(wb, indent_description=True, bullet_description=True)
 
 
 @check_if_template
