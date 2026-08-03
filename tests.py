@@ -1124,6 +1124,14 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
     PDF shows a new phantom-blank-line or clipped-text case, add it here
     with the source file/row noted, so recalibrating _SP_MDW_PX later can't
     silently regress a case already fixed.
+
+    IMPORTANT: as of the J12632 recalibration (see _SP_MDW_PX and
+    TestSpWrapLinesJ12632Regression below), several of these J12815-era
+    "confirmed single line" cases now predict 2 lines (a phantom blank line)
+    instead of 1. That's an accepted, deliberate trade-off — under-predicting
+    a wrap silently drops real content (proven to happen with the old MDW),
+    over-predicting just adds a harmless visible blank line. Do not "fix" this
+    by raising MDW back up without re-proving it against the J12632 cases too.
     """
 
     def test_confirmed_single_line_cases_do_not_get_a_phantom_second_line(self):
@@ -1131,15 +1139,27 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
         # line items — confirmed single-line in the real Windows Commercial PDF
         # (col_width=55), but mispredicted as 2 lines (phantom blank line)
         # under the old MDW=8.0.
-        cases = [
+        #
+        # Under the safety-biased MDW=7.9 (post-J12632), 4 of these 5 now
+        # predict 2 lines (phantom blank line) again — the same tension that
+        # motivated raising MDW to 9.2 originally. This time it's accepted:
+        # 9.2 was proven to silently drop real text in a different real
+        # document (see TestSpWrapLinesJ12632Regression), which is worse than
+        # a harmless extra blank line here.
+        still_one_line = [
+            "Software for Catalyst IE9300 Rugged Series · IE9300_sw",
+        ]
+        for text in still_one_line:
+            self.assertEqual(_sp_wrap_lines(text, 55), 1, f"expected 1 line: {text!r}")
+
+        now_phantom_two_lines = [
             "Cisco DNA Essentials License for IE9300 Series · IE9300-DNA-E",
             "IE 9300 DNA Essentials, 3 yr Term License · IE9300-DNA-E-3Y",
             "Digital Download Code for Software License · DIGITAL-DL-CODE",
             "Not Related to an IoT Solution; for Tracking Only. · IOT-OTHER",
-            "Software for Catalyst IE9300 Rugged Series · IE9300_sw",
         ]
-        for text in cases:
-            self.assertEqual(_sp_wrap_lines(text, 55), 1, f"expected 1 line: {text!r}")
+        for text in now_phantom_two_lines:
+            self.assertEqual(_sp_wrap_lines(text, 55), 2, f"expected 2 lines (accepted phantom line): {text!r}")
 
     def test_confirmed_two_line_cases_still_wrap(self):
         # Same source/sheet — confirmed genuinely 2 lines in the real Commercial
@@ -1178,9 +1198,10 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
         # Same workbook, sheet TN ("Technical Notes and Clarifications" A-E),
         # confirmed against the real generated Technical PDF at col_width=68.43
         # (TN/T&C sheets use a wider column than the BOQ Description column).
-        # Item D specifically needed the low end of the MDW range still
-        # compatible with the col_width=55/60 cases above — this is what
-        # pinned MDW down to [9.15, 9.3] instead of a wider range.
+        # Item D originally needed the low end of the old [9.15, 9.3] MDW
+        # window; under the safety-biased MDW=7.9 (post-J12632) it now predicts
+        # one extra phantom line (3 instead of 2) — accepted trade-off, see
+        # TestSpWrapLinesJ12632Regression.
         cases = [
             (
                 "Coating and painting as per manufacturers' standard unless "
@@ -1207,7 +1228,7 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
                 "All civil works such as running of cables, carpentry, "
                 "foundational works or any hot works, equipment installation "
                 "and field cable termination are to be provided by the Client.",
-                2,
+                3,  # was 2 under MDW=9.2; now a phantom extra line under MDW=7.9
             ),
             (
                 "Work permits required are to be provided by the Client. Work "
@@ -1236,6 +1257,11 @@ class TestSpWrapLinesItalicRegression(unittest.TestCase):
     "J12824 EKIUM - VENUS FPSO - NAVCOM B1" — Commercial (col_width=55) and Technical
     (col_width=60).  Across all 62 matchable comment rows the italic prediction matched
     the true PDF line count exactly; these are the boundary cases that pin the factor.
+
+    The true_italic values below are unaffected by the MDW=7.9 recalibration (see
+    _SP_MDW_PX / TestSpWrapLinesJ12632Regression) — they still match exactly. Only the
+    non_italic baselines shifted up (the base prediction now needs one more line before
+    the italic factor is even applied), so those are updated here.
     """
 
     def test_confirmed_clip_cases_need_the_extra_italic_line(self):
@@ -1243,19 +1269,19 @@ class TestSpWrapLinesItalicRegression(unittest.TestCase):
         # real PDF because the non-italic prediction was one line short.
         cases = [
             # Technical VSAT r211 — the "Satellite phone" note (screenshot)
-            ("*** Satellite phone is not in the specification. Therefore, propose as an option.", 60, 1, 2),
+            ("*** Satellite phone is not in the specification. Therefore, propose as an option.", 60, 2, 2),
             # Technical Berthing Aids r49
-            ("*** Two (2) Powerbankc can keep a CAT MAX System Running for 45 hours.", 60, 1, 2),
+            ("*** Two (2) Powerbankc can keep a CAT MAX System Running for 45 hours.", 60, 2, 2),
             # Technical VSAT r44 — real PDF also hyphen-breaks "Ka-band"; inflation covers it
             ("*** The specification does not mention any BUC requirement. Therefore, only "
              "C-band BUC is included in the offer. The other two Ku-band and Ka-band will "
-             "add only dummy BUC. Please advise the require band BUC and its power.", 60, 3, 4),
+             "add only dummy BUC. Please advise the require band BUC and its power.", 60, 4, 4),
             # Commercial RADAR r52 — the "X-Band" note (screenshot)
             ("*** Current Assumption is X-band Antenna and the Processor Unit distance is "
-             "within 50mtr. Client to advise if more than 50mtr is required.", 55, 2, 3),
+             "within 50mtr. Client to advise if more than 50mtr is required.", 55, 3, 3),
             # Commercial ES r23
             ("*** Commissioning man-days quantity is an estimate based on past experience. "
-             "Extra man-days are billable at the man-day rates indicated.", 55, 2, 3),
+             "Extra man-days are billable at the man-day rates indicated.", 55, 3, 3),
         ]
         for text, cw, non_italic, true_italic in cases:
             self.assertEqual(
@@ -1270,13 +1296,19 @@ class TestSpWrapLinesItalicRegression(unittest.TestCase):
     def test_stable_italic_cases_are_not_over_inflated(self):
         # Genuinely-fitting italic comments that must NOT gain a phantom blank line
         # when the inflation factor is applied (true count == non-italic count here).
+        #
+        # The first two cases (col_width=60) DID have true count == non-italic count
+        # under MDW=9.2 (both 2). Under the safety-biased MDW=7.9 they now pick up a
+        # phantom third line — an accepted regression (see _SP_MDW_PX rationale):
+        # eliminating the J12632 clipping required narrowing the base MDW itself, and
+        # that narrowing applies before the italic factor is ever considered.
         cases = [
             # Technical VSAT r95 — nearest to the phantom edge (flips only at factor 1.043)
             ("*** FO cores are not specify in the Block Diagram. Assume that each FO cable "
-             "has 24 cores. Please advise the FO cable information.", 60, 2),
+             "has 24 cores. Please advise the FO cable information.", 60, 3),
             # Technical RADAR r47 — the S-band twin of the clipped X-band note; fits at 2
             ("*** Current Assumption is S-band Radar Antenna and the Processor Unit distance "
-             "is within 50mtr. Client to advise if more than 50mtr is required.", 60, 2),
+             "is within 50mtr. Client to advise if more than 50mtr is required.", 60, 3),
             # Commercial VSAT r129
             ("*** DWDM equipment and all other subsea communication connection methods are "
              "not included in JEN's scope of supply and shall be provided by others.", 55, 3),
@@ -1300,6 +1332,55 @@ class TestSpWrapLinesItalicRegression(unittest.TestCase):
                     _sp_wrap_lines(text, cw, italic=True),
                     _sp_wrap_lines(text, cw),
                 )
+
+
+class TestSpWrapLinesJ12632Regression(unittest.TestCase):
+    """Regression cases that forced the MDW=9.2 -> 7.9 recalibration.
+
+    Confirmed against the real Windows-generated PDFs for "J12632 SPL - 2GW
+    TENNET HVDC BETA OSS - CCTV ITEM CHANGES" (Commercial + Technical). Under
+    the old MDW=9.2 these all predicted one fewer line than Excel's real
+    renderer produced, and — because overflow text is DROPPED rather than
+    visually clipped — the words below were confirmed completely absent from
+    the generated PDF via full-text search (not just eyeballed):
+    "10G Uplinks", "rugged series", "IE9300 Series", "Rugged SFP",
+    "(Safe Area)", and "(REMOVED)". These are real spec/scope words missing
+    from a client-facing proposal, which is why the calibration now biases
+    toward over-wrapping instead of "centered in the window" — see the
+    _SP_MDW_PX comment for the full rationale.
+    """
+
+    def test_commercial_boq_items_that_were_silently_clipped(self):
+        # Commercial J12632, Simple Proposal "Proposal" sheet, col_width=55.
+        cases = [
+            # Row 64 — "10G Uplinks" was completely absent from the PDF.
+            "Cisco IE-9320-22S2C4X-E 24 Port SFP Downlinks with 4 10G Uplinks",
+            # Row 65 — trailing "series" absent.
+            "Cisco IE9300_SW Software for Catalyst IE9300 rugged series",
+            # Row 68 — trailing "IE9300 Series" absent.
+            "Cisco IE9300-DNA-E Cisco DNA Essentials license for IE9300 Series",
+            # Row 72 — trailing "Rugged SFP" absent.
+            "Cisco GLC-FE-100LX-RGD= 100Mbps Single Mode Rugged SFP",
+            # Rows 110/135/159/181 — trailing "(Safe Area)" absent (same text,
+            # repeated across 4 different camera sections in the same document).
+            "10m, 3 Core (1.5mm FLEX) Cable c/w Cable Glands (Safe Area)",
+        ]
+        for text in cases:
+            self.assertEqual(
+                _sp_wrap_lines(text, 55), 2,
+                f"expected 2 lines (was clipped to 1 under old MDW): {text!r}",
+            )
+
+    def test_technical_cctv_title_row_that_was_silently_clipped(self):
+        # Technical J12632, "CCTV" sheet (prepare_to_print_technical flow,
+        # col_width=60) — row 181. "(REMOVED)" was completely absent from the
+        # PDF, dropping the one word that flags this item as a removed scope
+        # item on a document specifically about item changes.
+        text = "FIXED INDOOR CCTV CAMERA STATIONS - EMC TYPE (REMOVED)"
+        self.assertEqual(
+            _sp_wrap_lines(text, 60), 2,
+            f"expected 2 lines (was clipped to 1 under old MDW): {text!r}",
+        )
 
 
 class TestNumberTitleLogic(unittest.TestCase):

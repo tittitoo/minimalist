@@ -3072,28 +3072,45 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 # to-pixels formula, so a single MDW fit at one col_width doesn't necessarily hold exactly
 # at another — verified empirically: at col_width=55/60 (BOQ Description column) the safe
 # range is wide, but at col_width=68.43 (TN/T&C sheets, wider) one case needed the low end
-# of what's still compatible with the 55/60 cases. Re-verified against 20 confirmed real-PDF
-# cases spanning all three widths (Commercial/Technical proposal line items + TN sheet items
-# A-E) — MDW must stay in [9.15, 9.3] to satisfy all of them simultaneously; 9.2 sits
-# centered in that window. See TestSpWrapLinesRealPdfRegression in tests.py for the actual
-# cases — add to that set before ever moving this constant again, and re-run the full
-# regression suite, not just the one new failing text.
+# of what's still compatible with the 55/60 cases.
 #
 # This constant has swung back and forth many times before — worth knowing why: 260b5da/
 # b1658d9 found Windows needed a higher MDW (8.5, then 8.7) than Mac's 8.0, attributed at
 # the time to Windows rendering a wider physical column for the same col_width. 9db7c4c
 # collapsed both platforms to 8.0 while fixing a *different* bug (rows.autofit() clipping
 # text because screen rendering and PDF export use different renderers), discarding that
-# tuning. A later regression (this session) showed the "Windows renders wider" framing was
-# never the real explanation — the same phantom-line bug reproduced identically on Mac.
-# Root cause (confirmed via Microsoft/community sources): Windows PDF export in this app
-# goes through "Microsoft Print to PDF" (fixed 600 DPI, non-configurable), while autofit/
-# screen-based approaches are display-scaling-dependent and vary per machine — so a fixed
-# formula calibrated against real 600 DPI PDF output is inherently more reproducible than
-# matching autofit, but the formula is only as accurate as the col_width range it's been
-# checked against. If clipping reappears, narrow MDW slightly — but first add the new case
-# to the regression suite so the fix is provable, not another blind guess.
-_SP_MDW_PX    = 9.2
+# tuning. A later regression showed the "Windows renders wider" framing was never the real
+# explanation — the same phantom-line bug reproduced identically on Mac, which led to
+# 0b0987c raising MDW to 9.2 (verified against 20 real-PDF cases at the time, all satisfied
+# by MDW in [9.15, 9.3]).
+#
+# 9.2 was then PROVEN WRONG by real Windows PDFs from "J12632 SPL - 2GW TENNET HVDC BETA
+# OSS" (Commercial + Technical): at MDW=9.2, several BOQ line-item descriptions predicted as
+# 1 line actually wrapped to 2 in the real "Microsoft Print to PDF" render, and — because
+# clipped overflow text is simply DROPPED, not visually overlapped — real spec words were
+# silently missing from the generated proposal (confirmed absent via full-text search of
+# the PDF, not just eyeballed): "10G Uplinks", "rugged series", "IE9300 Series", "Rugged
+# SFP", "(Safe Area)" (col_width=55), and "(REMOVED)" (col_width=60, in
+# prepare_to_print_technical's CCTV sheet — same _sp_wrap_lines call, different caller).
+#
+# Critically: NO single MDW value satisfies both the J12632 clip cases and the older
+# 9.15-9.3 TN-sheet-derived window — brute-forced across the full pinned case set with no
+# solution found. The two real documents must have rendered the same nominal column width
+# differently (almost certainly different Windows machines/DPI-scaling — this app has
+# multiple users generating these on their own PCs, see _get_tools_path), which this
+# Python-side simulation has no way to detect or correct for per-document.
+#
+# Given that a single constant can't be correct for every machine, this now deliberately
+# biases toward SAFETY rather than "centered in the window": under-predicting a wrap silently
+# DROPS real content from a client-facing proposal (severe, invisible until someone notices
+# a spec is missing); over-predicting just adds a harmless blank line (cosmetic, visible,
+# obviously wrong on sight). 7.9 is the largest value (closest to the historical 8.0
+# baseline) that still forces every confirmed J12632 clip case to wrap correctly — see
+# TestSpWrapLinesJ12632Regression in tests.py. This necessarily reintroduces the phantom-
+# second-line cosmetic issue for some of the older pinned single-line cases (updated
+# accordingly in TestSpWrapLinesRealPdfRegression/TestSpWrapLinesItalicRegression) — that's
+# the accepted trade-off, not a regression to "fix" by nudging this back up.
+_SP_MDW_PX    = 7.9
 
 # Italic comment rows (the "*** ..." clarification notes) wrap to MORE lines in the real
 # PDF than _sp_wrap_lines predicts, so the row — sized for the smaller count — clips its
