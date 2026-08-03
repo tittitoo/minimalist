@@ -3249,8 +3249,6 @@ def _sp_apply_row_fmt(ws, row, fmt_type, mode, desc=None):
         row_range.font.color = (0, 0, 0)
     elif fmt_type == "Subtitle":
         row_range.font.italic = True
-        if sys.platform == "win32":
-            row_range.api.Font.Underline = 2  # xlUnderlineStyleSingle
     elif fmt_type == "Comment":
         row_range.font.italic = True
         if desc and str(desc).startswith("***"):
@@ -3889,7 +3887,6 @@ def apply_conditional_format(sheet):
     Uses xlwings API - no sheet activation required.
     """
     xlExpression = 2
-    xlUnderlineStyleSingle = 2
 
     # --- Column C: row-type styles ---
     col_c = sheet.range("C:C")
@@ -3900,7 +3897,7 @@ def apply_conditional_format(sheet):
         ("System", {"bold": True, "color": -7137279}),
         ("Subsystem", {"bold": True, "color": -7137279}),
         ("Title", {"bold": True}),
-        ("Subtitle", {"italic": True, "underline": xlUnderlineStyleSingle}),
+        ("Subtitle", {"italic": True}),
         ("Comment", {"italic": True, "color": -52732}),
         ("Deleted", {"strikethrough": True}),
     ]

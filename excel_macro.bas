@@ -76,7 +76,6 @@ Sub conditional_format()
     With Selection.FormatConditions(1).Font
         .Bold = False
         .Italic = True
-        .Underline = xlUnderlineStyleSingle
     End With
     Selection.FormatConditions(1).StopIfTrue = True
 
@@ -167,7 +166,6 @@ appTGGL bTGGL:=False
     With Selection.FormatConditions(1).Font
         .Bold = False
         .Italic = True
-        .Underline = xlUnderlineStyleSingle
     End With
     Selection.FormatConditions(1).StopIfTrue = True
 
