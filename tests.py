@@ -35,6 +35,7 @@ from functions import (
     _sp_wrap_lines,
     _SP_MDW_PX_WIN,
     _SP_MDW_PX_MAC,
+    _SP_MDW_PX_PRINT,
     SKIP_SHEETS,
     SHEET_ALIASES,
     resolve_sheet_name,
@@ -1458,6 +1459,38 @@ class TestSpWrapLinesGroundTruthCalibration(WindowsWrapCalibrationMixin, unittes
                         f"col=68 Mac avail {avail_68:.1f}pt outside measured 399-407pt")
         self.assertGreater(_SP_MDW_PX_MAC, _SP_MDW_PX_WIN,
                            "Mac fits more text per line than Windows — do not collapse these")
+
+    def test_print_prep_calibration_is_separate_from_simple_proposal(self):
+        # The normal Commercial/Technical flow renders a different document: Arial 14
+        # cells in an Arial-12-Normal template, versus Arial 12 in a Calibri-11-Normal
+        # one. Excel sizes a column in units of the Normal font's "0", so the same
+        # column_width buys more room there. Measured on Mac (J12632):
+        #     Commercial col=55 perfect avail 385-388pt -> MDW 9.315-9.388
+        #     Technical  col=60 perfect avail 410-417pt -> MDW 9.094-9.250
+        # 9.2 sits inside the Technical window and slightly narrow on Commercial —
+        # erring toward a cosmetic phantom line rather than clipping.
+        avail_60 = (60 * _SP_MDW_PX_PRINT + 1) * 0.75
+        avail_55 = (55 * _SP_MDW_PX_PRINT + 1) * 0.75
+        self.assertTrue(410 <= avail_60 <= 417,
+                        f"print-prep col=60 avail {avail_60:.1f}pt outside measured 410-417pt")
+        self.assertLessEqual(avail_55, 388,
+                             f"print-prep col=55 avail {avail_55:.1f}pt exceeds measured 388pt — clipping risk")
+        # Sharing one constant between the two flows is what caused the long
+        # 8.0/8.8/9.2/7.9/7.5 oscillation. Keep them apart.
+        self.assertNotEqual(_SP_MDW_PX_PRINT, _SP_MDW_PX_WIN)
+        self.assertNotEqual(_SP_MDW_PX_PRINT, _SP_MDW_PX_MAC)
+
+    def test_print_prep_flow_uses_the_print_calibration(self):
+        # _set_wrap_row_heights must pass mdw=_SP_MDW_PX_PRINT. Guards against a future
+        # edit dropping the argument and silently falling back to the simple-proposal
+        # value, which is ~55pt too narrow here and reintroduces the phantom lines.
+        text = "   • Camera Station Has an Ingress Protection Rating of IP66 & IP67"
+        self.assertNotEqual(
+            _sp_wrap_lines(text, 60, mdw=_SP_MDW_PX_PRINT),
+            _sp_wrap_lines(text, 60),
+            "pick a case where the two calibrations actually differ",
+        )
+        self.assertEqual(_sp_wrap_lines(text, 60, mdw=_SP_MDW_PX_PRINT), 1)
 
     def test_hyphen_broken_compound_word_row_gets_enough_lines(self):
         # Windows breaks "electro-polished" after the hyphen; Mac keeps it whole. We do

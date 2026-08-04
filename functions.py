@@ -1914,7 +1914,9 @@ def _set_wrap_row_heights(sheet, col_width=55):
         # "*** ..." rows are italic clarification comments (rendered in wider Arial
         # Italic); they need the italic-aware wrap count or their last line clips.
         italic = text.startswith("***")
-        lines = _sp_wrap_lines(text, col_width, italic=italic)
+        # _SP_MDW_PX_PRINT, not the simple-proposal constant — different template and
+        # cell font size, so a different column-width-to-points ratio. See its comment.
+        lines = _sp_wrap_lines(text, col_width, italic=italic, mdw=_SP_MDW_PX_PRINT)
         row_num = i + 2
         sheet.range(f"{row_num}:{row_num}").row_height = _SP_ROW_H * lines
 
@@ -3146,6 +3148,35 @@ _SP_MDW_PX_WIN = 7.50   # ground truth: 216 rows, J12632 Commercial+Technical (W
 _SP_MDW_PX_MAC = 7.87   # ground truth: 225 rows, J12632 Commercial (Mac); 0 clipped rows
 _SP_MDW_PX    = _SP_MDW_PX_WIN if sys.platform == "win32" else _SP_MDW_PX_MAC
 
+# The values above apply to the SIMPLE PROPOSAL only. The normal Commercial/Technical
+# print-prep flow (_set_wrap_row_heights, via prepare_to_print_*) renders a different
+# document and needs its own constant:
+#
+#     flow             cell font   template Normal font   measured MDW
+#     Simple Proposal  Arial 12    Calibri 11             7.50 / 7.87
+#     print-prep       Arial 14    Arial 12               ~9.1 - 9.4
+#
+# Excel's column-width unit is defined as the width of "0" in the WORKBOOK'S NORMAL FONT,
+# so a column_width of 60 buys materially more space in the Arial-12-based proposal
+# template than in the Calibri-11-based simple template. Applying the simple-proposal
+# value here left avail_pt ~55pt too narrow, putting a blank line under most wrapped
+# rows of every normal proposal.
+#
+# This is the other half of why the constant kept oscillating: 9.2 was never wrong, it
+# was the PRINT-PREP calibration, and successive sessions kept overwriting it with a
+# simple-proposal fit (and vice versa) because both flows shared one constant.
+#
+# Ground truth (Mac, J12632, tools/extract_wrap_ground_truth.py adapted to the CCTV sheet):
+#     Commercial col=55  perfect avail 385-388pt -> MDW 9.315-9.388
+#     Technical  col=60  perfect avail 410-417pt -> MDW 9.094-9.250
+# The two windows do not quite overlap (nominal vs stored column width differ by ~0.71,
+# which matters more at the narrower column), so 9.2 is chosen to sit safely INSIDE the
+# Technical window while landing 4.8pt narrow on Commercial — i.e. erring toward a
+# cosmetic phantom line rather than clipping, which silently drops text.
+# Windows print-prep is not separately measured; 9.2 is also the long-standing historical
+# value there, so it is left shared until a Windows-generated normal PDF is fitted.
+_SP_MDW_PX_PRINT = 9.2
+
 # Italic comment rows (the "*** ..." clarification notes) wrap to MORE lines in the real
 # PDF than _sp_wrap_lines predicts, so the row — sized for the smaller count — clips its
 # last line.  Two mechanisms cause this, both absent from the non-italic Helvetica metric
@@ -3224,7 +3255,7 @@ _JASON_BLUE = (0, 91, 191)     # #005BBF — Jason Blue
 _COMMENT_GREY = (127, 127, 127)  # mid-grey for comment rows
 
 
-def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT, italic=False):
+def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT, italic=False, mdw=None):
     """Return the number of word-wrapped lines *text* occupies in an Excel column.
 
     Matches Excel's WrapText word-break behaviour using ReportLab font metrics.
@@ -3245,7 +3276,7 @@ def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT, italic=F
     and under-counted exactly the rows most likely to wrap.
     """
     from reportlab.pdfbase.pdfmetrics import stringWidth as _sw
-    avail_pt = (col_width * _SP_MDW_PX + 1) * 0.75
+    avail_pt = (col_width * (_SP_MDW_PX if mdw is None else mdw) + 1) * 0.75
     if italic:
         avail_pt /= _SP_ITALIC_INFLATE
     text = str(text)
