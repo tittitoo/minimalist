@@ -199,6 +199,41 @@ def _has_problematic_path_chars(path: Path) -> bool:
     return any(char in path_str for char in problematic_chars)
 
 
+def set_workbook_window_visible(wb, visible: bool) -> None:
+    """Show or hide a workbook's window.
+
+    The Simple Proposal builds its output by opening a copy of the template in the
+    user's Excel instance, which leaves that workbook on screen for the whole run.
+    The normal Commercial/Technical flow edits the already-open source workbook in
+    place, so nothing new appears — hiding brings the Simple flow in line with that.
+
+    @disable_screen_updating alone does not help: it suppresses redraw of existing
+    windows, but a workbook opened afterwards still gets a visible window.
+
+    IMPORTANT: Excel persists window visibility into the saved file (the workbookView
+    entry). A workbook saved while hidden reopens hidden, which would make the
+    delivered .xlsx look empty. Callers must restore visibility before saving — see
+    simple_proposal.
+
+    Best-effort and never fatal: if this fails the proposal is still generated
+    correctly, just visibly, which is the previous behaviour.
+    """
+    try:
+        if sys.platform == "win32":
+            wb.api.Windows(1).Visible = visible
+        else:
+            name = wb.name.replace('"', '\\"')
+            state = "true" if visible else "false"
+            subprocess.run(
+                ["osascript", "-e",
+                 'tell application "Microsoft Excel" to set visible of '
+                 f'(every window whose name of its workbook is "{name}") to {state}'],
+                capture_output=True, text=True, timeout=30,
+            )
+    except Exception:
+        pass
+
+
 def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
     """
     Save workbook handling macOS AppleScript path limitations.
@@ -3580,6 +3615,11 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
 
     app = wb.app
     out_wb = open_workbook_safe(app, output_xlsx)
+    # Keep the working copy off screen while it is built — it is an intermediate
+    # artefact, and the normal Commercial/Technical flow never shows one either.
+    # Visibility is restored before saving (Excel would otherwise persist the hidden
+    # state into the delivered file).
+    set_workbook_window_visible(out_wb, False)
     pdf_ok = False
     try:
         ps = out_wb.sheets["Proposal"]
@@ -3944,6 +3984,11 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # -------------------------------------------------------------------
         # Save XLSX and export PDF
         # -------------------------------------------------------------------
+        # Restore visibility first: Excel stores window state in the file, so saving
+        # while hidden would produce an .xlsx that opens to a blank Excel for the
+        # recipient. The window is only on screen for the save/export tail, not the
+        # whole build.
+        set_workbook_window_visible(out_wb, True)
         save_workbook_safe(out_wb, output_xlsx)
         pdf_ok = True
         try:
