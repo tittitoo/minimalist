@@ -5380,7 +5380,8 @@ def update_template_version(wb):
     except Exception:
         current_wb_revision = None
         current_minor_revision = None
-    if current_wb_revision is None or current_wb_revision < int(LATEST_WB_VERSION[1:]):
+    major_updated = current_wb_revision is None or current_wb_revision < int(LATEST_WB_VERSION[1:])
+    if major_updated:
         wb.sheets["Config"].range("D1:I20").clear()
         wb.sheets["Config"].range("95:106").delete()
         # Copy design elements from PERSONAL.XLSB (using cached ranges)
@@ -5394,7 +5395,13 @@ def update_template_version(wb):
         run_macro("put_currency_proposal_validation_formula")
         flag += 1
 
-    if current_minor_revision is None or current_minor_revision < int(
+    # major_updated forces this branch too, regardless of the numeric minor-revision
+    # comparison. Without it, a workbook already past LATEST_MINOR_REVISION (e.g. an
+    # old "M3" against a reset "M0" after a major bump) would skip update_checklist —
+    # but the major branch above just deleted rows 95:106, which is exactly what
+    # update_checklist repopulates. Skipping would leave the SYSTEMS checklist blown
+    # away and Config!C15 stuck on the stale pre-major-bump value.
+    if major_updated or current_minor_revision is None or current_minor_revision < int(
         LATEST_MINOR_REVISION[1:]
     ):
         update_checklist(wb)  # Enabled the update checklist
