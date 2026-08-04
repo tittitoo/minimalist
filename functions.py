@@ -1942,6 +1942,13 @@ def _set_wrap_row_heights(sheet, col_width=55):
     c_vals = sheet.range(f"C2:C{last_row}").value
     if not isinstance(c_vals, list):
         c_vals = [c_vals]
+    # Column AL holds the row type. System/Subsystem/Title render bold, which is wider
+    # than the regular weight the wrapper measures by default. Read in one batch —
+    # per-cell reads here would be slow over AppleScript. Missing/unreadable AL just
+    # means no row is treated as bold, i.e. the previous behaviour.
+    al_vals = sheet.range(f"AL2:AL{last_row}").value
+    if not isinstance(al_vals, list):
+        al_vals = [al_vals]
     for i, val in enumerate(c_vals):
         text = str(val).strip() if val else ""
         if not text:
@@ -1949,9 +1956,11 @@ def _set_wrap_row_heights(sheet, col_width=55):
         # "*** ..." rows are italic clarification comments (rendered in wider Arial
         # Italic); they need the italic-aware wrap count or their last line clips.
         italic = text.startswith("***")
-        # _SP_MDW_PX_PRINT, not the simple-proposal constant — different template and
-        # cell font size, so a different column-width-to-points ratio. See its comment.
-        lines = _sp_wrap_lines(text, col_width, italic=italic, mdw=_SP_MDW_PX_PRINT)
+        bold = (al_vals[i] if i < len(al_vals) else None) in _SP_BOLD_FMTS
+        # _SP_MDW_PX_PRINT, not the simple-proposal constant — different template
+        # Normal style, so a different column-width-to-points ratio. See its comment.
+        lines = _sp_wrap_lines(text, col_width, italic=italic, bold=bold,
+                               mdw=_SP_MDW_PX_PRINT)
         row_num = i + 2
         sheet.range(f"{row_num}:{row_num}").row_height = _SP_ROW_H * lines
 
@@ -3099,6 +3108,10 @@ ACCOUNTING_PAREN = "#,##0.00;(#,##0.00)"   # negative shown as (111), not -111
 
 # Simple-Proposal layout constants — change font/size here to update everywhere.
 _SP_BODY_FONT = "Helvetica"  # ReportLab name; metrically equivalent to Excel's Arial
+_SP_BOLD_FONT = "Helvetica-Bold"  # heading rows; metrically equivalent to Arial Bold
+# AL row types rendered bold (see _sp_apply_row_fmt and the conditional-format rules).
+# Subtitle/Comment are italic, not bold, and are handled by _SP_ITALIC_INFLATE.
+_SP_BOLD_FMTS = ("System", "Subsystem", "Title")
 _SP_BODY_PT   = 12           # BOQ and totals body font size
 _SP_TC_PT     = 10           # T&C lines font size (subordinate to BOQ)
 _SP_ROW_H       = 18.0  # single-line row height for Arial 12pt; 18pt clears descenders on Mac Excel
@@ -3160,8 +3173,8 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 # PLATFORM SPLIT — do not collapse these into one value again.
 # Running the same ground-truth extraction against a Mac-rendered PDF of the SAME
 # workbook shows the two renderers genuinely disagree on how much text fits:
-#     Windows  col=55 must stay <= 308pt (clip bound) -> MDW <= 7.448
-#              col=68 perfect 380-384pt              -> MDW 7.436-7.515
+#     Windows  col=55 perfect 309-311pt -> MDW 7.473-7.521
+#              col=68 perfect 380-386pt -> MDW 7.436-7.554
 #     Mac      col=55 clips above 326pt, best 325-326pt -> MDW ~7.87
 #              col=68 perfect 399-407pt -> MDW 7.809-7.966
 # Each platform is confirmed at two independent column widths, which is what makes the
@@ -3169,14 +3182,15 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 # confirmed across TWO different Windows machines (J12632 and J12838/"Baker"), which
 # agree — so per-machine variation is not the problem it was once assumed to be.
 #
-# Windows was 7.50 until a second round of real files showed it still clipped one row:
-# the bold heading "PTZ OUTDOOR CCTV CAMERA STATIONS (CHANGED FROM TRIMODE TO OUTDOOR,
-# ADDITIONAL)" wraps to 3 lines but was predicted as 2. Root cause is a known modelling
-# gap rather than the constant: Title/System/Subsystem rows render BOLD, and
-# _sp_wrap_lines always measures with regular Helvetica, so bold headings are
-# systematically under-measured. 7.44 buys enough margin to absorb it (0 clipped rows
-# across both machines, at the cost of 4 cosmetic phantom lines). Measuring bold rows
-# with Helvetica-Bold would fix the cause properly and let this move back up.
+# A second round of real files showed 7.50 clipping one row: the bold heading "PTZ
+# OUTDOOR CCTV CAMERA STATIONS (CHANGED FROM TRIMODE TO OUTDOOR, ADDITIONAL)" wraps to 3
+# lines but was predicted as 2. The cause was a modelling gap, not the constant —
+# Title/System/Subsystem rows render BOLD while _sp_wrap_lines measured everything with
+# regular Helvetica, systematically under-measuring headings. _sp_wrap_lines now takes
+# bold=True for those rows (see _SP_BOLD_FMTS), which fixes the cause directly: with it,
+# col=55 gains a perfect window where it previously had none, and 7.50 lands inside both
+# widths' windows with 0 clipped AND 0 phantom rows on that machine. Widening the
+# constant to 7.44 to paper over it is therefore no longer needed.
 # i.e. Mac fits ~5% more text per line than Windows at the same nominal column width.
 # (Directly visible in the PDFs: Mac keeps "electro-polished" whole on one line where
 # Windows breaks it after the hyphen.)
@@ -3190,7 +3204,7 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 #
 # Both values are measured, not guessed. Keep them separate; fit each against a PDF
 # produced on THAT platform.
-_SP_MDW_PX_WIN = 7.44   # ground truth: J12632 + J12838 (two Windows machines); 0 clipped
+_SP_MDW_PX_WIN = 7.50   # ground truth: J12632 + J12838 (two Windows machines); 0 clipped
 _SP_MDW_PX_MAC = 7.87   # ground truth: 225 rows, J12632 Commercial (Mac); 0 clipped rows
 _SP_MDW_PX    = _SP_MDW_PX_WIN if sys.platform == "win32" else _SP_MDW_PX_MAC
 
@@ -3305,7 +3319,8 @@ _JASON_BLUE = (0, 91, 191)     # #005BBF — Jason Blue
 _COMMENT_GREY = (127, 127, 127)  # mid-grey for comment rows
 
 
-def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT, italic=False, mdw=None):
+def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT, italic=False,
+                   mdw=None, bold=False):
     """Return the number of word-wrapped lines *text* occupies in an Excel column.
 
     Matches Excel's WrapText word-break behaviour using ReportLab font metrics.
@@ -3314,6 +3329,14 @@ def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT, italic=F
     Helvetica is metrically equivalent to Arial; change *font* and *pt* to match
     whatever font is actually written to the sheet.  *col_width* is the Excel
     column_width value (same units as Range.column_width).
+
+    *bold* measures with Helvetica-Bold instead of Helvetica. Heading rows
+    (System/Subsystem/Title) are rendered bold, and Arial Bold is genuinely wider than
+    Arial — measuring them with the regular weight under-counted their lines, which is
+    how the bold heading "PTZ OUTDOOR CCTV CAMERA STATIONS (CHANGED FROM TRIMODE TO
+    OUTDOOR, ADDITIONAL)" came out clipped in a real Windows PDF. Unlike the italic
+    case this needs no fudge factor: Helvetica-Bold has real, distinct metrics, whereas
+    Helvetica-Oblique is metrically identical to Helvetica (hence _SP_ITALIC_INFLATE).
 
     *italic* narrows the available width by _SP_ITALIC_INFLATE, so italic comment
     rows (rendered in wider Arial Italic) predict the higher line count the real PDF
@@ -3329,6 +3352,8 @@ def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT, italic=F
     avail_pt = (col_width * (_SP_MDW_PX if mdw is None else mdw) + 1) * 0.75
     if italic:
         avail_pt /= _SP_ITALIC_INFLATE
+    if bold and font == _SP_BODY_FONT:
+        font = _SP_BOLD_FONT
     text = str(text)
     if not text.strip():
         return 1
@@ -3964,6 +3989,9 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # AppleScript, causing single-line rows to get 2-line height.  We derive
         # heights from the Python data already in memory — no Excel reads needed.
         _c_w = 55 if mode == "commercial" else 68
+        # Heading rows are written bold by _sp_apply_row_fmt, and Arial Bold is wider
+        # than Arial — measuring them with the regular weight under-counts their lines.
+        _bold_rows = {_row for (_row, _fmt, _d) in fmt_pending if _fmt in _SP_BOLD_FMTS}
         if data_end >= data_start and boq_rows:
             ps.range(f"{data_start}:{data_end}").row_height = _SP_ROW_H
             for _ri, _brow in enumerate(boq_rows):
@@ -3971,7 +3999,8 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 if _desc is None:
                     continue
                 _italic = str(_desc).strip().startswith("***")
-                _lines = _sp_wrap_lines(_desc, _c_w, italic=_italic)
+                _lines = _sp_wrap_lines(_desc, _c_w, italic=_italic,
+                                        bold=(data_start + _ri) in _bold_rows)
                 if _lines > 1:
                     ps.range(f"{data_start + _ri}:{data_start + _ri}").row_height = _SP_ROW_H * _lines
 

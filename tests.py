@@ -1437,14 +1437,13 @@ class TestSpWrapLinesGroundTruthCalibration(WindowsWrapCalibrationMixin, unittes
         # (the old MDW=7.9 assumed 326.6pt — a ~5% over-estimate that caused the
         # clipping). Both column widths must land inside their measured windows.
         # Refined against a second round of real files from TWO Windows machines
-        # (J12632 and J12838/"Baker"), which agree with each other:
-        #   col=55 must stay <= 308pt or the bold "PTZ OUTDOOR ... TRIMODE" heading clips
-        #   col=68 perfect window is 380-384pt
+        # (J12632 and J12838/"Baker"), which agree with each other. Measured with
+        # bold-aware wrapping, without which col=55 has no perfect window at all:
+        #   col=55 perfect 309-311pt, col=68 perfect 380-386pt
         avail_55 = (55 * _SP_MDW_PX_WIN + 1) * 0.75
         avail_68 = (68 * _SP_MDW_PX_WIN + 1) * 0.75
-        self.assertLessEqual(avail_55, 308,
-                             f"col=55 avail {avail_55:.1f}pt exceeds measured clip bound 308pt")
-        self.assertTrue(380 <= avail_68 <= 384, f"col=68 avail {avail_68:.1f}pt outside measured 380-384pt")
+        self.assertTrue(309 <= avail_55 <= 311, f"col=55 avail {avail_55:.1f}pt outside measured 309-311pt")
+        self.assertTrue(380 <= avail_68 <= 386, f"col=68 avail {avail_68:.1f}pt outside measured 380-386pt")
         # "(REMOVED)" is 384.71pt wide and MUST wrap — clipped rows are excluded from
         # the ground-truth fit, so this one needs asserting separately.
         self.assertLess(avail_68, 384.71, "col=68 avail too wide — '(REMOVED)' would clip again")
@@ -1484,6 +1483,36 @@ class TestSpWrapLinesGroundTruthCalibration(WindowsWrapCalibrationMixin, unittes
         # 8.0/8.8/9.2/7.9/7.5 oscillation. Keep them apart.
         self.assertNotEqual(_SP_MDW_PX_PRINT, _SP_MDW_PX_WIN)
         self.assertNotEqual(_SP_MDW_PX_PRINT, _SP_MDW_PX_MAC)
+
+    def test_bold_headings_are_measured_with_bold_metrics(self):
+        # Title/System/Subsystem rows render bold, and Arial Bold is genuinely wider.
+        # This heading is the real case that clipped in a Windows PDF: 3 lines in the
+        # PDF, but only 2 were predicted while everything was measured as regular.
+        text = "PTZ OUTDOOR CCTV CAMERA STATIONS (CHANGED FROM TRIMODE TO OUTDOOR, ADDITIONAL)"
+        self.assertEqual(_sp_wrap_lines(text, 55), 2)
+        self.assertEqual(_sp_wrap_lines(text, 55, bold=True), 3)
+
+    def test_bold_never_predicts_fewer_lines_than_regular(self):
+        # Helvetica-Bold is wider than Helvetica for every glyph, so enabling bold can
+        # only ever add lines. A row sized from bold metrics is therefore never shorter
+        # than the regular prediction — it cannot introduce clipping.
+        for text in [
+            "PTZ OUTDOOR CCTV CAMERA STATIONS (CHANGED FROM TRIMODE TO OUTDOOR, ADDITIONAL)",
+            "FIXED INDOOR CCTV CAMERA STATIONS - EMC TYPE (REMOVED)",
+            "   • Constructed in 316L stainless steel with electro-polished sunshield",
+            "Short heading",
+        ]:
+            for cw in (55, 60, 68):
+                self.assertGreaterEqual(
+                    _sp_wrap_lines(text, cw, bold=True),
+                    _sp_wrap_lines(text, cw),
+                    f"bold predicted fewer lines at col={cw}: {text[:40]!r}",
+                )
+
+    def test_only_bold_row_types_are_treated_as_bold(self):
+        # Subtitle and Comment are italic, not bold — they are handled by
+        # _SP_ITALIC_INFLATE and must not be swept into the bold set.
+        self.assertEqual(functions._SP_BOLD_FMTS, ("System", "Subsystem", "Title"))
 
     def test_print_prep_flow_uses_the_print_calibration(self):
         # _set_wrap_row_heights must pass mdw=_SP_MDW_PX_PRINT. Guards against a future
