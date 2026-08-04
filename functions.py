@@ -3123,8 +3123,12 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 # PLATFORM SPLIT — do not collapse these into one value again.
 # Running the same ground-truth extraction against a Mac-rendered PDF of the SAME
 # workbook shows the two renderers genuinely disagree on how much text fits:
-#     Windows  perfect at avail 309-315pt  -> MDW 7.473-7.618
-#     Mac      clips above avail 326pt, best at 325-326pt -> MDW ~7.87
+#     Windows  col=55 perfect 309-315pt -> MDW 7.473-7.618
+#              col=68 perfect 380-390pt -> MDW 7.436-7.632
+#     Mac      col=55 clips above 326pt, best 325-326pt -> MDW ~7.87
+#              col=68 perfect 399-407pt -> MDW 7.809-7.966
+# Each platform is confirmed at two independent column widths, which is what makes the
+# split trustworthy rather than a fit to one document.
 # i.e. Mac fits ~5% more text per line than Windows at the same nominal column width.
 # (Directly visible in the PDFs: Mac keeps "electro-polished" whole on one line where
 # Windows breaks it after the hyphen.)

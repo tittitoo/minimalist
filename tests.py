@@ -1445,12 +1445,17 @@ class TestSpWrapLinesGroundTruthCalibration(WindowsWrapCalibrationMixin, unittes
 
     def test_measured_available_width_matches_mac_calibration(self):
         # Mac renders ~5% more text per line than Windows at the same nominal column
-        # width, measured over 225 ground-truth rows of a Mac-generated PDF: no row
-        # clipped at avail <= 326pt, and 325-326pt minimised phantom lines. Setting the
-        # Windows value on Mac put a blank line under most wrapped rows.
+        # width. Measured on two Mac-generated PDFs of the same workbook:
+        #   col=55 (Simple Commercial, 225 rows): no clipping at avail <= 326pt,
+        #          325-326pt minimises phantom lines
+        #   col=68 (Simple Technical,  224 rows): perfect at avail 399-407pt
+        # Setting the Windows value on Mac put a blank line under most wrapped rows.
         avail_55 = (55 * _SP_MDW_PX_MAC + 1) * 0.75
+        avail_68 = (68 * _SP_MDW_PX_MAC + 1) * 0.75
         self.assertTrue(324 <= avail_55 <= 326,
                         f"col=55 Mac avail {avail_55:.1f}pt outside measured 324-326pt")
+        self.assertTrue(399 <= avail_68 <= 407,
+                        f"col=68 Mac avail {avail_68:.1f}pt outside measured 399-407pt")
         self.assertGreater(_SP_MDW_PX_MAC, _SP_MDW_PX_WIN,
                            "Mac fits more text per line than Windows — do not collapse these")
 
