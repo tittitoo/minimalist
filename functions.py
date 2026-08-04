@@ -222,12 +222,17 @@ def set_workbook_window_visible(wb, visible: bool) -> None:
         if sys.platform == "win32":
             wb.api.Windows(1).Visible = visible
         else:
+            # Address the workbook's own windows. An earlier version filtered with
+            # `every window whose name of its workbook is "..."`, which Excel evaluates
+            # to `missing value` rather than raising — so the hide silently did nothing
+            # and the workbook still appeared. `windows of workbook "<name>"` is the
+            # form Excel actually understands, and covers split/multiple windows.
             name = wb.name.replace('"', '\\"')
             state = "true" if visible else "false"
             subprocess.run(
                 ["osascript", "-e",
-                 'tell application "Microsoft Excel" to set visible of '
-                 f'(every window whose name of its workbook is "{name}") to {state}'],
+                 'tell application "Microsoft Excel" to set visible of every window '
+                 f'of workbook "{name}" to {state}'],
                 capture_output=True, text=True, timeout=30,
             )
     except Exception:
