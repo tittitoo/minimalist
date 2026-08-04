@@ -3369,7 +3369,6 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
     # Maps (row_idx, col_offset) -> (R, G, B); col_offset 0=B,1=C,2=D,3=E.
     # Optimisation: check column C first; only read B/D/E for rows where C is colored.
     _SRC_COLOR_OUT_COLS = ["B", "C", "D", "E"]
-    _special_fmts_color = {"System", "Subsystem", "Title", "Subtitle", "Comment"}
 
     def _xlw_to_rgb(v):
         if v is None:
@@ -3412,15 +3411,13 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 _no, _desc = _row_data[0], _row_data[2]
                 if not _desc and not _no:
                     continue
-                _al = _al_vals[_ri] if _al_vals else None
-                _no_has_val = _no is not None and (
-                    (isinstance(_no, str) and _no.strip()) or
-                    (isinstance(_no, (int, float)) and _no)
-                )
-                if _al in ("Comment", "Subtitle") and _no_has_val:
-                    _al = "Title"
-                if _al in _special_fmts_color:
-                    continue
+                # Colours are read for EVERY row, including System/Subsystem/Title/
+                # Subtitle/Comment. Those rows used to be skipped here, which meant a
+                # deliberately coloured heading in the source (e.g. a red "F&G INTERFACE"
+                # marking a changed section) was silently repainted black by the
+                # _sp_apply_row_fmt house style. _xlw_to_rgb already returns None for
+                # default/black/white, so only an explicit author colour is captured and
+                # the house style still applies everywhere else.
                 _c_rgb = _xlw_to_rgb(_src_ws.range(f"C{_ri + 3}").font.color)
                 if _c_rgb is None:
                     continue  # C is default — skip B/D/E too (saves calls per row)
@@ -3683,15 +3680,19 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                     fmt = "Title"
                 if fmt in ("System", "Subsystem", "Title", "Subtitle", "Comment"):
                     fmt_pending.append((r, fmt, desc))
-                else:
-                    if src_colors:
-                        for _ci, _col_letter in enumerate(_SRC_COLOR_OUT_COLS):
-                            if (i, _ci) in src_colors:
-                                color_pending.append((r, _col_letter, src_colors[(i, _ci)]))
-                    if src_strike:
-                        for _ci, _col_letter in enumerate(_SRC_COLOR_OUT_COLS):
-                            if (i, _ci) in src_strike:
-                                strike_pending.append((r, _col_letter))
+                # Source colour/strikethrough carry over for ALL rows, not just
+                # Description/Lineitem ones. color_pending is applied after
+                # _sp_apply_row_fmt and after the batch font writes, so an explicit
+                # author colour wins over the house style for that row; rows without
+                # one are unaffected (_xlw_to_rgb filters default/black/white out).
+                if src_colors:
+                    for _ci, _col_letter in enumerate(_SRC_COLOR_OUT_COLS):
+                        if (i, _ci) in src_colors:
+                            color_pending.append((r, _col_letter, src_colors[(i, _ci)]))
+                if src_strike:
+                    for _ci, _col_letter in enumerate(_SRC_COLOR_OUT_COLS):
+                        if (i, _ci) in src_strike:
+                            strike_pending.append((r, _col_letter))
 
                 r += 1
 
