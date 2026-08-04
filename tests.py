@@ -33,6 +33,7 @@ from functions import (
     set_spaced_voltage_type,
     expand_shorthand,
     _sp_wrap_lines,
+    _SP_MDW_PX,
     SKIP_SHEETS,
     SHEET_ALIASES,
     resolve_sheet_name,
@@ -1132,6 +1133,13 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
     a wrap silently drops real content (proven to happen with the old MDW),
     over-predicting just adds a harmless visible blank line. Do not "fix" this
     by raising MDW back up without re-proving it against the J12632 cases too.
+
+    TREAT THESE AS SUSPECT, NOT AUTHORITATIVE. Their "true" line counts were read
+    off `pdftotext -layout`, which reports hyphen-wrapped words and trailing
+    punctuation as though text were missing — the exact false positives that drove
+    several bad recalibrations. They are kept as change-detectors so a future MDW
+    move is visible, not as evidence of correct rendering. The trustworthy pins are
+    in TestSpWrapLinesGroundTruthCalibration, measured from real glyph geometry.
     """
 
     def test_confirmed_single_line_cases_do_not_get_a_phantom_second_line(self):
@@ -1180,7 +1188,13 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
         # proposal width — wider than Commercial's 55, so a case that's 2
         # lines at 55 can legitimately become 1 line at 60; only re-assert
         # the subset actually re-checked at this width, not all 10 cases).
-        one_line = [
+        #
+        # The three "one_line" cases now predict 2 under the ground-truth-derived
+        # MDW=7.50 — the same accepted phantom-line trade-off described in this
+        # class's docstring. These pins came from the old pdftotext method, which
+        # is exactly what the J12632 geometry measurement showed to be unreliable;
+        # they are kept as change-detectors, not as proof of correct behaviour.
+        now_phantom_two_line = [
             "Cisco DNA Essentials License for IE9300 Series · IE9300-DNA-E",
             "IE 9300 DNA Essentials, 3 yr Term License · IE9300-DNA-E-3Y",
             "Digital Download Code for Software License · DIGITAL-DL-CODE",
@@ -1189,8 +1203,8 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
             "SNTC-8X5XNBD 24 Port PoE+ Downlinks With 4x10G Uplink, 36 mth · CON-SNT-IE932PXE",
             "Network Plug-n-Play Connect for Zero-touch Device Deployment · NETWORK-PNP-LIC",
         ]
-        for text in one_line:
-            self.assertEqual(_sp_wrap_lines(text, 60), 1, f"expected 1 line at col_width=60: {text!r}")
+        for text in now_phantom_two_line:
+            self.assertEqual(_sp_wrap_lines(text, 60), 2, f"expected 2 lines (accepted phantom) at col_width=60: {text!r}")
         for text in two_line:
             self.assertEqual(_sp_wrap_lines(text, 60), 2, f"expected 2 lines at col_width=60: {text!r}")
 
@@ -1236,7 +1250,7 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
                 "that allows him to do work on-site after completing the "
                 "required site safety training. This is different from the "
                 "work visa, which is already included in the Mob/Demob fee.",
-                4,
+                5,  # was 4 under MDW=9.2/7.9; phantom extra line under MDW=7.50
             ),
         ]
         for text, expected in cases:
@@ -1381,6 +1395,53 @@ class TestSpWrapLinesJ12632Regression(unittest.TestCase):
             _sp_wrap_lines(text, 60), 2,
             f"expected 2 lines (was clipped to 1 under old MDW): {text!r}",
         )
+
+
+class TestSpWrapLinesGroundTruthCalibration(unittest.TestCase):
+    """Pins the MDW=7.50 calibration derived from real rendered PDF geometry.
+
+    Unlike every earlier pinned case in this file — which read "true" line counts off
+    `pdftotext -layout` and were repeatedly fooled by hyphen-wrapped words rendering as
+    "electro-" / "polished" — these come from actual glyph coordinates in the Windows
+    PDFs for "J12632 SPL - 2GW TENNET HVDC BETA OSS" (tools/extract_wrap_ground_truth.py),
+    matched back to their source cells.  216 rows across both documents; MDW=7.50 gives
+    zero mismatches at BOTH col_width=55 and col_width=68.
+
+    Regenerate with:
+        python tools/extract_wrap_ground_truth.py <proposal.xlsx> <proposal.pdf> <col_width>
+    """
+
+    def test_measured_available_width_matches_calibration(self):
+        # Measured directly from the PDF: usable text width is ~310pt at col_width=55
+        # (the old MDW=7.9 assumed 326.6pt — a ~5% over-estimate that caused the
+        # clipping). Both column widths must land inside their measured windows.
+        avail_55 = (55 * _SP_MDW_PX + 1) * 0.75
+        avail_68 = (68 * _SP_MDW_PX + 1) * 0.75
+        self.assertTrue(309 <= avail_55 <= 315, f"col=55 avail {avail_55:.1f}pt outside measured 309-315pt")
+        self.assertTrue(380 <= avail_68 <= 390, f"col=68 avail {avail_68:.1f}pt outside measured 380-390pt")
+        # "(REMOVED)" is 384.71pt wide and MUST wrap — clipped rows are excluded from
+        # the ground-truth fit, so this one needs asserting separately.
+        self.assertLess(avail_68, 384.71, "col=68 avail too wide — '(REMOVED)' would clip again")
+
+    def test_hyphen_broken_compound_word_row_gets_enough_lines(self):
+        # Windows breaks "electro-polished" after the hyphen; Mac keeps it whole. We do
+        # not model hyphen-splitting (it would wrongly split part numbers like
+        # WS-C2960X-24TS-L), but the correct LINE COUNT — all a row height needs — still
+        # falls out of the corrected width. Real PDF: 3 lines.
+        text = ("   • Constructed in 316L stainless steel with electro-polished "
+                "sunshield, Equipped with a Pre-Terminated 3 m cable tail")
+        self.assertEqual(_sp_wrap_lines(text, 55), 3)
+
+    def test_leading_indent_is_measured_not_discarded(self):
+        # Sub-item rows are indented in the source and Excel renders that indent, so it
+        # consumes real width. The old segment.split() dropped it, under-counting
+        # exactly the bullet rows most likely to wrap. A 3-space indent is ~10pt at
+        # Arial 12, so a string sized to sit just under the boundary must gain a line
+        # once the indent is counted.
+        body = ("Constructed in 316L stainless steel with electro-polished sunshield, "
+                "Equipped with a Pre-Terminated 3 m cable tail")
+        self.assertEqual(_sp_wrap_lines(body, 55), 2)
+        self.assertEqual(_sp_wrap_lines("   • " + body, 55), 3)
 
 
 class TestNumberTitleLogic(unittest.TestCase):

@@ -3085,32 +3085,41 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 # by MDW in [9.15, 9.3]).
 #
 # 9.2 was then PROVEN WRONG by real Windows PDFs from "J12632 SPL - 2GW TENNET HVDC BETA
-# OSS" (Commercial + Technical): at MDW=9.2, several BOQ line-item descriptions predicted as
-# 1 line actually wrapped to 2 in the real "Microsoft Print to PDF" render, and — because
-# clipped overflow text is simply DROPPED, not visually overlapped — real spec words were
-# silently missing from the generated proposal (confirmed absent via full-text search of
-# the PDF, not just eyeballed): "10G Uplinks", "rugged series", "IE9300 Series", "Rugged
-# SFP", "(Safe Area)" (col_width=55), and "(REMOVED)" (col_width=60, in
-# prepare_to_print_technical's CCTV sheet — same _sp_wrap_lines call, different caller).
+# OSS" (Commercial + Technical): several BOQ line-item descriptions predicted as 1 line
+# actually wrapped to 2 in the real "Microsoft Print to PDF" render, and — because clipped
+# overflow text is simply DROPPED, not visually overlapped — real spec words went silently
+# missing from the generated proposal. That prompted 9.2 -> 7.9, which still left clipping.
 #
-# Critically: NO single MDW value satisfies both the J12632 clip cases and the older
-# 9.15-9.3 TN-sheet-derived window — brute-forced across the full pinned case set with no
-# solution found. The two real documents must have rendered the same nominal column width
-# differently (almost certainly different Windows machines/DPI-scaling — this app has
-# multiple users generating these on their own PCs, see _get_tools_path), which this
-# Python-side simulation has no way to detect or correct for per-document.
+# 7.9 -> 7.50 (current) finally settled it, by replacing guesswork with MEASUREMENT.
+# Every calibration before this one was fitted to a handful of hand-picked cases whose
+# "true" line counts were read off `pdftotext -layout` output — which is unreliable here:
+# it reports hyphen-wrapped words ("electro-" / "polished") and trailing punctuation as if
+# text were missing, producing false positives that were then "fixed" by moving MDW.
 #
-# Given that a single constant can't be correct for every machine, this now deliberately
-# biases toward SAFETY rather than "centered in the window": under-predicting a wrap silently
-# DROPS real content from a client-facing proposal (severe, invisible until someone notices
-# a spec is missing); over-predicting just adds a harmless blank line (cosmetic, visible,
-# obviously wrong on sight). 7.9 is the largest value (closest to the historical 8.0
-# baseline) that still forces every confirmed J12632 clip case to wrap correctly — see
-# TestSpWrapLinesJ12632Regression in tests.py. This necessarily reintroduces the phantom-
-# second-line cosmetic issue for some of the older pinned single-line cases (updated
-# accordingly in TestSpWrapLinesRealPdfRegression/TestSpWrapLinesItalicRegression) — that's
-# the accepted trade-off, not a regression to "fix" by nudging this back up.
-_SP_MDW_PX    = 7.9
+# The current value is derived from actual rendered PDF geometry instead (PyMuPDF: real
+# glyph x-coordinates, real font, real line breaks), matched back to source cells to give
+# TRUE line counts for 216 rows across both J12632 documents. What that showed:
+#   - Column C renders as ArialMT at 9.48pt (Excel applies ~79% print scaling). Helvetica
+#     metrics reproduce the real rendered widths to within 0.4%, so the FONT MODEL was
+#     never the problem — only avail_pt was.
+#   - Measured usable width is ~310pt at col_width=55, but MDW=7.9 assumed 326.6pt — a
+#     systematic ~5% over-estimate, which is the entire source of the clipping.
+#   - Both column widths independently agree on the correction (the first time any two
+#     have): col=55 -> MDW 7.473-7.618, col=68 -> MDW 7.436-7.632. Intersected with the
+#     col=68 "(REMOVED)" case (needs avail < 384.71 -> MDW < 7.515), the usable window is
+#     7.473-7.515.  7.50 sits inside it and yields 0 mismatches across all 216 rows.
+# NOTE: clipped rows are necessarily EXCLUDED from that ground-truth set (their rendered
+# text can't match the source cell), so known clip cases must be added as explicit extra
+# constraints — that's why "(REMOVED)" is pinned separately in
+# TestSpWrapLinesGroundTruthCalibration rather than relied on to fall out of the fit.
+#
+# Consequence to be aware of: this contradicts the older J12815/J12824-derived pins that
+# once forced 9.2. Those came from the unreliable pdftotext method on a different machine
+# and are treated as suspect, not authoritative — see TestSpWrapLinesRealPdfRegression.
+# Before moving this constant again, re-run the ground-truth extraction (see
+# tools/extract_wrap_ground_truth.py) against the offending real PDF rather than
+# eyeballing one failing row.
+_SP_MDW_PX    = 7.50
 
 # Italic comment rows (the "*** ..." clarification notes) wrap to MORE lines in the real
 # PDF than _sp_wrap_lines predicts, so the row — sized for the smaller count — clips its
@@ -3203,13 +3212,19 @@ def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT, italic=F
     *italic* narrows the available width by _SP_ITALIC_INFLATE, so italic comment
     rows (rendered in wider Arial Italic) predict the higher line count the real PDF
     actually wraps them to — see _SP_ITALIC_INFLATE for the calibration.
+
+    Leading whitespace is measured, not discarded.  Sub-item rows are indented in the
+    source ("   • Constructed in 316L ...") and Excel renders that indent, so it
+    consumes real width on the first line — roughly 10pt for a 3-space indent at
+    Arial 12.  An earlier version called segment.split(), which silently dropped it
+    and under-counted exactly the rows most likely to wrap.
     """
     from reportlab.pdfbase.pdfmetrics import stringWidth as _sw
     avail_pt = (col_width * _SP_MDW_PX + 1) * 0.75
     if italic:
         avail_pt /= _SP_ITALIC_INFLATE
-    text = str(text).strip()
-    if not text:
+    text = str(text)
+    if not text.strip():
         return 1
     sp_w = _sw(" ", font, pt)
     total = 0
@@ -3217,12 +3232,13 @@ def _sp_wrap_lines(text, col_width, font=_SP_BODY_FONT, pt=_SP_BODY_PT, italic=F
         if not segment.strip():
             total += 1   # blank line still occupies a row in Excel
             continue
-        words = segment.split()
-        seg_lines, cur = 1, 0.0
-        for w in words:
+        body = segment.lstrip()
+        lead_w = _sw(segment[: len(segment) - len(body)], font, pt)
+        seg_lines, cur = 1, None
+        for w in body.split():
             ww = _sw(w, font, pt)
-            if cur == 0:
-                cur = ww
+            if cur is None:
+                cur = lead_w + ww     # first line carries the indent
             elif cur + sp_w + ww > avail_pt:
                 seg_lines += 1
                 cur = ww
