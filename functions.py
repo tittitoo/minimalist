@@ -641,8 +641,8 @@ RESOURCES = os.path.join(
 )
 
 # To update the value upon updating of the template.
-LATEST_WB_VERSION = "R2"
-LATEST_MINOR_REVISION = "M4"
+LATEST_WB_VERSION = "R3"
+LATEST_MINOR_REVISION = "M3"
 UPDATE_MESSAGE = "Revision colors have been updated to the new standard (R0-R7)."
 
 # Skipped sheets (includes TN as alias for Technical_Notes)
