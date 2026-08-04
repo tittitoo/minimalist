@@ -3119,7 +3119,28 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 # Before moving this constant again, re-run the ground-truth extraction (see
 # tools/extract_wrap_ground_truth.py) against the offending real PDF rather than
 # eyeballing one failing row.
-_SP_MDW_PX    = 7.50
+#
+# PLATFORM SPLIT — do not collapse these into one value again.
+# Running the same ground-truth extraction against a Mac-rendered PDF of the SAME
+# workbook shows the two renderers genuinely disagree on how much text fits:
+#     Windows  perfect at avail 309-315pt  -> MDW 7.473-7.618
+#     Mac      clips above avail 326pt, best at 325-326pt -> MDW ~7.87
+# i.e. Mac fits ~5% more text per line than Windows at the same nominal column width.
+# (Directly visible in the PDFs: Mac keeps "electro-polished" whole on one line where
+# Windows breaks it after the hyphen.)
+#
+# This is the real reason calibration kept oscillating. 260b5da/b1658d9 originally had a
+# per-platform split (8.5/8.7 Windows vs 8.0 Mac); 9db7c4c collapsed both to 8.0 while
+# fixing an unrelated autofit bug, and every value since has been a single constant fitted
+# to whichever platform's PDF happened to be under investigation — necessarily wrong on
+# the other one. Tuning Windows down to 7.50 fixed Windows clipping and immediately put
+# phantom blank lines into every Mac-generated proposal.
+#
+# Both values are measured, not guessed. Keep them separate; fit each against a PDF
+# produced on THAT platform.
+_SP_MDW_PX_WIN = 7.50   # ground truth: 216 rows, J12632 Commercial+Technical (Windows)
+_SP_MDW_PX_MAC = 7.87   # ground truth: 225 rows, J12632 Commercial (Mac); 0 clipped rows
+_SP_MDW_PX    = _SP_MDW_PX_WIN if sys.platform == "win32" else _SP_MDW_PX_MAC
 
 # Italic comment rows (the "*** ..." clarification notes) wrap to MORE lines in the real
 # PDF than _sp_wrap_lines predicts, so the row — sized for the smaller count — clips its
@@ -3366,9 +3387,13 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
     entity_info = _SIMPLE_ENTITY_DATA.get(entity_key, _SIMPLE_ENTITY_DATA[_SIMPLE_ENTITY_DEFAULT])
 
     # Collect BOQ data and font colors per sheet.
-    # Maps (row_idx, col_offset) -> (R, G, B); col_offset 0=B,1=C,2=D,3=E.
-    # Optimisation: check column C first; only read B/D/E for rows where C is colored.
-    _SRC_COLOR_OUT_COLS = ["B", "C", "D", "E"]
+    # Maps (row_idx, col_offset) -> (R, G, B), indexed against _SRC_COLOR_OUT_COLS.
+    # Source and output share the A-H layout, so the mapping is identity.
+    #
+    # F/G (Unit Price, Total) are included: they were previously omitted, so a heading
+    # row whose price figures were coloured in the source — e.g. a removed item shown
+    # with red -22 / set / 4,387.00 / (96,514.00) — printed those figures black.
+    _SRC_COLOR_OUT_COLS = ["B", "C", "D", "E", "F", "G"]
 
     def _xlw_to_rgb(v):
         if v is None:
@@ -3418,11 +3443,14 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 # _sp_apply_row_fmt house style. _xlw_to_rgb already returns None for
                 # default/black/white, so only an explicit author colour is captured and
                 # the house style still applies everywhere else.
-                _c_rgb = _xlw_to_rgb(_src_ws.range(f"C{_ri + 3}").font.color)
-                if _c_rgb is None:
-                    continue  # C is default — skip B/D/E too (saves calls per row)
-                _sheet_colors[(_ri, 1)] = _c_rgb
-                for _ci, _ltr in [(0, "B"), (2, "D"), (3, "E")]:
+                #
+                # Every column is read independently. An earlier version checked C first
+                # and skipped the rest of the row when C was default — but a removed-item
+                # heading typically has a plain black Description and colours only the
+                # figures beside it (red -22 / set / 4,387.00 / (96,514.00)), so that
+                # short-circuit discarded exactly the colours the author had set. Costs a
+                # few more reads per row; correctness beats the saved calls here.
+                for _ci, _ltr in enumerate(_SRC_COLOR_OUT_COLS):
                     _rgb = _xlw_to_rgb(_src_ws.range(f"{_ltr}{_ri + 3}").font.color)
                     if _rgb:
                         _sheet_colors[(_ri, _ci)] = _rgb

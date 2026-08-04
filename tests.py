@@ -33,7 +33,8 @@ from functions import (
     set_spaced_voltage_type,
     expand_shorthand,
     _sp_wrap_lines,
-    _SP_MDW_PX,
+    _SP_MDW_PX_WIN,
+    _SP_MDW_PX_MAC,
     SKIP_SHEETS,
     SHEET_ALIASES,
     resolve_sheet_name,
@@ -47,6 +48,25 @@ from functions import (
     apply_scope_style,
 )
 from datetime import datetime
+
+import functions
+
+
+class WindowsWrapCalibrationMixin:
+    """Pin _SP_MDW_PX to the Windows value for the duration of the test.
+
+    _SP_MDW_PX is platform-dependent (Windows and Mac render different amounts of
+    text per line — see the constant's comment in functions.py). Every wrap case
+    pinned in this file was verified against a Windows-generated PDF, so they must
+    be asserted against the Windows constant regardless of the machine running the
+    suite, or the results would flip depending on the developer's OS.
+    """
+
+    def setUp(self):
+        super().setUp()
+        p = patch.object(functions, "_SP_MDW_PX", _SP_MDW_PX_WIN)
+        p.start()
+        self.addCleanup(p.stop)
 
 
 class TestSetNittyGritty(unittest.TestCase):
@@ -1113,7 +1133,7 @@ class TestFormatDescriptionText(unittest.TestCase):
         self.assertEqual(format_description_text("", title_case=True), "")
 
 
-class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
+class TestSpWrapLinesRealPdfRegression(WindowsWrapCalibrationMixin, unittest.TestCase):
     """Regression cases for _sp_wrap_lines pinned against real generated PDFs.
 
     _SP_MDW_PX predicts how many lines Excel's actual print/export renderer
@@ -1260,7 +1280,7 @@ class TestSpWrapLinesRealPdfRegression(unittest.TestCase):
             )
 
 
-class TestSpWrapLinesItalicRegression(unittest.TestCase):
+class TestSpWrapLinesItalicRegression(WindowsWrapCalibrationMixin, unittest.TestCase):
     """Regression cases for italic-comment wrapping, pinned against real PDFs.
 
     "*** ..." clarification comments render in Arial Italic, which wraps to more
@@ -1348,7 +1368,7 @@ class TestSpWrapLinesItalicRegression(unittest.TestCase):
                 )
 
 
-class TestSpWrapLinesJ12632Regression(unittest.TestCase):
+class TestSpWrapLinesJ12632Regression(WindowsWrapCalibrationMixin, unittest.TestCase):
     """Regression cases that forced the MDW=9.2 -> 7.9 recalibration.
 
     Confirmed against the real Windows-generated PDFs for "J12632 SPL - 2GW
@@ -1397,7 +1417,7 @@ class TestSpWrapLinesJ12632Regression(unittest.TestCase):
         )
 
 
-class TestSpWrapLinesGroundTruthCalibration(unittest.TestCase):
+class TestSpWrapLinesGroundTruthCalibration(WindowsWrapCalibrationMixin, unittest.TestCase):
     """Pins the MDW=7.50 calibration derived from real rendered PDF geometry.
 
     Unlike every earlier pinned case in this file — which read "true" line counts off
@@ -1411,17 +1431,28 @@ class TestSpWrapLinesGroundTruthCalibration(unittest.TestCase):
         python tools/extract_wrap_ground_truth.py <proposal.xlsx> <proposal.pdf> <col_width>
     """
 
-    def test_measured_available_width_matches_calibration(self):
+    def test_measured_available_width_matches_windows_calibration(self):
         # Measured directly from the PDF: usable text width is ~310pt at col_width=55
         # (the old MDW=7.9 assumed 326.6pt — a ~5% over-estimate that caused the
         # clipping). Both column widths must land inside their measured windows.
-        avail_55 = (55 * _SP_MDW_PX + 1) * 0.75
-        avail_68 = (68 * _SP_MDW_PX + 1) * 0.75
+        avail_55 = (55 * _SP_MDW_PX_WIN + 1) * 0.75
+        avail_68 = (68 * _SP_MDW_PX_WIN + 1) * 0.75
         self.assertTrue(309 <= avail_55 <= 315, f"col=55 avail {avail_55:.1f}pt outside measured 309-315pt")
         self.assertTrue(380 <= avail_68 <= 390, f"col=68 avail {avail_68:.1f}pt outside measured 380-390pt")
         # "(REMOVED)" is 384.71pt wide and MUST wrap — clipped rows are excluded from
         # the ground-truth fit, so this one needs asserting separately.
         self.assertLess(avail_68, 384.71, "col=68 avail too wide — '(REMOVED)' would clip again")
+
+    def test_measured_available_width_matches_mac_calibration(self):
+        # Mac renders ~5% more text per line than Windows at the same nominal column
+        # width, measured over 225 ground-truth rows of a Mac-generated PDF: no row
+        # clipped at avail <= 326pt, and 325-326pt minimised phantom lines. Setting the
+        # Windows value on Mac put a blank line under most wrapped rows.
+        avail_55 = (55 * _SP_MDW_PX_MAC + 1) * 0.75
+        self.assertTrue(324 <= avail_55 <= 326,
+                        f"col=55 Mac avail {avail_55:.1f}pt outside measured 324-326pt")
+        self.assertGreater(_SP_MDW_PX_MAC, _SP_MDW_PX_WIN,
+                           "Mac fits more text per line than Windows — do not collapse these")
 
     def test_hyphen_broken_compound_word_row_gets_enough_lines(self):
         # Windows breaks "electro-polished" after the hyphen; Mac keeps it whole. We do
