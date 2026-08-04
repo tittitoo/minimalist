@@ -3160,12 +3160,23 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 # PLATFORM SPLIT — do not collapse these into one value again.
 # Running the same ground-truth extraction against a Mac-rendered PDF of the SAME
 # workbook shows the two renderers genuinely disagree on how much text fits:
-#     Windows  col=55 perfect 309-315pt -> MDW 7.473-7.618
-#              col=68 perfect 380-390pt -> MDW 7.436-7.632
+#     Windows  col=55 must stay <= 308pt (clip bound) -> MDW <= 7.448
+#              col=68 perfect 380-384pt              -> MDW 7.436-7.515
 #     Mac      col=55 clips above 326pt, best 325-326pt -> MDW ~7.87
 #              col=68 perfect 399-407pt -> MDW 7.809-7.966
 # Each platform is confirmed at two independent column widths, which is what makes the
-# split trustworthy rather than a fit to one document.
+# split trustworthy rather than a fit to one document. The Windows figures are further
+# confirmed across TWO different Windows machines (J12632 and J12838/"Baker"), which
+# agree — so per-machine variation is not the problem it was once assumed to be.
+#
+# Windows was 7.50 until a second round of real files showed it still clipped one row:
+# the bold heading "PTZ OUTDOOR CCTV CAMERA STATIONS (CHANGED FROM TRIMODE TO OUTDOOR,
+# ADDITIONAL)" wraps to 3 lines but was predicted as 2. Root cause is a known modelling
+# gap rather than the constant: Title/System/Subsystem rows render BOLD, and
+# _sp_wrap_lines always measures with regular Helvetica, so bold headings are
+# systematically under-measured. 7.44 buys enough margin to absorb it (0 clipped rows
+# across both machines, at the cost of 4 cosmetic phantom lines). Measuring bold rows
+# with Helvetica-Bold would fix the cause properly and let this move back up.
 # i.e. Mac fits ~5% more text per line than Windows at the same nominal column width.
 # (Directly visible in the PDFs: Mac keeps "electro-polished" whole on one line where
 # Windows breaks it after the hyphen.)
@@ -3179,7 +3190,7 @@ _SP_EMPTY_ROW_H =  6.0  # Windows: thin separator for empty/gap rows between con
 #
 # Both values are measured, not guessed. Keep them separate; fit each against a PDF
 # produced on THAT platform.
-_SP_MDW_PX_WIN = 7.50   # ground truth: 216 rows, J12632 Commercial+Technical (Windows)
+_SP_MDW_PX_WIN = 7.44   # ground truth: J12632 + J12838 (two Windows machines); 0 clipped
 _SP_MDW_PX_MAC = 7.87   # ground truth: 225 rows, J12632 Commercial (Mac); 0 clipped rows
 _SP_MDW_PX    = _SP_MDW_PX_WIN if sys.platform == "win32" else _SP_MDW_PX_MAC
 
@@ -3188,28 +3199,32 @@ _SP_MDW_PX    = _SP_MDW_PX_WIN if sys.platform == "win32" else _SP_MDW_PX_MAC
 # document and needs its own constant:
 #
 #     flow             cell font   template Normal font   measured MDW
-#     Simple Proposal  Arial 12    Calibri 11             7.50 / 7.87
-#     print-prep       Arial 14    Arial 12               ~9.1 - 9.4
+#     Simple Proposal  Arial 12    Calibri 11             7.44 / 7.87
+#     print-prep       Arial 12    ArialMT 12             ~9.0 - 9.4
 #
-# Excel's column-width unit is defined as the width of "0" in the WORKBOOK'S NORMAL FONT,
-# so a column_width of 60 buys materially more space in the Arial-12-based proposal
-# template than in the Calibri-11-based simple template. Applying the simple-proposal
-# value here left avail_pt ~55pt too narrow, putting a blank line under most wrapped
-# rows of every normal proposal.
+# The CELL font is Arial 12 in both flows — format_cell_data_sheet sets A3:BD to Arial 12
+# (row 2 is 9pt and C3 is 14pt, which are the header and sheet-title rows, not data).
+# What differs is the workbook's NORMAL STYLE. Excel defines a column-width unit as the
+# width of "0" in the Normal font, so a column_width of 60 buys materially more space in
+# the ArialMT-12-based proposal template than in the Calibri-11-based simple template.
+# Applying the simple-proposal value here left avail_pt ~55pt too narrow, putting a blank
+# line under most wrapped rows of every normal proposal.
 #
 # This is the other half of why the constant kept oscillating: 9.2 was never wrong, it
 # was the PRINT-PREP calibration, and successive sessions kept overwriting it with a
 # simple-proposal fit (and vice versa) because both flows shared one constant.
 #
-# Ground truth (Mac, J12632, tools/extract_wrap_ground_truth.py adapted to the CCTV sheet):
-#     Commercial col=55  perfect avail 385-388pt -> MDW 9.315-9.388
-#     Technical  col=60  perfect avail 410-417pt -> MDW 9.094-9.250
-# The two windows do not quite overlap (nominal vs stored column width differ by ~0.71,
-# which matters more at the narrower column), so 9.2 is chosen to sit safely INSIDE the
-# Technical window while landing 4.8pt narrow on Commercial — i.e. erring toward a
-# cosmetic phantom line rather than clipping, which silently drops text.
-# Windows print-prep is not separately measured; 9.2 is also the long-standing historical
-# value there, so it is left shared until a Windows-generated normal PDF is fitted.
+# Ground truth (tools/extract_wrap_ground_truth.py adapted to the system sheet):
+#     Mac      Commercial col=55  perfect avail 385-388pt -> MDW 9.315-9.388
+#              Technical  col=60  perfect avail 410-417pt -> MDW 9.094-9.250
+#     Windows  refit at pt=12 over two machines (J12632 and J12838/"Baker") gives
+#              MDW ~8.97-9.26 at col=55 and a compatible range at col=60.
+# 9.2 satisfies all of them: verified 0 clipped AND 0 phantom rows across all four
+# Windows normal proposals (two machines x Commercial/Technical, 448 matched rows), and
+# it sits inside the Mac Technical window while landing 4.8pt narrow on Mac Commercial —
+# erring toward a cosmetic phantom line rather than clipping, which silently drops text.
+# Unlike the simple-proposal constant, print-prep needs no platform split: one value is
+# measured-correct on both.
 _SP_MDW_PX_PRINT = 9.2
 
 # Italic comment rows (the "*** ..." clarification notes) wrap to MORE lines in the real

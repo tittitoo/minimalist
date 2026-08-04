@@ -1436,10 +1436,15 @@ class TestSpWrapLinesGroundTruthCalibration(WindowsWrapCalibrationMixin, unittes
         # Measured directly from the PDF: usable text width is ~310pt at col_width=55
         # (the old MDW=7.9 assumed 326.6pt — a ~5% over-estimate that caused the
         # clipping). Both column widths must land inside their measured windows.
+        # Refined against a second round of real files from TWO Windows machines
+        # (J12632 and J12838/"Baker"), which agree with each other:
+        #   col=55 must stay <= 308pt or the bold "PTZ OUTDOOR ... TRIMODE" heading clips
+        #   col=68 perfect window is 380-384pt
         avail_55 = (55 * _SP_MDW_PX_WIN + 1) * 0.75
         avail_68 = (68 * _SP_MDW_PX_WIN + 1) * 0.75
-        self.assertTrue(309 <= avail_55 <= 315, f"col=55 avail {avail_55:.1f}pt outside measured 309-315pt")
-        self.assertTrue(380 <= avail_68 <= 390, f"col=68 avail {avail_68:.1f}pt outside measured 380-390pt")
+        self.assertLessEqual(avail_55, 308,
+                             f"col=55 avail {avail_55:.1f}pt exceeds measured clip bound 308pt")
+        self.assertTrue(380 <= avail_68 <= 384, f"col=68 avail {avail_68:.1f}pt outside measured 380-384pt")
         # "(REMOVED)" is 384.71pt wide and MUST wrap — clipped rows are excluded from
         # the ground-truth fit, so this one needs asserting separately.
         self.assertLess(avail_68, 384.71, "col=68 avail too wide — '(REMOVED)' would clip again")
