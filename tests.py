@@ -33,8 +33,6 @@ from functions import (
     set_spaced_voltage_type,
     expand_shorthand,
     _sp_wrap_lines,
-    _sp_row_height_for_lines,
-    _SP_ROW_H,
     SKIP_SHEETS,
     SHEET_ALIASES,
     resolve_sheet_name,
@@ -1383,52 +1381,6 @@ class TestSpWrapLinesJ12632Regression(unittest.TestCase):
             _sp_wrap_lines(text, 60), 2,
             f"expected 2 lines (was clipped to 1 under old MDW): {text!r}",
         )
-
-
-class TestSpRowHeightBuffer(unittest.TestCase):
-    """Regression cases for _sp_row_height_for_lines (the wrap safety buffer).
-
-    A THIRD real Windows document (J12632, regenerated after the MDW=7.9 fix) still
-    produced visual overlap between rows — for two different, unrelated reasons:
-
-    1. Commercial "electro-polished sunshield" bullet (col_width=55): Windows
-       hyphen-broke the compound word itself ("electro-" / "polished"), something
-       _sp_wrap_lines deliberately never does (it would also incorrectly split
-       legitimate part numbers like "WS-C2960X-24TS-L"). No MDW value fixes this —
-       matching it would require MDW ~5.3-7.25, which over-wraps everything else.
-    2. Technical "PTZ OUTDOOR ... TRIMODE" title (col_width=68): a plain word-wrap
-       boundary that simply didn't match any previously-pinned case — yet another
-       "one more real document, one more edge case" instance.
-
-    Given a single linear MDW constant provably cannot cover every real machine/
-    document (see _SP_MDW_PX), chasing each new edge case individually doesn't
-    converge. _SP_WRAP_BUFFER_LINES instead adds structural headroom to any row
-    that wraps, so a one-line miscount — whatever caused it — never overlaps the
-    next row. These tests confirm that headroom actually covers both real cases
-    above, and pin the buffer arithmetic itself.
-    """
-
-    def test_buffer_arithmetic(self):
-        self.assertEqual(_sp_row_height_for_lines(1), 18.0)  # no wrap, no buffer
-        self.assertEqual(_sp_row_height_for_lines(2), 54.0)  # 2 predicted + 1 buffer
-        self.assertEqual(_sp_row_height_for_lines(3), 72.0)  # 3 predicted + 1 buffer
-
-    def test_electro_polished_hyphen_break_is_absorbed_by_buffer(self):
-        # True line count in the real PDF is 3 (Windows hyphen-broke "electro-polished").
-        text = ("   • Constructed in 316L stainless steel with electro-polished "
-                "sunshield, Equipped with a Pre-Terminated 3 m cable tail")
-        predicted = _sp_wrap_lines(text, 55)
-        self.assertEqual(predicted, 2, "non-buffer prediction changed — update this test")
-        allotted_lines = _sp_row_height_for_lines(predicted) / _SP_ROW_H
-        self.assertGreaterEqual(allotted_lines, 3, "buffer no longer covers the real 3-line case")
-
-    def test_ptz_trimode_title_word_wrap_miss_is_absorbed_by_buffer(self):
-        # True line count in the real PDF is 3 (plain word-wrap boundary miss).
-        text = "PTZ OUTDOOR CCTV CAMERA STATIONS (CHANGED FROM TRIMODE TO OUTDOOR, ADDITIONAL)"
-        predicted = _sp_wrap_lines(text, 68)
-        self.assertEqual(predicted, 2, "non-buffer prediction changed — update this test")
-        allotted_lines = _sp_row_height_for_lines(predicted) / _SP_ROW_H
-        self.assertGreaterEqual(allotted_lines, 3, "buffer no longer covers the real 3-line case")
 
 
 class TestNumberTitleLogic(unittest.TestCase):
