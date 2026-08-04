@@ -1916,7 +1916,7 @@ def _set_wrap_row_heights(sheet, col_width=55):
         italic = text.startswith("***")
         lines = _sp_wrap_lines(text, col_width, italic=italic)
         row_num = i + 2
-        sheet.range(f"{row_num}:{row_num}").row_height = _SP_ROW_H * lines
+        sheet.range(f"{row_num}:{row_num}").row_height = _sp_row_height_for_lines(lines)
 
 
 def adjust_columns(sheet):
@@ -3142,6 +3142,29 @@ _SP_MDW_PX    = 7.9
 # and re-run the full regression suite rather than eyeballing a single new failure.
 _SP_ITALIC_INFLATE = 1.030
 
+# Safety headroom added to any row _sp_wrap_lines predicts as 2+ lines, on top of the
+# predicted height. Three separate real Windows documents (see _SP_MDW_PX history) each
+# turned up a NEW way for _sp_wrap_lines to under-predict by exactly one line — a
+# hyphen-broken compound word ("electro-polished") the simulator can't replicate without
+# risking breaking legitimate hyphenated part numbers, and a plain word-wrap boundary that
+# didn't match any previously-pinned case. No single MDW value converges on all real
+# machines/documents (proven — see _SP_MDW_PX), so this stops chasing exact-line precision
+# and instead absorbs a one-line miss structurally: costs a bit of extra whitespace on rows
+# that wrap, in exchange for the next row never overlapping/bleeding into it regardless of
+# what caused the misprediction. Single-line rows are untouched (no wrap = no boundary to
+# get wrong, and doubling every single-line row's height would bloat every proposal).
+_SP_WRAP_BUFFER_LINES = 1
+
+
+def _sp_row_height_for_lines(lines: int) -> float:
+    """Row height for a cell _sp_wrap_lines predicted to need `lines` lines.
+
+    Adds _SP_WRAP_BUFFER_LINES of headroom whenever the row actually wraps (lines > 1) —
+    see _SP_WRAP_BUFFER_LINES for why.
+    """
+    buffer_lines = _SP_WRAP_BUFFER_LINES if lines > 1 else 0
+    return _SP_ROW_H * (lines + buffer_lines)
+
 
 def _format_iso_date(val):
     """Return val as YYYY-MM-DD string if it is a date/datetime; else return as-is."""
@@ -3838,7 +3861,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
                 _italic = str(_desc).strip().startswith("***")
                 _lines = _sp_wrap_lines(_desc, _c_w, italic=_italic)
                 if _lines > 1:
-                    ps.range(f"{data_start + _ri}:{data_start + _ri}").row_height = _SP_ROW_H * _lines
+                    ps.range(f"{data_start + _ri}:{data_start + _ri}").row_height = _sp_row_height_for_lines(_lines)
 
         if tc_lines:
             ps.range(f"{tc_start}:{tc_end}").rows.autofit()
