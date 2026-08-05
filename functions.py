@@ -3244,7 +3244,20 @@ _SP_MDW_PX    = _SP_MDW_PX_WIN if sys.platform == "win32" else _SP_MDW_PX_MAC
 # erring toward a cosmetic phantom line rather than clipping, which silently drops text.
 # Unlike the simple-proposal constant, print-prep needs no platform split: one value is
 # measured-correct on both.
-_SP_MDW_PX_PRINT = 9.2
+#
+# 9.2 -> 9.0 after J12831 (BALWIN 5 HVADC OSS - ACS) clipped one row on Windows:
+# "   • Nominal Voltage 230 VAC ±10%, 50 Hz (115 VAC, 60 Hz Optional)" is 374.70pt wide
+# and must wrap, but avail at 9.2 was 380.25pt so it was predicted to fit on one line and
+# "Optional)" was dropped. Measuring that PDF's actual column geometry put the real usable
+# width at ~379pt against our assumed 380.25 — 9.2 sat just over the edge.
+# Note the font model was NOT at fault: our Helvetica widths reproduced the real Arial
+# rendering of these lines to within 0.4%, including the '±' and '•' glyphs.
+# Constraint intersection across every measured normal-flow document:
+#     J12831 col=55 fit          8.879-9.145   (plus the clipped row above: < 9.066)
+#     J12632 col=55 / col=60     8.952-9.291 / 8.850-9.361
+#     J12838 col=55 / col=60     8.952-9.388 / 8.850-9.894
+#   => usable window 8.952-9.066; 9.0 sits inside it, 9.2 does not.
+_SP_MDW_PX_PRINT = 9.0
 
 # Italic comment rows (the "*** ..." clarification notes) wrap to MORE lines in the real
 # PDF than _sp_wrap_lines predicts, so the row — sized for the smaller count — clips its

@@ -1465,24 +1465,47 @@ class TestSpWrapLinesGroundTruthCalibration(WindowsWrapCalibrationMixin, unittes
                            "Mac fits more text per line than Windows — do not collapse these")
 
     def test_print_prep_calibration_is_separate_from_simple_proposal(self):
-        # The normal Commercial/Technical flow renders a different document: Arial 14
-        # cells in an Arial-12-Normal template, versus Arial 12 in a Calibri-11-Normal
-        # one. Excel sizes a column in units of the Normal font's "0", so the same
-        # column_width buys more room there. Measured on Mac (J12632):
-        #     Commercial col=55 perfect avail 385-388pt -> MDW 9.315-9.388
-        #     Technical  col=60 perfect avail 410-417pt -> MDW 9.094-9.250
-        # 9.2 sits inside the Technical window and slightly narrow on Commercial —
-        # erring toward a cosmetic phantom line rather than clipping.
+        # The normal Commercial/Technical flow renders a different document. The CELL
+        # font is Arial 12 in both flows; what differs is the workbook's Normal style
+        # (ArialMT 12 here vs Calibri 11 in the simple template). Excel sizes a column
+        # in units of the Normal font's "0", so the same column_width buys more room
+        # here. Constraint intersection across every measured document:
+        #     J12831 col=55 fit       8.879-9.145  (+ clipped row below: < 9.066)
+        #     J12632 col=55 / col=60  8.952-9.291 / 8.850-9.361
+        #     J12838 col=55 / col=60  8.952-9.388 / 8.850-9.894
+        #   => usable window 8.952-9.066
         avail_60 = (60 * _SP_MDW_PX_PRINT + 1) * 0.75
         avail_55 = (55 * _SP_MDW_PX_PRINT + 1) * 0.75
-        self.assertTrue(410 <= avail_60 <= 417,
-                        f"print-prep col=60 avail {avail_60:.1f}pt outside measured 410-417pt")
-        self.assertLessEqual(avail_55, 388,
-                             f"print-prep col=55 avail {avail_55:.1f}pt exceeds measured 388pt — clipping risk")
+        self.assertTrue(399 <= avail_60 <= 422,
+                        f"print-prep col=60 avail {avail_60:.1f}pt outside measured 399-422pt")
+        self.assertTrue(370 <= avail_55 <= 378,
+                        f"print-prep col=55 avail {avail_55:.1f}pt outside measured 370-378pt")
         # Sharing one constant between the two flows is what caused the long
         # 8.0/8.8/9.2/7.9/7.5 oscillation. Keep them apart.
         self.assertNotEqual(_SP_MDW_PX_PRINT, _SP_MDW_PX_WIN)
         self.assertNotEqual(_SP_MDW_PX_PRINT, _SP_MDW_PX_MAC)
+
+    def test_j12831_nominal_voltage_row_wraps(self):
+        # J12831 (BALWIN 5 HVADC OSS - ACS), Windows: this row is 374.70pt wide and must
+        # wrap, but at MDW=9.2 avail was 380.25pt so it was predicted to fit on one line
+        # and "Optional)" was silently dropped from the PDF.
+        #
+        # It is pinned explicitly because the ground-truth fit CANNOT see it: a clipped
+        # row's rendered text no longer matches its source cell, so it is excluded from
+        # the matched set. The fit looked perfect at 9.2 on this very document while this
+        # row was broken. Every known clip case needs an assertion of its own.
+        text = "   • Nominal Voltage 230 VAC ±10%, 50 Hz (115 VAC, 60 Hz Optional)"
+        self.assertEqual(_sp_wrap_lines(text, 55, mdw=_SP_MDW_PX_PRINT), 2)
+
+    def test_non_ascii_glyphs_are_measured_not_ignored(self):
+        # The J12831 row contains '±' and '•'. Measuring against the real PDF showed our
+        # Helvetica widths reproduce the actual Arial rendering to within 0.4%, so these
+        # glyphs are handled correctly — the clipping was purely an avail_pt problem.
+        # Guard against a future font/encoding change silently measuring them as zero.
+        from reportlab.pdfbase.pdfmetrics import stringWidth
+        for ch in ("±", "•", "×", "%"):
+            self.assertGreater(stringWidth(ch, "Helvetica", 12), 0,
+                               f"glyph {ch!r} measured as zero width")
 
     def test_bold_headings_are_measured_with_bold_metrics(self):
         # Title/System/Subsystem rows render bold, and Arial Bold is genuinely wider.
