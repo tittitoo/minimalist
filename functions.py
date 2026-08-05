@@ -5256,7 +5256,9 @@ def format_cell_data_sheet(sheet):
         # automatically, so the two looked inconsistent side by side. Forcing right
         # alignment on the whole column fixes the text rows and is a no-op on the
         # already-right-aligned numeric ones.
-        set_range_alignment(sheet.range(f"A1:A{lr}"), horizontal="right")
+        # Scoped to A3: onward, matching data_range above — rows 1-2 are header rows
+        # and must not be touched.
+        set_range_alignment(sheet.range(f"A3:A{lr}"), horizontal="right")
 
         # Accounting format columns - batch adjacent columns together
         sheet.range(f"F1:G{lr}").number_format = ACCOUNTING
