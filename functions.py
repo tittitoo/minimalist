@@ -3964,11 +3964,7 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # Top-align all columns so numbers/qty/scope sit at the top of wrapped rows
         set_range_alignment(ps.range(f"A{data_start}:H{r - 1}"), vertical="top")
         # Right-align No. column (A) so sub-numbers (.1) and integers align flush right
-        if sys.platform == "win32":
-            try:
-                ps.range(f"A{data_start}:A{r - 1}").api.HorizontalAlignment = -4152
-            except Exception:
-                pass
+        set_range_alignment(ps.range(f"A{data_start}:A{r - 1}"), horizontal="right")
 
         # Reset all column widths to their final values BEFORE autofit so that row
         # heights are calculated at the correct widths. On Mac, xlwings inflates
@@ -5252,6 +5248,15 @@ def format_cell_data_sheet(sheet):
         # Integer format columns
         sheet.range(f"A1:B{lr}").number_format = "0"
         sheet.range(f"D1:D{lr}").number_format = "0"
+
+        # number_title() writes sub-item numbers as "⠠" + count (e.g. "⠠1"), which a
+        # custom font renders as ".1" — but since the cell value starts with that
+        # character rather than a digit, Excel stores it as text and left-aligns it by
+        # default. Main title numbers (4, 5, ...) are real numbers and right-align
+        # automatically, so the two looked inconsistent side by side. Forcing right
+        # alignment on the whole column fixes the text rows and is a no-op on the
+        # already-right-aligned numeric ones.
+        set_range_alignment(sheet.range(f"A1:A{lr}"), horizontal="right")
 
         # Accounting format columns - batch adjacent columns together
         sheet.range(f"F1:G{lr}").number_format = ACCOUNTING
