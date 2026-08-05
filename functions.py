@@ -4037,8 +4037,15 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         # section, replace it with a literal ISO date — see _replace_date_field_iso.
         _replace_date_field_iso(ps)
         # Footer: "Page X of Y" centered, Arial 10 (template also carries this)
+        # sheet.api.PageSetup has no Mac equivalent (appscript raises
+        # AttributeError: 'PageSetup' — same failure _replace_date_field_iso above
+        # works around) so this silently did nothing on Mac despite the try/except
+        # hiding it. sheet.page_setup.api is xlwings' cross-platform escape hatch.
         try:
-            ps.api.PageSetup.CenterFooter = '&"Arial,Regular"&10Page &P of &N'
+            if sys.platform == "win32":
+                ps.api.PageSetup.CenterFooter = '&"Arial,Regular"&10Page &P of &N'
+            else:
+                ps.page_setup.api.center_footer.set('&"Arial,Regular"&10Page &P of &N')
         except Exception:
             pass
 
@@ -5156,18 +5163,55 @@ def _replace_date_field_iso(sheet):
     contain "&D" are touched, so this is a no-op wherever it's absent (e.g.
     the "Page &P of &N" footer set elsewhere, which never contains &D) and
     self-adapts if the template's header text changes later.
+
+    The Page Setup dialog displays this field as "&[Date]", but the value
+    actually stored (confirmed live: xlwings' sheet.page_setup.api.left_header
+    on a real header reading 'DATE: &[Date]' in the UI) is still the legacy
+    "&D" code — the dialog just prettifies it for display. So "&D" is the
+    right substring to match on both platforms; only the ACCESS METHOD
+    differs, which is what this function branches on:
+
+    Windows COM exposes header/footer text as plain string properties
+    (sheet.api.PageSetup.LeftHeader). Mac appscript has no "PageSetup"
+    attribute on the raw sheet API at all — sheet.api.PageSetup raises
+    KeyError('PageSetup') and crashes the whole print-prep flow, since that
+    line wasn't wrapped in try/except. xlwings' own sheet.page_setup.api is
+    the correct cross-platform escape hatch to the native page-setup object;
+    on Mac it returns appscript references (snake_case attribute names) that
+    must be read with .get() and written with .set(), the same pattern
+    already used elsewhere in this module for Mac-only properties like
+    strikethrough and alignment.
     """
     iso_date = datetime.today().strftime("%Y-%m-%d")
-    ps = sheet.api.PageSetup
-    for attr in ("LeftHeader", "CenterHeader", "RightHeader",
-                 "LeftFooter", "CenterFooter", "RightFooter"):
+    # (Windows COM attribute, Mac appscript attribute) pairs.
+    attrs = [
+        ("LeftHeader", "left_header"), ("CenterHeader", "center_header"),
+        ("RightHeader", "right_header"), ("LeftFooter", "left_footer"),
+        ("CenterFooter", "center_footer"), ("RightFooter", "right_footer"),
+    ]
+    if sys.platform == "win32":
         try:
-            current = getattr(ps, attr)
+            ps = sheet.api.PageSetup
         except Exception:
-            continue
-        if current and "&D" in current:
+            return
+        for com_attr, _ in attrs:
             try:
-                setattr(ps, attr, current.replace("&D", iso_date))
+                current = getattr(ps, com_attr)
+                if current and "&D" in current:
+                    setattr(ps, com_attr, current.replace("&D", iso_date))
+            except Exception:
+                pass
+    else:
+        try:
+            ps = sheet.page_setup.api
+        except Exception:
+            return
+        for _, mac_attr in attrs:
+            try:
+                ref = getattr(ps, mac_attr)
+                current = ref.get()
+                if current and "&D" in current:
+                    ref.set(current.replace("&D", iso_date))
             except Exception:
                 pass
 
