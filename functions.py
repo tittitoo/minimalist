@@ -4033,6 +4033,9 @@ def simple_proposal(wb, mode="commercial", show_pdf=True):
         ps.page_setup.print_area = f"A1:H{r - 1}"
         ps.page_setup.fit_to_width = True
         ps.page_setup.center_horizontally = True
+        # If Template_simple.xlsx has an &D date field baked into any header/footer
+        # section, replace it with a literal ISO date — see _replace_date_field_iso.
+        _replace_date_field_iso(ps)
         # Footer: "Page X of Y" centered, Arial 10 (template also carries this)
         try:
             ps.api.PageSetup.CenterFooter = '&"Arial,Regular"&10Page &P of &N'
@@ -5137,6 +5140,38 @@ def convert_legacy(wb):
         xw.apps.active.alert("The excel file does not seem to be legacy template.")  # type: ignore
 
 
+def _replace_date_field_iso(sheet):
+    """Replace Excel's &D header/footer date field with a literal ISO date.
+
+    &D always renders in the OS/Excel locale's short-date format. Some users'
+    machines show that as US M/D/YY due to IT-managed regional settings that
+    can't be changed, while the Cover page's own DATE field is written as a
+    literal ISO string (see datetime.today().strftime("%Y-%m-%d") elsewhere in
+    this module) — so the two dates on the same proposal disagreed in format.
+    Excel provides no way to force a specific format on &D itself, so this
+    substitutes it for a fixed literal string at print/export time instead.
+
+    Read-modify-write against whatever is actually in each header/footer
+    section, rather than assuming a known label/position: only sections that
+    contain "&D" are touched, so this is a no-op wherever it's absent (e.g.
+    the "Page &P of &N" footer set elsewhere, which never contains &D) and
+    self-adapts if the template's header text changes later.
+    """
+    iso_date = datetime.today().strftime("%Y-%m-%d")
+    ps = sheet.api.PageSetup
+    for attr in ("LeftHeader", "CenterHeader", "RightHeader",
+                 "LeftFooter", "CenterFooter", "RightFooter"):
+        try:
+            current = getattr(ps, attr)
+        except Exception:
+            continue
+        if current and "&D" in current:
+            try:
+                setattr(ps, attr, current.replace("&D", iso_date))
+            except Exception:
+                pass
+
+
 def page_setup(wb):
     for sheet in wb.sheets:
         sheet.page_setup.center_horizontally = True
@@ -5148,6 +5183,7 @@ def page_setup(wb):
         sheet.page_setup.header_margin = 0.3  # in inches
         sheet.page_setup.footer_margin = 0.3  # in inches
         sheet.page_setup.fit_to_width = True
+        _replace_date_field_iso(sheet)
         if sheet.name in ["Technical_Notes", "TN", "T&C"]:
             sheet.range("A:A").column_width = 2
             sheet.range("B:B").autofit()
