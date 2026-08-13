@@ -388,6 +388,14 @@ class _MockScopeFont:
     def color(self, value):
         self._sink.append((self._addr, "color", value))
 
+    @property
+    def underline(self):
+        raise NotImplementedError
+
+    @underline.setter
+    def underline(self, value):
+        self._sink.append((self._addr, "underline", value))
+
 
 class _MockScopeRange:
     def __init__(self, addr, value=None, sink=None):
@@ -506,6 +514,17 @@ class TestApplyScopeStyle(unittest.TestCase):
         sheet = MockScopeSheet([])
         apply_scope_style(sheet)
         self.assertEqual(sheet.calls, [])
+
+    def test_clears_stray_underline_on_every_row(self):
+        # Nothing in this pipeline ever sets underline intentionally, so this pass
+        # must scrub any that a cell picked up (manual edit, copy/paste, etc.).
+        sheet = MockScopeSheet(
+            h_values=["", "OPTION"],
+            al_values=["Description", "Title"],
+        )
+        apply_scope_style(sheet)
+        underline_calls = {addr: val for addr, prop, val in sheet.calls if prop == "underline"}
+        self.assertEqual(underline_calls, {"H3:H3": False, "H4:H4": False})
 
 
 class TestSetDegreeUnit(unittest.TestCase):

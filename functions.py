@@ -1739,7 +1739,7 @@ def fill_formula(sheet):
                 # AD: RSPQ
                 '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")',
                 # AE: UPLS
-                '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")',
+                '=IF(AND(D3<>"",K3<>""), IF(ISNUMBER(AB3), AB3, AC3),"")',
                 # AF: SPLS
                 '=IF(AND(D3<>0,K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
                 # AG: Profit
@@ -4148,7 +4148,11 @@ def apply_scope_style(sheet):
     (column AL) is "Title" — matching that row's own bold weight from column C's
     row-type styling — so a sub-item Description/Lineitem row with a Scope value
     reads in its color at regular weight, not bold. REMOVED additionally gets
-    strikethrough on every row regardless of Title/non-Title.
+    strikethrough on every row regardless of Title/non-Title. Underline is always
+    cleared: nothing in this pipeline ever sets it intentionally, so any cell that
+    picked one up (manual edit, copy/paste, row insert) would otherwise persist
+    forever — this is the one pass that runs on every Fix Workbook and touches
+    every H-column cell, so it's where stray underline gets scrubbed.
 
     Deliberately direct cell formatting, not Conditional Formatting: Excel's
     FormatConditions collection isn't exposed via AppleScript at all on Mac, so
@@ -4192,6 +4196,7 @@ def apply_scope_style(sheet):
         color, bold, strikethrough = state
         rng.font.color = color
         rng.font.bold = bold
+        rng.font.underline = False
         set_range_strikethrough(rng, strikethrough)
         start = end + 1
 

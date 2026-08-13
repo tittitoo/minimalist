@@ -69,7 +69,7 @@ FORMULAS = {
     "AD": '=IF(AND(D3<>"",K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AC3,"")',
 
     # AE: UPLS (Unit Price Lumpsum)
-    "AE": '=IF(AND(D3<>"",K3<>""), IF(AB3<>"", AB3, AC3),"")',
+    "AE": '=IF(AND(D3<>"",K3<>""), IF(ISNUMBER(AB3), AB3, AC3),"")',
 
     # AF: SPLS (Subtotal Price Lumpsum)
     "AF": '=IF(AND(D3<>0,K3<>"", H3<>"OPTION", H3<>"INCLUDED", H3<>"WAIVED", H3<>"REMOVED",INDEX($H$1:H2, XMATCH("Title", $AL$1:AL2, 0, -1))<>"OPTION"), D3*AE3,"")',
@@ -240,7 +240,7 @@ class TestPricingFormulas(unittest.TestCase):
     def test_formula_AE_UPLS(self):
         """AE: Unit Price Lumpsum - uses fixed price if available"""
         formula = FORMULAS["AE"]
-        self.assertIn('IF(AB3<>""', formula)
+        self.assertIn("IF(ISNUMBER(AB3)", formula)
         self.assertIn("AB3", formula)  # Fixed price column
         self.assertIn("AC3", formula)  # Fallback to calculated
 
