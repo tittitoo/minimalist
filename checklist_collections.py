@@ -173,6 +173,9 @@ the form as many times as necessary throughout the project tendering lifecycle.
 
 
 # Handover checklist
+hote = [
+    "Mark the project won and fill up the necessary information.",
+]
 rfqs = [  # type: ignore
     """Produce the contract version of the costing sheet:
 (1) fix unit prices (FUP), 

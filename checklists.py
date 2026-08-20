@@ -1,4 +1,4 @@
-""" 
+"""
 Creating checklists. This may later be turned into a class.
 © Thiha Aung (infowizard@gmail.com)
 """
@@ -98,13 +98,13 @@ def generate_combined_checklist(
     c.setFont(font, font_size)
 
     global LAST_POSITION
-    LAST_POSITION = (0, FIRST_NORMAL_LINE)  # type:ignore
+    LAST_POSITION = (0, FIRST_NORMAL_LINE)  # type: ignore
     for item in checklists:
         item = item.lower().replace("-", "_")
         initial = 0
         try:
             checklist = getattr(cc, item)
-            LAST_POSITION = draw_title(  # type:ignore
+            LAST_POSITION = draw_title(  # type: ignore
                 c,
                 item.upper().replace("_", " "),
                 initial=initial,
@@ -190,7 +190,7 @@ def draw_title(
 ) -> tuple:
     global LAST_POSITION
     LAST_POSITION = (initial, y)
-    c.saveState()
+    prev_font_name, prev_font_size = c._fontname, c._fontsize
     c.setFont("Helvetica-Bold", font_size)
     wrap_width = WORD_WRAP
     for line in wrap(text, wrap_width):
@@ -204,7 +204,7 @@ def draw_title(
             put_logo(c)
             c.setFont(font, font_size)
             y = TITLE_LINE
-    c.restoreState()
+    c.setFont(prev_font_name, prev_font_size)
     return (initial, y)
 
 
@@ -473,7 +473,7 @@ def produce_checklist(
                 checklist,
                 x,
                 initial=LAST_POSITION[0],
-                y=LAST_POSITION[1],  # type:ignore
+                y=LAST_POSITION[1],  # type: ignore
                 font=font,
                 font_size=font_size,
                 color=color,
@@ -489,7 +489,7 @@ def produce_checklist(
                 font=font,
                 font_size=font_size,
                 color=color,
-            )  # type:ignore
+            )  # type: ignore
         if isinstance(checklist, tuple):
             LAST_POSITION = draw_textfield(
                 c,
@@ -500,7 +500,7 @@ def produce_checklist(
                 font=font,
                 font_size=font_size,
                 color=color,
-            )  # type:ignore
+            )  # type: ignore
         if isinstance(checklist, list):
             produce_checklist(
                 c,
@@ -682,7 +682,7 @@ def generate_handover_checklist(
     put_logo(c)
     c.setFont("Helvetica-Bold", 15)
     c.drawCentredString(c._pagesize[0] / 2, TITLE_LINE, title.upper())
-    c.setFont("Helvetica", font_size - 1)
+    c.setFont("Helvetica", font_size - 2)
     c.drawString(LEFT_MARGIN, 700, job_title.upper())
     c.setFont("Helvetica-Bold", font_size)
     c.setFillColor(blue)
@@ -695,6 +695,7 @@ def generate_handover_checklist(
     global LAST_POSITION
     LAST_POSITION = (0, 660)
     checklist_titles = [
+        "hote",
         "@rfqs",
         "@handover",
         "@costing",
@@ -710,15 +711,20 @@ def generate_handover_checklist(
                     (item + " folder"),
                     initial=initial,
                     y=LAST_POSITION[1],
+                    color=color,
                 )
             else:
                 checklist = getattr(cc, item.lower())
                 # print(checklist)
+                display_title = {"hote": "General"}.get(
+                    item.lower(), item.capitalize().replace("_", " ")
+                )
                 LAST_POSITION = draw_title(
                     c,
-                    item.capitalize().replace("_", " "),
+                    display_title,
                     initial=initial,
                     y=LAST_POSITION[1],
+                    color=color,
                 )
             produce_checklist(
                 c,
