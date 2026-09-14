@@ -911,6 +911,7 @@ def standardize_lsoh_acronym(text):
     return re.sub(r"\bLSOH\b", "LSZH", text, flags=re.IGNORECASE)
 
 
+_WHITESPACE_RE = re.compile(r"\s")
 _SPACED_CAT_STANDARD_RE = re.compile(r"\bcat\.?\s*(5\s?e|6\s?a|6\s?e|5|6|7|8)\b", re.IGNORECASE)
 
 
@@ -926,7 +927,7 @@ def collapse_spaced_cat_standard(text):
     are tried before their bare-digit prefix (5/6) so e.g. "Cat 6 A" doesn't get grabbed
     by the "6" alternative first, leaving a dangling "a" behind.
     """
-    return _SPACED_CAT_STANDARD_RE.sub(lambda m: f"cat{re.sub(r'\s', '', m.group(1))}", text)
+    return _SPACED_CAT_STANDARD_RE.sub(lambda m: "cat" + _WHITESPACE_RE.sub("", m.group(1)), text)
 
 
 _DEGREE_UNIT_RE = re.compile(
