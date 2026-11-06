@@ -241,11 +241,16 @@ def set_workbook_window_visible(wb, visible: bool) -> None:
 
 def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
     """
-    Save workbook handling macOS AppleScript path limitations.
+    Save workbook handling macOS AppleScript path limitations and sandbox prompts.
 
-    On macOS, paths with special characters (like @) cause AppleScript errors.
-    This function saves to ~/Downloads (which Excel has access to), then
-    moves to the final destination using Python.
+    On macOS, paths with special characters (like @) cause AppleScript errors,
+    and — separately — any folder outside Excel's sandbox-exempt locations
+    (Desktop, Documents, Downloads, Pictures, Movies, Music) triggers a "Grant
+    File Access" Powerbox prompt the first time Excel writes a new filename
+    there, even if the user already opened the source file from that same
+    folder. This function always saves to ~/Downloads (sandbox-exempt, so
+    Excel never needs a grant) then moves to the final destination using
+    Python, which isn't sandboxed and so never prompts.
 
     Args:
         wb: xlwings Workbook object
@@ -255,15 +260,16 @@ def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
     Returns:
         The final path where the file was saved
     """
-    if sys.platform == "darwin" and _has_problematic_path_chars(full_path):
-        # macOS with problematic path - save to Downloads, then move.
+    if sys.platform == "darwin":
+        # macOS - save to Downloads, then move.
         # Downloads folder is accessible by Excel without permission dialogs.
         # Use the real filename (not a temp-prefixed name) so that wb.name in
         # Excel stays correct for subsequent operations (e.g. technical() needs
         # to see "Commercial ..." to pick the right code path).
         downloads = Path.home() / "Downloads"
         temp_path = downloads / full_path.name
-        if temp_path.exists():
+        same_path = temp_path.resolve() == full_path.resolve()
+        if temp_path.exists() and not same_path:
             temp_path.unlink()
         # Always pass password to SaveAs — even password="" explicitly clears
         # any inherited open-password from the source workbook. The earlier
@@ -272,6 +278,10 @@ def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
         # was caused by the osascript open lacking the password, not by saving
         # with password=""; that reopen is now fixed via _find_or_open_workbook.
         wb.save(temp_path, password=password)
+        if same_path:
+            # Target IS the Downloads temp path (source already lives there) —
+            # nothing to move.
+            return full_path
         # Move to final destination using Python (handles special chars fine)
         if full_path.exists():
             full_path.unlink()  # Remove existing file if present
@@ -297,19 +307,22 @@ def save_workbook_safe(wb, full_path: Path, password: str = "") -> Path:
 
 def to_pdf_safe(wb, pdf_path: Path, show: bool = True) -> None:
     """
-    Export workbook to PDF handling macOS AppleScript path limitations.
+    Export workbook to PDF handling macOS AppleScript path limitations and
+    sandbox prompts.
 
     On macOS, paths with special characters (like @) cause AppleScript -50
-    errors in wb.to_pdf(). This function exports to ~/Downloads with a temp
-    name, moves the file to the final destination using Python, then
-    optionally opens the PDF at its real path.
+    errors in wb.to_pdf(), and — separately — any folder outside Excel's
+    sandbox-exempt locations triggers a "Grant File Access" Powerbox prompt
+    (see save_workbook_safe). This function always exports to ~/Downloads
+    with a temp name, moves the file to the final destination using Python,
+    then optionally opens the PDF at its real path.
 
     Args:
         wb: xlwings Workbook object
         pdf_path: Target path for the PDF file
         show: Whether to open the PDF after saving
     """
-    if sys.platform == "darwin" and _has_problematic_path_chars(pdf_path):
+    if sys.platform == "darwin":
         downloads = Path.home() / "Downloads"
         temp_name = f"~xltemp_{os.getpid()}_{pdf_path.name}"
         temp_path = downloads / temp_name
